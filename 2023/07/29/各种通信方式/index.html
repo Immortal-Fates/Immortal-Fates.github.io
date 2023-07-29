@@ -20,30 +20,33 @@
     var CONFIG = {"hostname":"example.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
   </script>
 
-  <meta name="description" content="愿你生命中有更多的云翳，来造就一个美丽的黄昏">
-<meta property="og:type" content="website">
-<meta property="og:title" content="Immortal-Fates">
-<meta property="og:url" content="http://example.com/index.html">
+  <meta name="description" content="Main Takeaway了解及总结（同步通信-异步通信-全双工通信-串行通信-并行通信）各种通信方法 并行通信 and 串行通信并行通信Parallel communication 传输方式多个数据bit位同时传输 常用总线local bus,  DDR 特点 同时传输，效率高 数据线多，设计复杂  串行通信Serial communication  传输方式数据bit一位一位传输 常用总线lo">
+<meta property="og:type" content="article">
+<meta property="og:title" content="各种通信方式">
+<meta property="og:url" content="http://example.com/2023/07/29/%E5%90%84%E7%A7%8D%E9%80%9A%E4%BF%A1%E6%96%B9%E5%BC%8F/index.html">
 <meta property="og:site_name" content="Immortal-Fates">
-<meta property="og:description" content="愿你生命中有更多的云翳，来造就一个美丽的黄昏">
+<meta property="og:description" content="Main Takeaway了解及总结（同步通信-异步通信-全双工通信-串行通信-并行通信）各种通信方法 并行通信 and 串行通信并行通信Parallel communication 传输方式多个数据bit位同时传输 常用总线local bus,  DDR 特点 同时传输，效率高 数据线多，设计复杂  串行通信Serial communication  传输方式数据bit一位一位传输 常用总线lo">
 <meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2023-07-29T06:27:46.000Z">
+<meta property="article:modified_time" content="2023-07-29T06:28:39.965Z">
 <meta property="article:author" content="Immortal-Fates">
+<meta property="article:tag" content="-嵌入式 -通信">
 <meta name="twitter:card" content="summary">
 
-<link rel="canonical" href="http://example.com/">
+<link rel="canonical" href="http://example.com/2023/07/29/%E5%90%84%E7%A7%8D%E9%80%9A%E4%BF%A1%E6%96%B9%E5%BC%8F/">
 
 
 <script id="page-configurations">
   // https://hexo.io/docs/variables.html
   CONFIG.page = {
     sidebar: "",
-    isHome : true,
-    isPost : false,
+    isHome : false,
+    isPost : true,
     lang   : 'zh-CN'
   };
 </script>
 
-  <title>Immortal-Fates</title>
+  <title>各种通信方式 | Immortal-Fates</title>
   
 
 
@@ -163,9 +166,10 @@
         <div class="content-wrap">
           
 
-          <div class="content index posts-expand">
+          <div class="content post posts-expand">
             
-      
+
+    
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
@@ -181,10 +185,9 @@
       <meta itemprop="name" content="Immortal-Fates">
     </span>
       <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2023/07/29/%E5%90%84%E7%A7%8D%E9%80%9A%E4%BF%A1%E6%96%B9%E5%BC%8F/" class="post-title-link" itemprop="url">各种通信方式</a>
-        </h2>
+        <h1 class="post-title" itemprop="name headline">
+          各种通信方式
+        </h1>
 
         <div class="post-meta">
             <span class="post-meta-item">
@@ -217,7 +220,7 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h1 id="Main-Takeaway"><a href="#Main-Takeaway" class="headerlink" title="Main Takeaway"></a>Main Takeaway</h1><p>了解及总结（同步通信-异步通信-全双工通信-串行通信-并行通信）各种通信方法</p>
+        <h1 id="Main-Takeaway"><a href="#Main-Takeaway" class="headerlink" title="Main Takeaway"></a>Main Takeaway</h1><p>了解及总结（同步通信-异步通信-全双工通信-串行通信-并行通信）各种通信方法</p>
 <h1 id="并行通信-and-串行通信"><a href="#并行通信-and-串行通信" class="headerlink" title="并行通信 and 串行通信"></a>并行通信 and 串行通信</h1><h2 id="并行通信"><a href="#并行通信" class="headerlink" title="并行通信"></a>并行通信</h2><p>Parallel communication</p>
 <h4 id="传输方式"><a href="#传输方式" class="headerlink" title="传输方式"></a>传输方式</h4><p>多个数据bit位同时传输</p>
 <h4 id="常用总线"><a href="#常用总线" class="headerlink" title="常用总线"></a>常用总线</h4><p>local bus,  DDR</p>
@@ -270,119 +273,50 @@
 <li>B站视频：【四分钟搞定【同步通信-异步通信-全双工通信-串行通信-并行通信】】<a target="_blank" rel="noopener" href="https://www.bilibili.com/video/BV1q64y1R72M?vd_source=93bb338120537438ee9180881deab9c1">https://www.bilibili.com/video/BV1q64y1R72M?vd_source=93bb338120537438ee9180881deab9c1</a></li>
 </ul>
 
-      
     </div>
 
     
     
     
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>Immortal-Fates
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="http://example.com/2023/07/29/%E5%90%84%E7%A7%8D%E9%80%9A%E4%BF%A1%E6%96%B9%E5%BC%8F/" title="各种通信方式">http://example.com/2023/07/29/各种通信方式/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
       <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
+          <div class="post-tags">
+              <a href="/tags/%E5%B5%8C%E5%85%A5%E5%BC%8F-%E9%80%9A%E4%BF%A1/" rel="tag"># -嵌入式 -通信</a>
+          </div>
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2023/07/27/Hello-World/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/kuang.jpg">
-      <meta itemprop="name" content="Immortal-Fates">
-      <meta itemprop="description" content="愿你生命中有更多的云翳，来造就一个美丽的黄昏">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Immortal-Fates">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2023/07/27/Hello-World/" class="post-title-link" itemprop="url">Hello World</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-              
-
-              <time title="创建时间：2023-07-27 16:33:11 / 修改时间：16:35:37" itemprop="dateCreated datePublished" datetime="2023-07-27T16:33:11+08:00">2023-07-27</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E5%A5%87%E6%8A%80%E6%B7%AB%E5%B7%A7/" itemprop="url" rel="index"><span itemprop="name">奇技淫巧</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="Main-Takeaway"><a href="#Main-Takeaway" class="headerlink" title="Main Takeaway"></a>Main Takeaway</h1><p>仅以此blog记录生活点滴</p>
-<p>优化进行ing</p>
-<h1 id="Bonus"><a href="#Bonus" class="headerlink" title="Bonus"></a>Bonus</h1><p>记录搭建blog过程中遇到的一些东西</p>
-<ul>
-<li><p>github.io是静态网页每次修改都需要重新部署</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">#在/blog/source/_posts 中添加文件，然后再bash中重新部署</span><br><span class="line">hexo clean</span><br><span class="line">hexo g</span><br><span class="line">hexo d</span><br><span class="line">###本地查看</span><br><span class="line">hexo s</span><br><span class="line">###新建文章</span><br><span class="line">hexo n &#x27;filename&#x27;</span><br></pre></td></tr></table></figure>
-</li>
-<li><p>设置文章的tags and categories</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">---</span><br><span class="line">title:</span><br><span class="line">date:</span><br><span class="line">tags:</span><br><span class="line">	- life</span><br><span class="line">categories: life</span><br><span class="line">---</span><br><span class="line">### 以下是正文</span><br></pre></td></tr></table></figure>
+        
 
 
-</li>
-<li><p>CDN(Content Delivery Network，内容分发网络)是一项非常有效的<strong>缩短时延</strong>的技术，采用更多的缓存服务器（CDN边缘节点），布放在用户访问相对集中的地区或网络中。当用户访问网站时，利用全局负载技术，将用户的访问指向距离最近的缓存服务器上，由缓存服务器响应用户请求</p>
-</li>
-<li><p>YAML(.yml文件)，一种数据序列化格式，方便传输和存储</p>
-</li>
-</ul>
-<h1 id="References"><a href="#References" class="headerlink" title="References"></a>References</h1><ul>
-<li><p>跟随知乎枫叶大佬<a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/102592286">从零开始搭建个人博客（超详细） - 知乎 (zhihu.com)</a>搭建此blog</p>
-</li>
-<li><p><a target="_blank" rel="noopener" href="https://github.com/jackfrued/Python-100-Days/blob/master/%E7%95%AA%E5%A4%96%E7%AF%87/%E4%BD%BF%E7%94%A8Hexo%E6%90%AD%E5%BB%BA%E8%87%AA%E5%B7%B1%E7%9A%84%E5%8D%9A%E5%AE%A2.md">Python-100-Days&#x2F;番外篇&#x2F;使用Hexo搭建自己的博客.md at master · jackfrued&#x2F;Python-100-Days (github.com)</a></p>
-</li>
-<li><p>Next主题设置：<a target="_blank" rel="noopener" href="https://github.com/theme-next/hexo-theme-next/blob/master/README.md">hexo-theme-next&#x2F;README.md at master · theme-next&#x2F;hexo-theme-next (github.com)</a></p>
-</li>
-<li><p><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/52362950">到底什么是CDN？ - 知乎 (zhihu.com)</a></p>
-</li>
-<li><p><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/433176170">两分钟带你了解YAML（.yml后缀文件） - 知乎 (zhihu.com)</a></p>
-</li>
-<li><p><a target="_blank" rel="noopener" href="https://news.netshop168.com/article-85934.html">rss订阅是什么意思?为什么要使用RSS?RSS也称为RSS订阅或RSS提要 (netshop168.com)</a></p>
-</li>
-</ul>
-
-      
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2023/07/27/Hello-World/" rel="prev" title="Hello World">
+      <i class="fa fa-chevron-left"></i> Hello World
+    </a></div>
+      <div class="post-nav-item"></div>
     </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
       </footer>
+    
   </article>
   
   
-  
-
-
   
 
 
@@ -435,6 +369,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Main-Takeaway"><span class="nav-number">1.</span> <span class="nav-text">Main Takeaway</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%B9%B6%E8%A1%8C%E9%80%9A%E4%BF%A1-and-%E4%B8%B2%E8%A1%8C%E9%80%9A%E4%BF%A1"><span class="nav-number">2.</span> <span class="nav-text">并行通信 and 串行通信</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B9%B6%E8%A1%8C%E9%80%9A%E4%BF%A1"><span class="nav-number">2.1.</span> <span class="nav-text">并行通信</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BC%A0%E8%BE%93%E6%96%B9%E5%BC%8F"><span class="nav-number">2.1.0.1.</span> <span class="nav-text">传输方式</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%B8%B8%E7%94%A8%E6%80%BB%E7%BA%BF"><span class="nav-number">2.1.0.2.</span> <span class="nav-text">常用总线</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%89%B9%E7%82%B9"><span class="nav-number">2.1.0.3.</span> <span class="nav-text">特点</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%B2%E8%A1%8C%E9%80%9A%E4%BF%A1"><span class="nav-number">2.2.</span> <span class="nav-text">串行通信</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BC%A0%E8%BE%93%E6%96%B9%E5%BC%8F-1"><span class="nav-number">2.2.0.1.</span> <span class="nav-text">传输方式</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%B8%B8%E7%94%A8%E6%80%BB%E7%BA%BF-1"><span class="nav-number">2.2.0.2.</span> <span class="nav-text">常用总线</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%89%B9%E7%82%B9-1"><span class="nav-number">2.2.0.3.</span> <span class="nav-text">特点</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%BC%82%E6%AD%A5%E4%B8%B2%E8%A1%8C%E9%80%9A%E4%BF%A1-and-%E5%90%8C%E6%AD%A5%E4%B8%B2%E8%A1%8C%E9%80%9A%E4%BF%A1"><span class="nav-number">3.</span> <span class="nav-text">异步串行通信 and 同步串行通信</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BC%82%E6%AD%A5%E4%B8%B2%E8%A1%8C%E9%80%9A%E4%BF%A1"><span class="nav-number">3.1.</span> <span class="nav-text">异步串行通信</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%89%B9%E7%82%B9-2"><span class="nav-number">3.1.0.1.</span> <span class="nav-text">特点</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Example"><span class="nav-number">3.1.0.2.</span> <span class="nav-text">Example</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%90%8C%E6%AD%A5%E4%B8%B2%E8%A1%8C%E9%80%9A%E4%BF%A1"><span class="nav-number">3.2.</span> <span class="nav-text">同步串行通信</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%89%B9%E7%82%B9-3"><span class="nav-number">3.2.0.1.</span> <span class="nav-text">特点</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Example-1"><span class="nav-number">3.2.0.2.</span> <span class="nav-text">Example</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E7%A7%8D%E6%95%B0%E6%8D%AE%E9%80%9A%E8%B7%AF%EF%BC%9A%E5%8D%95%E5%B7%A5%EF%BC%8C%E5%8D%8A%E5%8F%8C%E5%B7%A5%EF%BC%8C%E5%85%A8%E5%8F%8C%E5%B7%A5"><span class="nav-number">4.</span> <span class="nav-text">三种数据通路：单工，半双工，全双工</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%95%E5%B7%A5%E9%80%9A%E4%BF%A1"><span class="nav-number">4.1.</span> <span class="nav-text">单工通信</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%89%B9%E7%82%B9-4"><span class="nav-number">4.1.0.1.</span> <span class="nav-text">特点</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Example-2"><span class="nav-number">4.1.0.2.</span> <span class="nav-text">Example</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%8A%E5%8F%8C%E5%B7%A5%E9%80%9A%E4%BF%A1"><span class="nav-number">4.2.</span> <span class="nav-text">半双工通信</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%89%B9%E7%82%B9-5"><span class="nav-number">4.2.0.1.</span> <span class="nav-text">特点</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Example-3"><span class="nav-number">4.2.0.2.</span> <span class="nav-text">Example</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%A8%E5%8F%8C%E5%B7%A5%E9%80%9A%E4%BF%A1"><span class="nav-number">4.3.</span> <span class="nav-text">全双工通信</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%89%B9%E7%82%B9-6"><span class="nav-number">4.3.0.1.</span> <span class="nav-text">特点</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Example-4"><span class="nav-number">4.3.0.2.</span> <span class="nav-text">Example</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#References"><span class="nav-number">5.</span> <span class="nav-text">References</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
