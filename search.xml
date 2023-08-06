@@ -167,55 +167,6 @@
       </tags>
   </entry>
   <entry>
-    <title>Hello World</title>
-    <url>/2023/07/27/Hello-World/</url>
-    <content><![CDATA[<h1 id="Main-Takeaway"><a href="#Main-Takeaway" class="headerlink" title="Main Takeaway"></a>Main Takeaway</h1><p>仅以此blog记录生活点滴</p>
-<p>优化进行ing</p>
-<ul>
-<li>以PicGo作为图床上传工具，在github上创建figure bed并连接typora（一键式typora插入图片自动上传并转化为url）</li>
-</ul>
-<h1 id="Bonus"><a href="#Bonus" class="headerlink" title="Bonus"></a>Bonus</h1><p>记录搭建blog过程中遇到的一些东西</p>
-<ul>
-<li><p>github.io是静态网页每次修改都需要重新部署</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#在/blog/source/_posts 中添加文件，然后再bash中重新部署</span><br><span class="line">hexo clean</span><br><span class="line">hexo g</span><br><span class="line">hexo d</span><br><span class="line">###本地查看</span><br><span class="line">hexo s</span><br><span class="line">###新建文章</span><br><span class="line">hexo n &#x27;filename&#x27;</span><br></pre></td></tr></table></figure>
-</li>
-<li><p>设置文章的tags and categories</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">---</span><br><span class="line">title:</span><br><span class="line">date:</span><br><span class="line">tags:</span><br><span class="line">	- life</span><br><span class="line">categories: life</span><br><span class="line">---</span><br><span class="line">### 以下是正文</span><br></pre></td></tr></table></figure>
-
-
-</li>
-<li><p>CDN(Content Delivery Network，内容分发网络)是一项非常有效的<strong>缩短时延</strong>的技术，采用更多的缓存服务器（CDN边缘节点），布放在用户访问相对集中的地区或网络中。当用户访问网站时，利用全局负载技术，将用户的访问指向距离最近的缓存服务器上，由缓存服务器响应用户请求</p>
-</li>
-<li><p>YAML(.yml文件)，一种数据序列化格式，方便传输和存储</p>
-</li>
-</ul>
-<h1 id="References"><a href="#References" class="headerlink" title="References"></a>References</h1><ul>
-<li><p>跟随知乎枫叶大佬<a href="https://zhuanlan.zhihu.com/p/102592286">从零开始搭建个人博客（超详细） - 知乎 (zhihu.com)</a>搭建此blog</p>
-</li>
-<li><p><a href="https://github.com/jackfrued/Python-100-Days/blob/master/%E7%95%AA%E5%A4%96%E7%AF%87/%E4%BD%BF%E7%94%A8Hexo%E6%90%AD%E5%BB%BA%E8%87%AA%E5%B7%B1%E7%9A%84%E5%8D%9A%E5%AE%A2.md">Python-100-Days&#x2F;番外篇&#x2F;使用Hexo搭建自己的博客.md at master · jackfrued&#x2F;Python-100-Days (github.com)</a></p>
-</li>
-<li><p>Next主题设置：<a href="https://github.com/theme-next/hexo-theme-next/blob/master/README.md">hexo-theme-next&#x2F;README.md at master · theme-next&#x2F;hexo-theme-next (github.com)</a></p>
-</li>
-<li><p><a href="https://zhuanlan.zhihu.com/p/52362950">到底什么是CDN？ - 知乎 (zhihu.com)</a></p>
-</li>
-<li><p><a href="https://zhuanlan.zhihu.com/p/433176170">两分钟带你了解YAML（.yml后缀文件） - 知乎 (zhihu.com)</a></p>
-</li>
-<li><p><a href="https://news.netshop168.com/article-85934.html">rss订阅是什么意思?为什么要使用RSS?RSS也称为RSS订阅或RSS提要 (netshop168.com)</a></p>
-</li>
-<li><p><a href="https://zhuanlan.zhihu.com/p/347342082">如何利用 Github 搭建自己的免费图床？ - 知乎 (zhihu.com)</a></p>
-</li>
-<li><p><a href="https://zhuanlan.zhihu.com/p/489236769">使用Github+picGo搭建图床，保姆级教程来了 - 知乎 (zhihu.com)</a></p>
-</li>
-</ul>
-]]></content>
-      <categories>
-        <category>奇技淫巧</category>
-      </categories>
-      <tags>
-        <tag>奇技淫巧</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>各种通信方式</title>
     <url>/2023/07/29/%E5%90%84%E7%A7%8D%E9%80%9A%E4%BF%A1%E6%96%B9%E5%BC%8F/</url>
     <content><![CDATA[<h1 id="Main-Takeaway"><a href="#Main-Takeaway" class="headerlink" title="Main Takeaway"></a>Main Takeaway</h1><p>了解及总结（同步通信-异步通信-全双工通信-串行通信-并行通信）各种通信方法</p>
@@ -279,40 +230,98 @@
       </tags>
   </entry>
   <entry>
+    <title>Hello World</title>
+    <url>/2023/07/27/Hello-World/</url>
+    <content><![CDATA[<h1 id="Main-Takeaway"><a href="#Main-Takeaway" class="headerlink" title="Main Takeaway"></a>Main Takeaway</h1><p>仅以此blog记录生活点滴</p>
+<p>优化进行ing</p>
+<ul>
+<li>以PicGo作为图床上传工具，在github上创建figure bed并连接typora（一键式typora插入图片自动上传并转化为url）</li>
+<li>增加search function</li>
+<li>缩短文章，只留下摘要</li>
+</ul>
+<span id="more"></span>
+
+<h1 id="Bonus"><a href="#Bonus" class="headerlink" title="Bonus"></a>Bonus</h1><p>记录搭建blog过程中遇到的一些东西</p>
+<ul>
+<li><p>github.io是静态网页每次修改都需要重新部署</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#在/blog/source/_posts 中添加文件，然后再bash中重新部署</span><br><span class="line">hexo clean</span><br><span class="line">hexo g</span><br><span class="line">hexo d</span><br><span class="line">###本地查看</span><br><span class="line">hexo s</span><br><span class="line">###新建文章</span><br><span class="line">hexo n &#x27;filename&#x27;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>设置文章的tags and categories</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">---</span><br><span class="line">title:</span><br><span class="line">date:</span><br><span class="line">tags:</span><br><span class="line">	- life</span><br><span class="line">categories: life</span><br><span class="line">---</span><br><span class="line">### 以下是正文</span><br></pre></td></tr></table></figure>
+
+
+</li>
+<li><p>CDN(Content Delivery Network，内容分发网络)是一项非常有效的<strong>缩短时延</strong>的技术，采用更多的缓存服务器（CDN边缘节点），布放在用户访问相对集中的地区或网络中。当用户访问网站时，利用全局负载技术，将用户的访问指向距离最近的缓存服务器上，由缓存服务器响应用户请求</p>
+</li>
+<li><p>YAML(.yml文件)，一种数据序列化格式，方便传输和存储</p>
+</li>
+<li><p>输入<!-- more -->即可缩短文章，只留下摘要</p>
+</li>
+</ul>
+<h1 id="References"><a href="#References" class="headerlink" title="References"></a>References</h1><ul>
+<li><p>跟随知乎枫叶大佬<a href="https://zhuanlan.zhihu.com/p/102592286">从零开始搭建个人博客（超详细） - 知乎 (zhihu.com)</a>搭建此blog</p>
+</li>
+<li><p><a href="https://github.com/jackfrued/Python-100-Days/blob/master/%E7%95%AA%E5%A4%96%E7%AF%87/%E4%BD%BF%E7%94%A8Hexo%E6%90%AD%E5%BB%BA%E8%87%AA%E5%B7%B1%E7%9A%84%E5%8D%9A%E5%AE%A2.md">Python-100-Days&#x2F;番外篇&#x2F;使用Hexo搭建自己的博客.md at master · jackfrued&#x2F;Python-100-Days (github.com)</a></p>
+</li>
+<li><p>Next主题设置：<a href="https://github.com/theme-next/hexo-theme-next/blob/master/README.md">hexo-theme-next&#x2F;README.md at master · theme-next&#x2F;hexo-theme-next (github.com)</a></p>
+</li>
+<li><p><a href="https://zhuanlan.zhihu.com/p/52362950">到底什么是CDN？ - 知乎 (zhihu.com)</a></p>
+</li>
+<li><p><a href="https://zhuanlan.zhihu.com/p/433176170">两分钟带你了解YAML（.yml后缀文件） - 知乎 (zhihu.com)</a></p>
+</li>
+<li><p><a href="https://news.netshop168.com/article-85934.html">rss订阅是什么意思?为什么要使用RSS?RSS也称为RSS订阅或RSS提要 (netshop168.com)</a></p>
+</li>
+<li><p><a href="https://zhuanlan.zhihu.com/p/347342082">如何利用 Github 搭建自己的免费图床？ - 知乎 (zhihu.com)</a></p>
+</li>
+<li><p><a href="https://zhuanlan.zhihu.com/p/489236769">使用Github+picGo搭建图床，保姆级教程来了 - 知乎 (zhihu.com)</a></p>
+</li>
+</ul>
+]]></content>
+      <categories>
+        <category>奇技淫巧</category>
+      </categories>
+      <tags>
+        <tag>奇技淫巧</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>基于cubeMX创建的第一个stm32工程</title>
     <url>/2023/08/04/%E5%9F%BA%E4%BA%8EcubeMX%E5%88%9B%E5%BB%BA%E7%9A%84%E7%AC%AC%E4%B8%80%E4%B8%AAstm32%E5%B7%A5%E7%A8%8B/</url>
-    <content><![CDATA[<h1 id="基于STM32Cube框架的第一个stm32程序从新建到编译上传"><a href="#基于STM32Cube框架的第一个stm32程序从新建到编译上传" class="headerlink" title="基于STM32Cube框架的第一个stm32程序从新建到编译上传"></a>基于STM32Cube框架的第一个stm32程序从新建到编译上传</h1><h2 id="流程梳理"><a href="#流程梳理" class="headerlink" title="流程梳理"></a>流程梳理</h2><ul>
+    <content><![CDATA[<h1 id="Main-Takeaway"><a href="#Main-Takeaway" class="headerlink" title="Main Takeaway"></a>Main Takeaway</h1><p>记录我的基于STM32Cube框架的第一个stm32程序从新建到编译上传全流程，感谢机协学长学姐的帮助！</p>
+<span id="more"></span>
+
+<h1 id="流程梳理"><a href="#流程梳理" class="headerlink" title="流程梳理"></a>流程梳理</h1><ul>
 <li>通过STM32CubeMX选择芯片、配置外设，并生成代码</li>
 <li>在选用的编辑器中编辑代码，编写程序</li>
 <li>编译代码，生成二进制文件并上传</li>
 <li>调试代码的运行效果</li>
 </ul>
-<h2 id="芯片配置"><a href="#芯片配置" class="headerlink" title="芯片配置"></a>芯片配置</h2><h3 id="选择芯片-开发板"><a href="#选择芯片-开发板" class="headerlink" title="选择芯片&#x2F;开发板"></a>选择芯片&#x2F;开发板</h3><p>但是需要注意，若选择官方开发板作为硬件，则会提供“按照开发板上的电路及布局默认配置硬件”的选项</p>
+<h1 id="芯片配置"><a href="#芯片配置" class="headerlink" title="芯片配置"></a>芯片配置</h1><h3 id="选择芯片-开发板"><a href="#选择芯片-开发板" class="headerlink" title="选择芯片&#x2F;开发板"></a>选择芯片&#x2F;开发板</h3><p>但是需要注意，若选择官方开发板作为硬件，则会提供“按照开发板上的电路及布局默认配置硬件”的选项</p>
 <h3 id="配置内核与外设硬件"><a href="#配置内核与外设硬件" class="headerlink" title="配置内核与外设硬件"></a>配置内核与外设硬件</h3><p><strong>系统配置</strong>：时钟配置+调试配置</p>
 <p><strong>时钟配置</strong>（必要）：STM32有四个时钟源：LSI（低速内部时钟）、LSE（低速外部时钟）、HIS（高速内部时钟）和HSE（高速外部时钟）；有的型号仅有其中某几个。默认的配置是采用芯片内部自带的振荡器、主频配置为8MHz。Nucleo F103RB中芯片外接了8MHz的晶振，故将“HSE”项配置为“Crystal&#x2F;Ceramic Resonator”，这就是说使用高速外部时钟，且时钟源为晶振。具体频率则在时钟树界面中配置（在使用内部振荡器时F1系列芯片最高主频是64MHz，在使用8MHz外部晶振时最高主频是72MHz。）</p>
-<p><img src="https://github.com/Immortal-Fates/Immortal-Fates.github.io/blob/master/photos/image-20230605232417189.png" alt="image-20230605232417189"></p>
+<p><img src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230605232417189.png" alt="image-20230605232417189"></p>
 <p><strong>调试配置</strong>：用于配置调试的类型（如果芯片未被配置为调试模式就强行对其进行调试，则会造成芯片内部启动程序错误而导致之后无法正常烧录程序，此时需擦除其Flash以修复）</p>
 <p>主流的调试方式有SWD和JTAG两种，而SWD是更方便的方法。若要使用SWD进行调试，则必须将芯片配置为“Serial Wire”调试。</p>
 <p><strong>外设硬件</strong>：芯片中的所有外设都可以在软件中配置，包括DMA、ADC、定时器等</p>
 <h3 id="配置工程，生成代码"><a href="#配置工程，生成代码" class="headerlink" title="配置工程，生成代码"></a>配置工程，生成代码</h3><h4 id="工程名称，路径"><a href="#工程名称，路径" class="headerlink" title="工程名称，路径"></a>工程名称，路径</h4><h4 id="应用结构："><a href="#应用结构：" class="headerlink" title="应用结构："></a><strong>应用结构</strong>：</h4><p>应用结构有“Basic”和“Advanced”两个选项。如果观察仔细的话，会发现STM32CubeIDE工程中的CubeMX项目默认的是“Advanced”结构，而单独使用CubeMX默认的是“Basic”结构</p>
-<h6 id=""><a href="#" class="headerlink" title=""></a><img src="https://github.com/Immortal-Fates/Immortal-Fates.github.io/blob/master/photos/image-20230605232846792.png" alt="image-20230605232846792"></h6><h4 id="工具链-IDE："><a href="#工具链-IDE：" class="headerlink" title="工具链&#x2F;IDE："></a>工具链&#x2F;IDE：</h4><p>STM32CubeMX除了配置硬件外，还提供了直接生成工程		的功能，即由该“工具链&#x2F;IDE”选项确定。STM32CubeMX预先包含了7种		开发方式，分别是：EWARM、MDK-ARM、SW4STM32、TrueStudio、		STM32CubeIDE、Makefile和Other Toolchains(GPDSC)</p>
+<h6 id=""><a href="#" class="headerlink" title=""></a><img src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230605232417189.png" alt="image-20230605232417189"></h6><h4 id="工具链-IDE："><a href="#工具链-IDE：" class="headerlink" title="工具链&#x2F;IDE："></a>工具链&#x2F;IDE：</h4><p>STM32CubeMX除了配置硬件外，还提供了直接生成工程		的功能，即由该“工具链&#x2F;IDE”选项确定。STM32CubeMX预先包含了7种		开发方式，分别是：EWARM、MDK-ARM、SW4STM32、TrueStudio、		STM32CubeIDE、Makefile和Other Toolchains(GPDSC)</p>
 <p>****MDK-ARM****：Keil uVision采用的开发环境，使用此选项可以直接生成Keil完整工程。</p>
 <p>****TrueStudio、STM32CubeIDE****：TrueStudio是STM32CubeIDE的前身。TrueStudio本身是以Eclipse为基础配置而成的STM32开发工具，在被ST收购被ST与STM32CubeMX合并，形成了STM32CubeIDE。故该两种选项生成的项目并无较大区别。对于使用Eclipse自行配置来为STM32开发的同学，也可以选择该选项。</p>
 <p>****Makefile****：Makefile实际上是“make”这个程序为了实现自动化构建工程而读取的一种文件。make从Makefile文件中读取生成的对象、编译的顺序、文件的依赖等信息，然后使用gcc或者g++来编译。Makefile不仅适用于系统下的标准C&#x2F;C++工程，也适用于嵌入式开发。为Arm架构芯片开发的gcc叫做“arm-none-eabi-gcc”，可以在GNU的官网上下载。PlatformIO使用gcc来编译STM32的程序，故采用Makefile选项更搭配。</p>
 <p>但实际上PlatformIO自带一套使用Python来构建工程的方法，因此用不到Makefile；真正需要的只是“Inc”和“Src”两个文件夹中的代码而已。如果有同学有兴趣的话，可以尝试使用gcc搭配make自行搭建一套工具链，这个时候STM32CubeMX生成的Makefile文件就会派上用场。</p>
 <h4 id="包管理："><a href="#包管理：" class="headerlink" title="包管理："></a>包管理：</h4><p>包管理有三种选项，翻译过来就是：仅复制用到的库文件、复制所有库文件、仅添加引用。</p>
-<p>​	<img src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230605232417189.png" alt="image-20230605232417189"></p>
-<p>当选择了复制库文件到工程时，除了Inc和Src两个文件夹（或Advanced模式下的Core文件夹）外，还会额外生成一个Driver文件夹，其中放置的便是STM32的库文件。当启用了USB或者FreeRTOS等中间件后，也还会额外生成一个Middleware文件夹，其中放置的便是中间件的库文件。文件结构如下所示：</p>
 <p><img src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230605232846792.png" alt="image-20230605232846792"></p>
+<p>当选择了复制库文件到工程时，除了Inc和Src两个文件夹（或Advanced模式下的Core文件夹）外，还会额外生成一个Driver文件夹，其中放置的便是STM32的库文件。当启用了USB或者FreeRTOS等中间件后，也还会额外生成一个Middleware文件夹，其中放置的便是中间件的库文件。文件结构如下所示：</p>
+<p><img src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230605233921565.png" alt="image-20230605233921565"></p>
 <h4 id="生成选项："><a href="#生成选项：" class="headerlink" title="生成选项："></a>生成选项：</h4><p><img src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230605233713820.png" alt="image-20230605233713820"></p>
-<h2 id="程序编写"><a href="#程序编写" class="headerlink" title="程序编写"></a>程序编写</h2><p>&#x2F;* USER CODE BEGIN x *&#x2F; *</p>
+<h1 id="程序编写"><a href="#程序编写" class="headerlink" title="程序编写"></a>程序编写</h1><p>&#x2F;* USER CODE BEGIN x *&#x2F; *</p>
 <p> &#x2F;* USER CODE END x *&#x2F;</p>
 <p>其中的x可以是数字，也可以是别的一些标识符。STM32CubeMX希望用户将自己的代码插入到“BEGIN”和“END”当中，</p>
 <p><strong>reason:</strong></p>
 <p>之所以要这样做是因为STM32CubeMX在更新代码时不会修改这两句注释之间的内容。比如当用户的需求发生了变动，需要修改硬件配置时，就需要使用STM32CubeMX来修改并重新生成代码。如果将用户代码放在这两句注释之间，STM32CubeMX就不会在重新生成代码的时候覆盖掉这部分。这使得硬件配置的更改变得更加方便</p>
-<h2 id="编译上传"><a href="#编译上传" class="headerlink" title="编译上传"></a>编译上传</h2><p>单片机、乃至目前一切电脑都不能直接运行代码文件，必须通过编译器将代码文件编译成CPU能够处理的机器语言——即二进制机器指令——才能烧录到芯片执行。STM32主流的编译器——也即arm芯片所用的编译器——有两种：arm-gcc和Arm Compiler。Keil默认采用Arm Compiler，而STM32CubeIDE和PlatformIO则采用arm-gcc。二者在编译原理上有差别，但是在代码层面很难体现出来</p>
-<h2 id="调试程序"><a href="#调试程序" class="headerlink" title="调试程序"></a>调试程序</h2><p>ST-Link不只是程序下载器，还是调试器，能够通过JTAG接口或者SWD接口控制芯片的运行、读取芯片的寄存器、内存等。我们可以观察到芯片中每个寄存器的值、每个变量的值及其变化，可以通过断点让程序运行到指定的位置、检测中断的执行；从而能够方便地调试代码。</p>
-<h2 id="代码结构"><a href="#代码结构" class="headerlink" title="代码结构"></a>代码结构</h2><h3 id="结构概述"><a href="#结构概述" class="headerlink" title="结构概述"></a>结构概述</h3><p>STM32CubeMX软件生成出来的代码具有高度的结构性。按文件予以区分，各个文件的功能如下：</p>
+<h1 id="编译上传"><a href="#编译上传" class="headerlink" title="编译上传"></a>编译上传</h1><p>单片机、乃至目前一切电脑都不能直接运行代码文件，必须通过编译器将代码文件编译成CPU能够处理的机器语言——即二进制机器指令——才能烧录到芯片执行。STM32主流的编译器——也即arm芯片所用的编译器——有两种：arm-gcc和Arm Compiler。Keil默认采用Arm Compiler，而STM32CubeIDE和PlatformIO则采用arm-gcc。二者在编译原理上有差别，但是在代码层面很难体现出来</p>
+<h1 id="调试程序"><a href="#调试程序" class="headerlink" title="调试程序"></a>调试程序</h1><p>ST-Link不只是程序下载器，还是调试器，能够通过JTAG接口或者SWD接口控制芯片的运行、读取芯片的寄存器、内存等。我们可以观察到芯片中每个寄存器的值、每个变量的值及其变化，可以通过断点让程序运行到指定的位置、检测中断的执行；从而能够方便地调试代码。</p>
+<h1 id="代码结构"><a href="#代码结构" class="headerlink" title="代码结构"></a>代码结构</h1><h3 id="结构概述"><a href="#结构概述" class="headerlink" title="结构概述"></a>结构概述</h3><p>STM32CubeMX软件生成出来的代码具有高度的结构性。按文件予以区分，各个文件的功能如下：</p>
 <table>
 <thead>
 <tr>
