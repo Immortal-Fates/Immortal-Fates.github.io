@@ -228,7 +228,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2023-08-06 14:11:13" itemprop="dateModified" datetime="2023-08-06T14:11:13+08:00">2023-08-06</time>
+                <time title="修改时间：2023-08-06 14:35:15" itemprop="dateModified" datetime="2023-08-06T14:35:15+08:00">2023-08-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -254,159 +254,14 @@
           <h1 id="Main-Takeaway"><a href="#Main-Takeaway" class="headerlink" title="Main Takeaway"></a>Main Takeaway</h1><p>following <a target="_blank" rel="noopener" href="https://missing-semester-cn.github.io/2020/version-control/">版本控制(Git) · the missing semester of your cs education (missing-semester-cn.github.io)</a>来学习git的相关知识</p>
 <p>希望通过<a target="_blank" rel="noopener" href="https://git-scm.com/book/zh/v2">Git - Book (git-scm.com)</a>+<a target="_blank" rel="noopener" href="https://learngitbranching.js.org/?locale=zh_CN">Learn Git Branching</a>来进一步掌握Git</p>
 <p><strong>Learn to love the command line. Leave the IDE behind.</strong></p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;!-- more --&gt;</span><br></pre></td></tr></table></figure>
-
-<h1 id="Version-control-Git"><a href="#Version-control-Git" class="headerlink" title="Version control(Git)"></a>Version control(Git)</h1><p>版本控制系统version control system(VCS)是一类用于追踪源代码（或其他文件、文件夹）改动的工具</p>
-<h4 id="好处："><a href="#好处：" class="headerlink" title="好处："></a>好处：</h4><ul>
-<li>这些工具可以帮助我们管理代码的修改历史</li>
-<li>可以让协作编码变得更方便</li>
-</ul>
-<h4 id="工作方式"><a href="#工作方式" class="headerlink" title="工作方式"></a>工作方式</h4><p>VCS通过一系列的快照将某个文件夹及其内容保存了起来，每个快照都包含了文件或文件夹的完整状态。同时它还维护了快照创建者的信息以及每个快照的相关信息等等。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/Immortal-Fates/figure_Bed@main/blog/git.png" alt="git"></p>
-<h1 id="Git-的数据模型"><a href="#Git-的数据模型" class="headerlink" title="Git 的数据模型"></a>Git 的数据模型</h1><p>进行版本控制的方法很多。Git 拥有一个经过精心设计的模型，这使其能够支持版本控制所需的所有特性，例如维护历史记录、支持分支和促进协作。</p>
-<h4 id="快照（snapshots）"><a href="#快照（snapshots）" class="headerlink" title="快照（snapshots）"></a>快照（snapshots）</h4><p>Git 将顶级目录中的文件和文件夹作为集合，并通过一系列快照来管理其历史记录。在Git的术语里，文件被称作Blob对象（数据对象），也就是一组数据。目录则被称之为“树”，它将名字与 Blob 对象或树对象进行映射（使得目录中可以包含其他目录）。快照则是被追踪的最顶层的树。例如，一个树看起来可能是这样的：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&lt;root&gt; (tree)</span><br><span class="line">|</span><br><span class="line">+- foo (tree)</span><br><span class="line">|  |</span><br><span class="line">|  + bar.txt (blob, contents = &quot;hello world&quot;)</span><br><span class="line">|</span><br><span class="line">+- baz.txt (blob, contents = &quot;git is wonderful&quot;)</span><br></pre></td></tr></table></figure>
-
-<p>这个顶层的树包含了两个元素，一个名为 “foo” 的tree（它本身包含了一个blob对象 “bar.txt”），以及一个 blob 对象 “baz.txt”。</p>
-<h4 id="历史记录建模：关联快照"><a href="#历史记录建模：关联快照" class="headerlink" title="历史记录建模：关联快照"></a>历史记录建模：关联快照</h4><p>版本控制系统和快照有什么关系呢？线性历史记录是一种最简单的模型，它包含了一组按照时间顺序线性排列的快照。</p>
-<p>在 Git 中，历史记录是一个由快照组成的有向无环图(directed acyclic graph (DAG))。有向无环图，这代表 Git 中的每个快照都有一系列的“父辈”，也就是其之前的一系列快照。</p>
-<blockquote>
-<p>notes：快照具有多个“父辈”而非一个，因为某个快照可能由多个父辈而来。例如，经过合并后的两条分支。</p>
-</blockquote>
-<p>在 Git 中，这些快照被称为“提交commit”。通过可视化的方式来表示这些历史提交记录时，看起来差不多是这样的：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">o &lt;-- o &lt;-- o &lt;-- o</span><br><span class="line">            ^  </span><br><span class="line">             \</span><br><span class="line">              --- o &lt;-- o</span><br></pre></td></tr></table></figure>
-
-<p>其中的 <code>o</code> 表示一次提交（快照）。</p>
-<p>箭头指向了当前提交的父辈（这是一种“在…之前”，而不是“在…之后”的关系）。在第三次提交之后，历史记录分岔成了两条独立的分支。这可能因为此时需要同时开发两个不同的特性，它们之间是相互独立的。开发完成后，这些分支可能会被合并并创建一个新的提交，这个新的提交会同时包含这些特性。新的提交会创建一个新的历史记录，看上去像这样（最新的合并提交用粗体标记）：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">o &lt;-- o &lt;-- o &lt;-- o &lt;---- o</span><br><span class="line">            ^            /</span><br><span class="line">             \          v</span><br><span class="line">              --- o &lt;-- o</span><br></pre></td></tr></table></figure>
-
-<p>Git 中的提交是不可改变的。但这并不代表错误不能被修改，只不过这种“修改”实际上是创建了一个全新的提交记录。而引用（参见下文）则被更新为指向这些新的提交。</p>
-<h4 id="数据模型及其伪代码表示"><a href="#数据模型及其伪代码表示" class="headerlink" title="数据模型及其伪代码表示"></a>数据模型及其伪代码表示</h4><p>以伪代码的形式来学习 Git 的数据模型，可能更加清晰：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">// 文件就是一组数据</span><br><span class="line">type blob = array&lt;byte&gt;</span><br><span class="line"></span><br><span class="line">// 一个包含文件和目录的目录</span><br><span class="line">type tree = map&lt;string, tree | blob&gt;</span><br><span class="line"></span><br><span class="line">// 每个提交都包含一个父辈，元数据和顶层树</span><br><span class="line">type commit = struct &#123;</span><br><span class="line">    parent: array&lt;commit&gt;</span><br><span class="line">    author: string</span><br><span class="line">    message: string</span><br><span class="line">    snapshot: tree</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>这是一种简洁的历史模型。</p>
-<h4 id="对象和内存寻址"><a href="#对象和内存寻址" class="headerlink" title="对象和内存寻址"></a>对象和内存寻址</h4><p>Git 中的对象可以是 blob、tree or commit：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">type object = blob | tree | commit</span><br></pre></td></tr></table></figure>
-
-<p>Git 在储存数据时，所有的对象都会基于它们的 <a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/SHA-1">SHA-1 哈希</a> 进行寻址。</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">objects = map&lt;string, object&gt;</span><br><span class="line"></span><br><span class="line">def store(object):</span><br><span class="line">    id = sha1(object)</span><br><span class="line">    objects[id] = object</span><br><span class="line"></span><br><span class="line">def load(id):</span><br><span class="line">    return objects[id]</span><br></pre></td></tr></table></figure>
-
-<p>Blobs、树和提交都一样，它们都是对象。当它们引用其他对象时，它们并没有真正的在硬盘上保存这些对象，而是仅仅保存了它们的哈希值作为引用。</p>
-<p>例如，上面例子中的树（可以通过 <code>git cat-file -p 698281bc680d1995c5f4caaf3359721a5a58d48d</code> 来进行可视化），看上去是这样的：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">100644 blob 4448adbf7ecd394f42ae135bbeed9676e894af85    baz.txt</span><br><span class="line">040000 tree c68d233a33c5c06e0340e4c224f0afca87c8ce87    foo</span><br></pre></td></tr></table></figure>
-
-<p>树本身会包含一些指向其他内容的指针，例如 <code>baz.txt</code> (blob) 和 <code>foo</code> (树)。如果我们用 <code>git cat-file -p 4448adbf7ecd394f42ae135bbeed9676e894af85</code>，即通过哈希值查看 baz.txt 的内容，会得到以下信息：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git is wonderful</span><br></pre></td></tr></table></figure>
-
-<h4 id="引用-References"><a href="#引用-References" class="headerlink" title="引用(References)"></a>引用(References)</h4><p>Git 给这些哈希值赋予人类可读的名字，也就是引用（references）。<strong>引用是指向提交的指针</strong>。与对象不同的是，它是可变的（引用可以被更新，指向新的提交）。例如，<code>master</code> 引用通常会指向主分支的最新一次提交。</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">references = map&lt;string, string&gt;</span><br><span class="line"></span><br><span class="line">def update_reference(name, id):</span><br><span class="line">    references[name] = id</span><br><span class="line"></span><br><span class="line">def read_reference(name):</span><br><span class="line">    return references[name]</span><br><span class="line"></span><br><span class="line">def load_reference(name_or_id):</span><br><span class="line">    if name_or_id in references:</span><br><span class="line">        return load(references[name_or_id])</span><br><span class="line">    else:</span><br><span class="line">        return load(name_or_id)</span><br></pre></td></tr></table></figure>
-
-<p>这样，Git 就可以使用诸如 “master” 这样人类可读的名称来表示历史记录中某个特定的提交，而不需要在使用一长串十六进制字符了。</p>
-<p>有一个细节需要我们注意， 通常情况下，我们会想要知道“我们当前所在位置”，并将其标记下来。这样当我们创建新的快照的时候，我们就可以知道它的相对位置（如何设置它的“父辈”）。在 Git 中，我们当前的位置有一个特殊的索引，它就是 “HEAD”。</p>
-<h4 id="仓库-Repositories"><a href="#仓库-Repositories" class="headerlink" title="仓库(Repositories)"></a>仓库(Repositories)</h4><p>最后，我们可以粗略地给出 Git 仓库的定义了：<code>对象</code> 和 <code>引用</code>。</p>
-<p>在硬盘上，Git 仅存储对象和引用：因为其数据模型仅包含这些东西。所有的 <code>git</code> 命令都对应着对提交树的操作，例如增加对象，增加或删除引用。</p>
-<p>当你输入某个指令时，请思考一下这条命令是如何对底层的图数据结构进行操作的。另一方面，如果您希望修改提交树，例如“丢弃未提交的修改和将 ‘master’ 引用指向提交 <code>5d83f9e</code> 时，有什么命令可以完成该操作（针对这个具体问题，您可以使用 <code>git checkout master; git reset --hard 5d83f9e</code>）</p>
-<h1 id="staging-area"><a href="#staging-area" class="headerlink" title="staging area"></a>staging area</h1><p>Git 中还包括一个和数据模型完全不相关的概念，但它确是创建提交的接口的一部分。</p>
-<p>就上面介绍的快照系统来说，您也许会期望它的实现里包括一个 “创建快照” 的命令，该命令能够基于当前工作目录的当前状态创建一个全新的快照。有些版本控制系统确实是这样工作的，但 Git 不是。我们希望简洁的快照，而且每次从当前状态创建快照可能效果并不理想。例如，考虑如下场景，您开发了两个独立的特性，然后您希望创建两个独立的提交，其中第一个提交仅包含第一个特性，而第二个提交仅包含第二个特性。或者，假设您在调试代码时添加了很多打印语句，然后您仅仅希望提交和修复 bug 相关的代码而丢弃所有的打印语句。</p>
-<p>Git 处理这些场景的方法是使用一种叫做 “暂存区（staging area）”的机制，它允许您指定下次快照中要包括那些改动。</p>
-<h1 id="Git-的命令行接口"><a href="#Git-的命令行接口" class="headerlink" title="Git 的命令行接口"></a>Git 的命令行接口</h1><p>为了避免重复信息，我们将不会详细解释以下命令行。强烈推荐您阅读 <a target="_blank" rel="noopener" href="https://git-scm.com/book/zh/v2">Pro Git 中文版</a>或可以观看本讲座的视频来学习。</p>
-<h4 id="基础"><a href="#基础" class="headerlink" title="基础"></a>基础</h4><ul>
-<li><p><code>git help &lt;command&gt;</code>: 获取 git 命令的帮助信息</p>
-</li>
-<li><p><code>git init</code>: 创建一个新的 git 仓库，其数据会存放在一个名为 <code>.git</code> 的目录下</p>
-</li>
-<li><p><code>git status</code>: 显示当前的仓库状态</p>
-</li>
-<li><p><code>git add &lt;filename&gt;</code>: 添加文件到暂存区</p>
-</li>
-<li><pre><code class="plaintext">git commit
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">  : 创建一个新的提交</span><br><span class="line"></span><br><span class="line">  - 如何编写 [良好的提交信息](https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html)!</span><br><span class="line">  - 为何要 [编写良好的提交信息](https://chris.beams.io/posts/git-commit/)</span><br><span class="line"></span><br><span class="line">- `git log`: 显示历史日志</span><br><span class="line"></span><br><span class="line">- `git log --all --graph --decorate`: 可视化历史记录（有向无环图）</span><br><span class="line"></span><br><span class="line">- `git diff &lt;filename&gt;`: 显示与暂存区文件的差异</span><br><span class="line"></span><br><span class="line">- `git diff &lt;revision&gt; &lt;filename&gt;`: 显示某个文件两个版本之间的差异</span><br><span class="line"></span><br><span class="line">- `git checkout &lt;revision&gt;`: 更新 HEAD 和目前的分支</span><br><span class="line"></span><br><span class="line">#### 分支和合并</span><br><span class="line"></span><br><span class="line">- `git branch`: 显示分支</span><br><span class="line"></span><br><span class="line">- `git branch &lt;name&gt;`: 创建分支</span><br><span class="line"></span><br><span class="line">- ```plaintext</span><br><span class="line">  git checkout -b &lt;name&gt;</span><br></pre></td></tr></table></figure>
-
-: 创建分支并切换到该分支
-
-- 相当于 `git branch &lt;name&gt;; git checkout &lt;name&gt;`
-</code></pre>
-</li>
-<li><p><code>git merge &lt;revision&gt;</code>: 合并到当前分支</p>
-</li>
-<li><p><code>git mergetool</code>: 使用工具来处理合并冲突</p>
-</li>
-<li><p><code>git rebase</code>: 将一系列补丁变基（rebase）为新的基线</p>
-</li>
-</ul>
-<h4 id="远端操作"><a href="#远端操作" class="headerlink" title="远端操作"></a>远端操作</h4><ul>
-<li><code>git remote</code>: 列出远端</li>
-<li><code>git remote add &lt;name&gt; &lt;url&gt;</code>: 添加一个远端</li>
-<li><code>git push &lt;remote&gt; &lt;local branch&gt;:&lt;remote branch&gt;</code>: 将对象传送至远端并更新远端引用</li>
-<li><code>git branch --set-upstream-to=&lt;remote&gt;/&lt;remote branch&gt;</code>: 创建本地和远端分支的关联关系</li>
-<li><code>git fetch</code>: 从远端获取对象&#x2F;索引</li>
-<li><code>git pull</code>: 相当于 <code>git fetch; git merge</code></li>
-<li><code>git clone</code>: 从远端下载仓库</li>
-</ul>
-<h4 id="撤销"><a href="#撤销" class="headerlink" title="撤销"></a>撤销</h4><ul>
-<li><code>git commit --amend</code>: 编辑提交的内容或信息</li>
-<li><code>git reset HEAD &lt;file&gt;</code>: 恢复暂存的文件</li>
-<li><code>git checkout -- &lt;file&gt;</code>: 丢弃修改</li>
-<li><code>git restore</code>: git2.32版本后取代git reset 进行许多撤销操作</li>
-</ul>
-<h1 id="Git-高级操作"><a href="#Git-高级操作" class="headerlink" title="Git 高级操作"></a>Git 高级操作</h1><ul>
-<li><code>git config</code>: Git 是一个 <a target="_blank" rel="noopener" href="https://git-scm.com/docs/git-config">高度可定制的</a> 工具</li>
-<li><code>git clone --depth=1</code>: 浅克隆（shallow clone），不包括完整的版本历史信息</li>
-<li><code>git add -p</code>: 交互式暂存</li>
-<li><code>git rebase -i</code>: 交互式变基</li>
-<li><code>git blame</code>: 查看最后修改某行的人</li>
-<li><code>git stash</code>: 暂时移除工作目录下的修改内容</li>
-<li><code>git bisect</code>: 通过二分查找搜索历史记录</li>
-<li><code>.gitignore</code>: <a target="_blank" rel="noopener" href="https://git-scm.com/docs/gitignore">指定</a> 故意不追踪的文件</li>
-</ul>
-<h1 id="Bonus"><a href="#Bonus" class="headerlink" title="Bonus"></a>Bonus</h1><ul>
-<li><p><strong>图形用户界面</strong>: Git 的 <a target="_blank" rel="noopener" href="https://git-scm.com/downloads/guis">图形用户界面客户端</a> 有很多，但是我们自己并不使用这些图形用户界面的客户端，我们选择使用命令行接口</p>
-</li>
-<li><p><strong>Shell 集成</strong>: 将 Git 状态集成到您的 shell 中会非常方便。(<a target="_blank" rel="noopener" href="https://github.com/olivierverdier/zsh-git-prompt">zsh</a>, <a target="_blank" rel="noopener" href="https://github.com/magicmonty/bash-git-prompt">bash</a>)。<a target="_blank" rel="noopener" href="https://github.com/ohmyzsh/ohmyzsh">Oh My Zsh</a>这样的框架中一般以及集成了这一功能</p>
-</li>
-<li><p><strong>编辑器集成</strong>: 和上面一条类似，将 Git 集成到编辑器中好处多多。<a target="_blank" rel="noopener" href="https://github.com/tpope/vim-fugitive">fugitive.vim</a> 是 Vim 中集成 GIt 的常用插件</p>
-</li>
-<li><p><strong>工作流</strong>: 我们已经讲解了数据模型与一些基础命令，但还没讨论到进行大型项目时的一些惯例 ( 有<a target="_blank" rel="noopener" href="https://nvie.com/posts/a-successful-git-branching-model/">很多</a> <a target="_blank" rel="noopener" href="https://www.endoflineblog.com/gitflow-considered-harmful">不同的</a> <a target="_blank" rel="noopener" href="https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow">处理方法</a>)</p>
-</li>
-<li><p><strong>GitHub</strong>: Git 并不等同于 GitHub。 在 GitHub 中您需要使用一个被称作<a target="_blank" rel="noopener" href="https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/about-pull-requests">拉取请求（pull request）</a>的方法来向其他项目贡献代码</p>
-</li>
-<li><p><strong>其他 Git 提供商</strong>: GitHub 并不是唯一的。还有像 <a target="_blank" rel="noopener" href="https://about.gitlab.com/">GitLab</a> 和 <a target="_blank" rel="noopener" href="https://bitbucket.org/">BitBucket</a> 这样的平台。</p>
-</li>
-<li><p>良好的git提交消息(设置用于git的编辑器)</p>
-<ul>
-<li><p><a target="_blank" rel="noopener" href="https://cbea.ms/git-commit/#separate">用空行将主题与正文分开</a>:</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git log --oneline #只打印出主题行</span><br><span class="line">git shortlog #按用户提交哪些组，再次仅显示主题行以简洁明了</span><br></pre></td></tr></table></figure>
-</li>
-<li><p><a target="_blank" rel="noopener" href="https://cbea.ms/git-commit/#limit-50">将主题行限制为 50 个字符</a>（make sure less than 72 characters）</p>
-</li>
-<li><p><a target="_blank" rel="noopener" href="https://cbea.ms/git-commit/#capitalize">将主题行大写</a></p>
-</li>
-<li><p><a target="_blank" rel="noopener" href="https://cbea.ms/git-commit/#end">不要以句点结束主题行</a></p>
-</li>
-<li><p><a target="_blank" rel="noopener" href="https://cbea.ms/git-commit/#imperative">在主题行中使用命令式语气</a>:祈使句</p>
-</li>
-<li><p><a target="_blank" rel="noopener" href="https://cbea.ms/git-commit/#wrap-72">将正文包装为 72 个字符</a>：It&#96;s easy to configure Vim</p>
-</li>
-<li><p><a target="_blank" rel="noopener" href="https://cbea.ms/git-commit/#why-not-how">使用正文来解释什么和为什么与如何</a></p>
-</li>
-</ul>
-</li>
-</ul>
-<h1 id="Resources"><a href="#Resources" class="headerlink" title="Resources"></a>Resources</h1><ul>
-<li><a target="_blank" rel="noopener" href="https://git-scm.com/book/en/v2">Pro Git</a> ，<strong>强烈推荐</strong>！学习前五章的内容可以教会您流畅使用 Git 的绝大多数技巧，因为您已经理解了 Git 的数据模型。后面的章节提供了很多有趣的高级主题。（<a target="_blank" rel="noopener" href="https://git-scm.com/book/zh/v2">Pro Git 中文版</a>）；</li>
-<li><a target="_blank" rel="noopener" href="https://ohshitgit.com/">Oh Shit, Git!?!</a> ，简短的介绍了如何从 Git 错误中恢复；</li>
-<li><a target="_blank" rel="noopener" href="https://eagain.net/articles/git-for-computer-scientists/">Git for Computer Scientists</a> ，简短的介绍了 Git 的数据模型，与本文相比包含较少量的伪代码以及大量的精美图片；</li>
-<li><a target="_blank" rel="noopener" href="https://jwiegley.github.io/git-from-the-bottom-up/">Git from the Bottom Up</a>详细的介绍了 Git 的实现细节，而不仅仅局限于数据模型。好奇的同学可以看看；</li>
-<li><a target="_blank" rel="noopener" href="https://smusamashah.github.io/blog/2017/10/14/explain-git-in-simple-words">How to explain git in simple words</a>；</li>
-<li><a target="_blank" rel="noopener" href="https://learngitbranching.js.org/">Learn Git Branching</a> 通过基于浏览器的游戏来学习 Git ；</li>
-</ul>
-<h1 id="References"><a href="#References" class="headerlink" title="References"></a>References</h1><ul>
-<li><a target="_blank" rel="noopener" href="https://missing-semester-cn.github.io/2020/version-control/">版本控制(Git) · the missing semester of your cs education (missing-semester-cn.github.io)</a></li>
-<li><a target="_blank" rel="noopener" href="https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html">tbaggery - A Note About Git Commit Messages</a></li>
-<li><a target="_blank" rel="noopener" href="https://cbea.ms/git-commit/">How to Write a Git Commit Message (cbea.ms)</a></li>
-<li><a target="_blank" rel="noopener" href="https://learngitbranching.js.org/?locale=zh_CN">Learn Git Branching</a></li>
-</ul>
-
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2023/08/05/Git%E5%85%A5%E9%97%A8/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -456,7 +311,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2023-08-06 14:31:40" itemprop="dateModified" datetime="2023-08-06T14:31:40+08:00">2023-08-06</time>
+                <time title="修改时间：2023-08-06 14:35:20" itemprop="dateModified" datetime="2023-08-06T14:35:20+08:00">2023-08-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -529,10 +384,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2023-07-29 14:27:46 / 修改时间：14:28:39" itemprop="dateCreated datePublished" datetime="2023-07-29T14:27:46+08:00">2023-07-29</time>
+              <time title="创建时间：2023-07-29 14:27:46" itemprop="dateCreated datePublished" datetime="2023-07-29T14:27:46+08:00">2023-07-29</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2023-08-06 14:35:13" itemprop="dateModified" datetime="2023-08-06T14:35:13+08:00">2023-08-06</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
@@ -555,58 +416,14 @@
 
       
           <h1 id="Main-Takeaway"><a href="#Main-Takeaway" class="headerlink" title="Main Takeaway"></a>Main Takeaway</h1><p>了解及总结（同步通信-异步通信-全双工通信-串行通信-并行通信）各种通信方法</p>
-<h1 id="并行通信-and-串行通信"><a href="#并行通信-and-串行通信" class="headerlink" title="并行通信 and 串行通信"></a>并行通信 and 串行通信</h1><h2 id="并行通信"><a href="#并行通信" class="headerlink" title="并行通信"></a>并行通信</h2><p>Parallel communication</p>
-<h4 id="传输方式"><a href="#传输方式" class="headerlink" title="传输方式"></a>传输方式</h4><p>多个数据bit位同时传输</p>
-<h4 id="常用总线"><a href="#常用总线" class="headerlink" title="常用总线"></a>常用总线</h4><p>local bus,  DDR</p>
-<h4 id="特点"><a href="#特点" class="headerlink" title="特点"></a>特点</h4><ul>
-<li>同时传输，效率高</li>
-<li>数据线多，设计复杂</li>
-</ul>
-<h2 id="串行通信"><a href="#串行通信" class="headerlink" title="串行通信"></a>串行通信</h2><p>Serial communication </p>
-<h4 id="传输方式-1"><a href="#传输方式-1" class="headerlink" title="传输方式"></a>传输方式</h4><p>数据bit一位一位传输</p>
-<h4 id="常用总线-1"><a href="#常用总线-1" class="headerlink" title="常用总线"></a>常用总线</h4><p>local bus,  DDR</p>
-<h4 id="特点-1"><a href="#特点-1" class="headerlink" title="特点"></a>特点</h4><ul>
-<li>按bit逐位传输，效率低</li>
-<li>只需一根数据线，设计简单</li>
-</ul>
-<h1 id="异步串行通信-and-同步串行通信"><a href="#异步串行通信-and-同步串行通信" class="headerlink" title="异步串行通信 and 同步串行通信"></a>异步串行通信 and 同步串行通信</h1><h2 id="异步串行通信"><a href="#异步串行通信" class="headerlink" title="异步串行通信"></a>异步串行通信</h2><p>Asynchronous serial communication</p>
-<h4 id="特点-2"><a href="#特点-2" class="headerlink" title="特点"></a>特点</h4><ul>
-<li>信息发送设备与接收设备之间无时钟连接</li>
-<li>信息中包含特殊标志位Start&#x2F;Stop</li>
-<li>接收设备根据特殊标志位利用本地时钟对数据采样</li>
-</ul>
-<h4 id="Example"><a href="#Example" class="headerlink" title="Example"></a>Example</h4><p>UART，无时钟线连接</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">接收器   发送器</span><br><span class="line">TxD-----&gt;RxD</span><br><span class="line">RxD&lt;-----TxD</span><br></pre></td></tr></table></figure>
-
-
-
-<h2 id="同步串行通信"><a href="#同步串行通信" class="headerlink" title="同步串行通信"></a>同步串行通信</h2><p>Synchronous serial communciation</p>
-<h4 id="特点-3"><a href="#特点-3" class="headerlink" title="特点"></a>特点</h4><ul>
-<li>信息发送设备与接收设备需要时钟同步</li>
-<li>两者间出数据线连接，还需要额外的时钟线连接</li>
-</ul>
-<h4 id="Example-1"><a href="#Example-1" class="headerlink" title="Example"></a>Example</h4><p>IIC,需要时钟线SCL连接</p>
-<h1 id="三种数据通路：单工，半双工，全双工"><a href="#三种数据通路：单工，半双工，全双工" class="headerlink" title="三种数据通路：单工，半双工，全双工"></a>三种数据通路：单工，半双工，全双工</h1><h2 id="单工通信"><a href="#单工通信" class="headerlink" title="单工通信"></a>单工通信</h2><p>Simplex communciation</p>
-<h4 id="特点-4"><a href="#特点-4" class="headerlink" title="特点"></a>特点</h4><ul>
-<li>信息只能单一方向传输</li>
-</ul>
-<h4 id="Example-2"><a href="#Example-2" class="headerlink" title="Example"></a>Example</h4><p>广播，遥控器</p>
-<h2 id="半双工通信"><a href="#半双工通信" class="headerlink" title="半双工通信"></a>半双工通信</h2><p>Half-duplex communciation</p>
-<h4 id="特点-5"><a href="#特点-5" class="headerlink" title="特点"></a>特点</h4><ul>
-<li>数据支持双向传输</li>
-<li>发送和接收不能同时进行，同一时间只能发送or接收数据</li>
-</ul>
-<h4 id="Example-3"><a href="#Example-3" class="headerlink" title="Example"></a>Example</h4><p>IIC</p>
-<h2 id="全双工通信"><a href="#全双工通信" class="headerlink" title="全双工通信"></a>全双工通信</h2><p>Full-duplex communciation</p>
-<h4 id="特点-6"><a href="#特点-6" class="headerlink" title="特点"></a>特点</h4><ul>
-<li>数据支持双向传输</li>
-<li>数据接收和发送同时进行</li>
-</ul>
-<h4 id="Example-4"><a href="#Example-4" class="headerlink" title="Example"></a>Example</h4><p>电话、网口、UART</p>
-<h1 id="References"><a href="#References" class="headerlink" title="References"></a>References</h1><ul>
-<li>B站视频：【四分钟搞定【同步通信-异步通信-全双工通信-串行通信-并行通信】】<a target="_blank" rel="noopener" href="https://www.bilibili.com/video/BV1q64y1R72M?vd_source=93bb338120537438ee9180881deab9c1">https://www.bilibili.com/video/BV1q64y1R72M?vd_source=93bb338120537438ee9180881deab9c1</a></li>
-</ul>
-
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2023/07/29/%E5%90%84%E7%A7%8D%E9%80%9A%E4%BF%A1%E6%96%B9%E5%BC%8F/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -656,7 +473,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2023-08-06 14:31:27" itemprop="dateModified" datetime="2023-08-06T14:31:27+08:00">2023-08-06</time>
+                <time title="修改时间：2023-08-06 14:33:39" itemprop="dateModified" datetime="2023-08-06T14:33:39+08:00">2023-08-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -684,7 +501,8 @@
 <ul>
 <li>以PicGo作为图床上传工具，在github上创建figure bed并连接typora（一键式typora插入图片自动上传并转化为url）</li>
 <li>增加search function</li>
-<li>缩短文章，只留下摘要</li>
+<li>设置预览摘要</li>
+<li>主页文章添加阴影效果</li>
 </ul>
           <!--noindex-->
             <div class="post-button">
