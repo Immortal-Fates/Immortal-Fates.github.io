@@ -192,10 +192,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2023-08-05 23:30:52 / 修改时间：23:40:33" itemprop="dateCreated datePublished" datetime="2023-08-05T23:30:52+08:00">2023-08-05</time>
+              <time title="创建时间：2023-08-05 23:30:52" itemprop="dateCreated datePublished" datetime="2023-08-05T23:30:52+08:00">2023-08-05</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2023-08-06 13:42:52" itemprop="dateModified" datetime="2023-08-06T13:42:52+08:00">2023-08-06</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
@@ -226,7 +232,7 @@
 <li>可以让协作编码变得更方便</li>
 </ul>
 <h4 id="工作方式"><a href="#工作方式" class="headerlink" title="工作方式"></a>工作方式</h4><p>VCS通过一系列的快照将某个文件夹及其内容保存了起来，每个快照都包含了文件或文件夹的完整状态。同时它还维护了快照创建者的信息以及每个快照的相关信息等等。</p>
-<p><img src="https://github.com/Immortal-Fates/Immortal-Fates.github.io/blob/master/photos/git.png" alt="git"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/Immortal-Fates/figure_Bed@main/blog/git.png" alt="git"></p>
 <h1 id="Git-的数据模型"><a href="#Git-的数据模型" class="headerlink" title="Git 的数据模型"></a>Git 的数据模型</h1><p>进行版本控制的方法很多。Git 拥有一个经过精心设计的模型，这使其能够支持版本控制所需的所有特性，例如维护历史记录、支持分支和促进协作。</p>
 <h4 id="快照（snapshots）"><a href="#快照（snapshots）" class="headerlink" title="快照（snapshots）"></a>快照（snapshots）</h4><p>Git 将顶级目录中的文件和文件夹作为集合，并通过一系列快照来管理其历史记录。在Git的术语里，文件被称作Blob对象（数据对象），也就是一组数据。目录则被称之为“树”，它将名字与 Blob 对象或树对象进行映射（使得目录中可以包含其他目录）。快照则是被追踪的最顶层的树。例如，一个树看起来可能是这样的：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&lt;root&gt; (tree)</span><br><span class="line">|</span><br><span class="line">+- foo (tree)</span><br><span class="line">|  |</span><br><span class="line">|  + bar.txt (blob, contents = &quot;hello world&quot;)</span><br><span class="line">|</span><br><span class="line">+- baz.txt (blob, contents = &quot;git is wonderful&quot;)</span><br></pre></td></tr></table></figure>
@@ -420,7 +426,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2023-08-05 23:44:39" itemprop="dateModified" datetime="2023-08-05T23:44:39+08:00">2023-08-05</time>
+                <time title="修改时间：2023-08-06 13:48:05" itemprop="dateModified" datetime="2023-08-06T13:48:05+08:00">2023-08-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -443,7 +449,8 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h1 id="基于STM32Cube框架的第一个stm32程序从新建到编译上传"><a href="#基于STM32Cube框架的第一个stm32程序从新建到编译上传" class="headerlink" title="基于STM32Cube框架的第一个stm32程序从新建到编译上传"></a>基于STM32Cube框架的第一个stm32程序从新建到编译上传</h1><h2 id="流程梳理"><a href="#流程梳理" class="headerlink" title="流程梳理"></a>流程梳理</h2><ul>
+          <h1 id="基于STM32Cube框架的第一个stm32程序从新建到编译上传"><a href="#基于STM32Cube框架的第一个stm32程序从新建到编译上传" class="headerlink" title="基于STM32Cube框架的第一个stm32程序从新建到编译上传"></a>基于STM32Cube框架的第一个stm32程序从新建到编译上传</h1><p>[TOC]</p>
+<h2 id="流程梳理"><a href="#流程梳理" class="headerlink" title="流程梳理"></a>流程梳理</h2><ul>
 <li>通过STM32CubeMX选择芯片、配置外设，并生成代码</li>
 <li>在选用的编辑器中编辑代码，编写程序</li>
 <li>编译代码，生成二进制文件并上传</li>
@@ -463,10 +470,10 @@
 <p>****Makefile****：Makefile实际上是“make”这个程序为了实现自动化构建工程而读取的一种文件。make从Makefile文件中读取生成的对象、编译的顺序、文件的依赖等信息，然后使用gcc或者g++来编译。Makefile不仅适用于系统下的标准C&#x2F;C++工程，也适用于嵌入式开发。为Arm架构芯片开发的gcc叫做“arm-none-eabi-gcc”，可以在GNU的官网上下载。PlatformIO使用gcc来编译STM32的程序，故采用Makefile选项更搭配。</p>
 <p>但实际上PlatformIO自带一套使用Python来构建工程的方法，因此用不到Makefile；真正需要的只是“Inc”和“Src”两个文件夹中的代码而已。如果有同学有兴趣的话，可以尝试使用gcc搭配make自行搭建一套工具链，这个时候STM32CubeMX生成的Makefile文件就会派上用场。</p>
 <h4 id="包管理："><a href="#包管理：" class="headerlink" title="包管理："></a>包管理：</h4><p>包管理有三种选项，翻译过来就是：仅复制用到的库文件、复制所有库文件、仅添加引用。</p>
-<p>​	<img src="https://github.com/Immortal-Fates/Immortal-Fates.github.io/blob/master/photos/image-20230605233713820.png" alt="image-20230605233713820"></p>
+<p>​	<img src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230605232417189.png" alt="image-20230605232417189"></p>
 <p>当选择了复制库文件到工程时，除了Inc和Src两个文件夹（或Advanced模式下的Core文件夹）外，还会额外生成一个Driver文件夹，其中放置的便是STM32的库文件。当启用了USB或者FreeRTOS等中间件后，也还会额外生成一个Middleware文件夹，其中放置的便是中间件的库文件。文件结构如下所示：</p>
-<p><img src="/...%5Cphotos%5Cimage-20230605233921565.png" alt="image-20230605233921565"></p>
-<h4 id="生成选项："><a href="#生成选项：" class="headerlink" title="生成选项："></a>生成选项：</h4><p><img src="https://github.com/Immortal-Fates/Immortal-Fates.github.io/blob/master/photos/image-20230605234156629.png" alt="image-20230605234156629"></p>
+<p><img src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230605232846792.png" alt="image-20230605232846792"></p>
+<h4 id="生成选项："><a href="#生成选项：" class="headerlink" title="生成选项："></a>生成选项：</h4><p><img src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230605233713820.png" alt="image-20230605233713820"></p>
 <h2 id="程序编写"><a href="#程序编写" class="headerlink" title="程序编写"></a>程序编写</h2><p>&#x2F;* USER CODE BEGIN x *&#x2F; *</p>
 <p> &#x2F;* USER CODE END x *&#x2F;</p>
 <p>其中的x可以是数字，也可以是别的一些标识符。STM32CubeMX希望用户将自己的代码插入到“BEGIN”和“END”当中，</p>
@@ -567,13 +574,13 @@
 <p>接下来便进入死循环。单片机上的程序不像我们电脑上的程序；电脑上的程序运行结束后就由操作系统回收资源了，单片机上的程序则会一直运行，从主函数返回后就回到了汇编启动文件中，接下来单片机的行为就不是我们在C语言代码中可以控制的了。因此在main函数中写入一个死循环，程序就不会从main函数退出。而实际的应用场景中，我们需要实现的功能很多时候也正是需要写在死循环中不断去执行，本例中的LED灯闪烁。</p>
 <h3 id="代码组织"><a href="#代码组织" class="headerlink" title="代码组织"></a>代码组织</h3><p>stm32的工程为C语言工程，编译时不会产生元数据，全靠头文件的包含和源文件的编译链接来实现工程组成，因此尤其需要开发者设计好合适的工程结构。</p>
 <p>关于C语言工程的结构，网上有许多的文章都提供了如何组织代码的方法。实际上代码的组织并没有一个非常统一的方案，大多都是按照开发者自己的喜好来设计。此处也不会要求同学们使用某种代码组织方法，仅仅提供笔者使用的代码结构供参考。</p>
-<p><img src="https://github.com/Immortal-Fates/Immortal-Fates.github.io/blob/master/photos/image-20230606131555059.png" alt="image-20230606131555059"></p>
-<p><img src="/...%5Cphotos%5Cimage-20230606131609394.png" alt="image-20230606131609394"></p>
+<p><img src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230606131555059.png" alt="image-20230606131555059"></p>
+<p><img src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230606131609394.png" alt="image-20230606131609394"></p>
 <p>当程序的逻辑逐渐复杂的时候，也可以不仅仅使用一对App.h&#x2F;c文件来实现全部逻辑，而可以使用多个文件分别实现一部分，此处不详述。</p>
 <h4 id="一些别的原则"><a href="#一些别的原则" class="headerlink" title="一些别的原则"></a>一些别的原则</h4><ul>
 <li><p>不要包含源文件，而是包含头文件；头文件中也不要包含函数或者全局变量的定义，而仅仅包含其声明。将函数的定义放在源文件里，函数的声明放在头文件中；变量的定义放在源文件里，再在头文件中将其extern</p>
 </li>
-<li><p><img src="https://github.com/Immortal-Fates/Immortal-Fates.github.io/blob/master/photos/image-20230606131804276.png" alt="image-20230606131804276"></p>
+<li><p><img src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230606131804276.png" alt="image-20230606131804276"></p>
 </li>
 <li><p>使用易理解函数、类型、变量名称。杜绝使用意义不明的命名，如a、b、l、m等，而要使用意义明确的名字，如使用单词或者易于理解的缩写来描述。此处不推荐使用拼音进行命名。如下展示的是STM32的HAL库中的一个函数命名作为示例</p>
 <table>
@@ -785,7 +792,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2023-08-04 21:51:15" itemprop="dateModified" datetime="2023-08-04T21:51:15+08:00">2023-08-04</time>
+                <time title="修改时间：2023-08-06 13:48:17" itemprop="dateModified" datetime="2023-08-06T13:48:17+08:00">2023-08-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -842,6 +849,8 @@
 <li><p><a target="_blank" rel="noopener" href="https://news.netshop168.com/article-85934.html">rss订阅是什么意思?为什么要使用RSS?RSS也称为RSS订阅或RSS提要 (netshop168.com)</a></p>
 </li>
 <li><p><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/347342082">如何利用 Github 搭建自己的免费图床？ - 知乎 (zhihu.com)</a></p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/489236769">使用Github+picGo搭建图床，保姆级教程来了 - 知乎 (zhihu.com)</a></p>
 </li>
 </ul>
 
