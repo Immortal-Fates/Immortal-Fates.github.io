@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="Main Takeaway记录我的基于STM32Cube框架的第一个stm32程序从新建到编译上传全流程，感谢机协学长学姐的帮助！">
+<meta property="og:type" content="article">
+<meta property="og:title" content="基于cubeMX创建的第一个stm32工程">
+<meta property="og:url" content="http://example.com/2023/08/04/%E5%9F%BA%E4%BA%8EcubeMX%E5%88%9B%E5%BB%BA%E7%9A%84%E7%AC%AC%E4%B8%80%E4%B8%AAstm32%E5%B7%A5%E7%A8%8B/index.html">
+<meta property="og:site_name" content="Immortal-Fates">
+<meta property="og:description" content="Main Takeaway记录我的基于STM32Cube框架的第一个stm32程序从新建到编译上传全流程，感谢机协学长学姐的帮助！">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230605232417189.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230605232417189.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230605232846792.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230605233921565.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230605233713820.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230606131555059.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230606131609394.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230606131804276.png">
+<meta property="article:published_time" content="2023-08-04T08:33:45.000Z">
+<meta property="article:modified_time" content="2023-08-08T07:13:32.787Z">
+<meta property="article:author" content="Immortal-Fates">
+<meta property="article:tag" content="robomaster">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230605232417189.png">
+
+<link rel="canonical" href="http://example.com/2023/08/04/%E5%9F%BA%E4%BA%8EcubeMX%E5%88%9B%E5%BB%BA%E7%9A%84%E7%AC%AC%E4%B8%80%E4%B8%AAstm32%E5%B7%A5%E7%A8%8B/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>基于cubeMX创建的第一个stm32工程 | Immortal-Fates</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Immortal-Fates</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-schedule">
+
+    <a href="/schedule/" rel="section"><i class="fa fa-calendar fa-fw"></i>日程表</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/Immortal-Fates" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2023/08/04/%E5%9F%BA%E4%BA%8EcubeMX%E5%88%9B%E5%BB%BA%E7%9A%84%E7%AC%AC%E4%B8%80%E4%B8%AAstm32%E5%B7%A5%E7%A8%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/kuang.jpg">
+      <meta itemprop="name" content="Immortal-Fates">
+      <meta itemprop="description" content="愿你生命中有更多的云翳，来造就一个美丽的黄昏">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Immortal-Fates">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          基于cubeMX创建的第一个stm32工程
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2023-08-04 16:33:45" itemprop="dateCreated datePublished" datetime="2023-08-04T16:33:45+08:00">2023-08-04</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2023-08-08 15:13:32" itemprop="dateModified" datetime="2023-08-08T15:13:32+08:00">2023-08-08</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F/" itemprop="url" rel="index"><span itemprop="name">嵌入式</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="Main-Takeaway"><a href="#Main-Takeaway" class="headerlink" title="Main Takeaway"></a>Main Takeaway</h1><p>记录我的基于STM32Cube框架的第一个stm32程序从新建到编译上传全流程，感谢机协学长学姐的帮助！</p>
+<span id="more"></span>
+
+<h1 id="流程梳理"><a href="#流程梳理" class="headerlink" title="流程梳理"></a>流程梳理</h1><ul>
+<li>通过STM32CubeMX选择芯片、配置外设，并生成代码</li>
+<li>在选用的编辑器中编辑代码，编写程序</li>
+<li>编译代码，生成二进制文件并上传</li>
+<li>调试代码的运行效果</li>
+</ul>
+<h1 id="芯片配置"><a href="#芯片配置" class="headerlink" title="芯片配置"></a>芯片配置</h1><h3 id="选择芯片-开发板"><a href="#选择芯片-开发板" class="headerlink" title="选择芯片&#x2F;开发板"></a>选择芯片&#x2F;开发板</h3><p>但是需要注意，若选择官方开发板作为硬件，则会提供“按照开发板上的电路及布局默认配置硬件”的选项</p>
+<h3 id="配置内核与外设硬件"><a href="#配置内核与外设硬件" class="headerlink" title="配置内核与外设硬件"></a>配置内核与外设硬件</h3><p><strong>系统配置</strong>：时钟配置+调试配置</p>
+<p><strong>时钟配置</strong>（必要）：STM32有四个时钟源：LSI（低速内部时钟）、LSE（低速外部时钟）、HIS（高速内部时钟）和HSE（高速外部时钟）；有的型号仅有其中某几个。默认的配置是采用芯片内部自带的振荡器、主频配置为8MHz。Nucleo F103RB中芯片外接了8MHz的晶振，故将“HSE”项配置为“Crystal&#x2F;Ceramic Resonator”，这就是说使用高速外部时钟，且时钟源为晶振。具体频率则在时钟树界面中配置（在使用内部振荡器时F1系列芯片最高主频是64MHz，在使用8MHz外部晶振时最高主频是72MHz。）</p>
+<p><img src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230605232417189.png" alt="image-20230605232417189"></p>
+<p><strong>调试配置</strong>：用于配置调试的类型（如果芯片未被配置为调试模式就强行对其进行调试，则会造成芯片内部启动程序错误而导致之后无法正常烧录程序，此时需擦除其Flash以修复）</p>
+<p>主流的调试方式有SWD和JTAG两种，而SWD是更方便的方法。若要使用SWD进行调试，则必须将芯片配置为“Serial Wire”调试。</p>
+<p><strong>外设硬件</strong>：芯片中的所有外设都可以在软件中配置，包括DMA、ADC、定时器等</p>
+<h3 id="配置工程，生成代码"><a href="#配置工程，生成代码" class="headerlink" title="配置工程，生成代码"></a>配置工程，生成代码</h3><h4 id="工程名称，路径"><a href="#工程名称，路径" class="headerlink" title="工程名称，路径"></a>工程名称，路径</h4><h4 id="应用结构："><a href="#应用结构：" class="headerlink" title="应用结构："></a><strong>应用结构</strong>：</h4><p>应用结构有“Basic”和“Advanced”两个选项。如果观察仔细的话，会发现STM32CubeIDE工程中的CubeMX项目默认的是“Advanced”结构，而单独使用CubeMX默认的是“Basic”结构</p>
+<h6 id=""><a href="#" class="headerlink" title=""></a><img src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230605232417189.png" alt="image-20230605232417189"></h6><h4 id="工具链-IDE："><a href="#工具链-IDE：" class="headerlink" title="工具链&#x2F;IDE："></a>工具链&#x2F;IDE：</h4><p>STM32CubeMX除了配置硬件外，还提供了直接生成工程		的功能，即由该“工具链&#x2F;IDE”选项确定。STM32CubeMX预先包含了7种		开发方式，分别是：EWARM、MDK-ARM、SW4STM32、TrueStudio、		STM32CubeIDE、Makefile和Other Toolchains(GPDSC)</p>
+<p>****MDK-ARM****：Keil uVision采用的开发环境，使用此选项可以直接生成Keil完整工程。</p>
+<p>****TrueStudio、STM32CubeIDE****：TrueStudio是STM32CubeIDE的前身。TrueStudio本身是以Eclipse为基础配置而成的STM32开发工具，在被ST收购被ST与STM32CubeMX合并，形成了STM32CubeIDE。故该两种选项生成的项目并无较大区别。对于使用Eclipse自行配置来为STM32开发的同学，也可以选择该选项。</p>
+<p>****Makefile****：Makefile实际上是“make”这个程序为了实现自动化构建工程而读取的一种文件。make从Makefile文件中读取生成的对象、编译的顺序、文件的依赖等信息，然后使用gcc或者g++来编译。Makefile不仅适用于系统下的标准C&#x2F;C++工程，也适用于嵌入式开发。为Arm架构芯片开发的gcc叫做“arm-none-eabi-gcc”，可以在GNU的官网上下载。PlatformIO使用gcc来编译STM32的程序，故采用Makefile选项更搭配。</p>
+<p>但实际上PlatformIO自带一套使用Python来构建工程的方法，因此用不到Makefile；真正需要的只是“Inc”和“Src”两个文件夹中的代码而已。如果有同学有兴趣的话，可以尝试使用gcc搭配make自行搭建一套工具链，这个时候STM32CubeMX生成的Makefile文件就会派上用场。</p>
+<h4 id="包管理："><a href="#包管理：" class="headerlink" title="包管理："></a>包管理：</h4><p>包管理有三种选项，翻译过来就是：仅复制用到的库文件、复制所有库文件、仅添加引用。</p>
+<p><img src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230605232846792.png" alt="image-20230605232846792"></p>
+<p>当选择了复制库文件到工程时，除了Inc和Src两个文件夹（或Advanced模式下的Core文件夹）外，还会额外生成一个Driver文件夹，其中放置的便是STM32的库文件。当启用了USB或者FreeRTOS等中间件后，也还会额外生成一个Middleware文件夹，其中放置的便是中间件的库文件。文件结构如下所示：</p>
+<p><img src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230605233921565.png" alt="image-20230605233921565"></p>
+<h4 id="生成选项："><a href="#生成选项：" class="headerlink" title="生成选项："></a>生成选项：</h4><p><img src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230605233713820.png" alt="image-20230605233713820"></p>
+<h1 id="程序编写"><a href="#程序编写" class="headerlink" title="程序编写"></a>程序编写</h1><p>&#x2F;* USER CODE BEGIN x *&#x2F; *</p>
+<p> &#x2F;* USER CODE END x *&#x2F;</p>
+<p>其中的x可以是数字，也可以是别的一些标识符。STM32CubeMX希望用户将自己的代码插入到“BEGIN”和“END”当中，</p>
+<p><strong>reason:</strong></p>
+<p>之所以要这样做是因为STM32CubeMX在更新代码时不会修改这两句注释之间的内容。比如当用户的需求发生了变动，需要修改硬件配置时，就需要使用STM32CubeMX来修改并重新生成代码。如果将用户代码放在这两句注释之间，STM32CubeMX就不会在重新生成代码的时候覆盖掉这部分。这使得硬件配置的更改变得更加方便</p>
+<h1 id="编译上传"><a href="#编译上传" class="headerlink" title="编译上传"></a>编译上传</h1><p>单片机、乃至目前一切电脑都不能直接运行代码文件，必须通过编译器将代码文件编译成CPU能够处理的机器语言——即二进制机器指令——才能烧录到芯片执行。STM32主流的编译器——也即arm芯片所用的编译器——有两种：arm-gcc和Arm Compiler。Keil默认采用Arm Compiler，而STM32CubeIDE和PlatformIO则采用arm-gcc。二者在编译原理上有差别，但是在代码层面很难体现出来</p>
+<h1 id="调试程序"><a href="#调试程序" class="headerlink" title="调试程序"></a>调试程序</h1><p>ST-Link不只是程序下载器，还是调试器，能够通过JTAG接口或者SWD接口控制芯片的运行、读取芯片的寄存器、内存等。我们可以观察到芯片中每个寄存器的值、每个变量的值及其变化，可以通过断点让程序运行到指定的位置、检测中断的执行；从而能够方便地调试代码。</p>
+<h1 id="代码结构"><a href="#代码结构" class="headerlink" title="代码结构"></a>代码结构</h1><h3 id="结构概述"><a href="#结构概述" class="headerlink" title="结构概述"></a>结构概述</h3><p>STM32CubeMX软件生成出来的代码具有高度的结构性。按文件予以区分，各个文件的功能如下：</p>
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th>简介</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>stm32f1xx_it.h&#x2F;stm32f1xx_it.c</td>
+<td>实现stm32的所有中断程序</td>
+</tr>
+<tr>
+<td>stm32f1xx_hal_conf.h</td>
+<td>HAL库配置文件</td>
+</tr>
+<tr>
+<td>system_stm32f1xx.c</td>
+<td>在内核层面上设置系统时钟</td>
+</tr>
+<tr>
+<td>stm32f1xx_hal_msp.c</td>
+<td>特定单片机具体配置</td>
+</tr>
+<tr>
+<td>main.h</td>
+<td>包含了应用程序全局的定义</td>
+</tr>
+<tr>
+<td>main.c</td>
+<td>实现主程序</td>
+</tr>
+<tr>
+<td>gpio.h&#x2F;gpio.c（以及类似的tim、usart等）</td>
+<td>专门配置某个外设硬件</td>
+</tr>
+</tbody></table>
+<p>接下来将逐个讲解这些文件的功能。</p>
+<h3 id="文件与程序功能"><a href="#文件与程序功能" class="headerlink" title="文件与程序功能"></a>文件与程序功能</h3><h4 id="stm32f1xx-hal-conf-h："><a href="#stm32f1xx-hal-conf-h：" class="headerlink" title="stm32f1xx_hal_conf.h："></a>stm32f1xx_hal_conf.h：</h4><p>该文件定义了启用的HAL模块，并设置了一些宏参数——比如晶振频率等。此处仅仅介绍模块启用的相关代码。</p>
+<p>C&#x2F;C++中的宏常用于选择性编译的程序，此处即使用了此原理。通过一系列宏来确定需要引用哪些头文件</p>
+<p>只有定义了对应的宏，才会引用对应的头文件，对应的模块才能够在应用中使用。这些宏不需要使用者手动定义，STM32CubeMX会自动根据在软件中选择的配置来定义这些宏、启用对应的模块。</p>
+<h4 id="system-stm32f1xx-c"><a href="#system-stm32f1xx-c" class="headerlink" title="system_stm32f1xx.c"></a>system_stm32f1xx.c</h4><p>该文件不涉及任何HAL库中的内容，仅仅从内核上使用寄存器的方式来初始化时钟，并提供了时钟频率值更新的函数。该文件中包含两个函数，如下所示：</p>
+<table>
+<thead>
+<tr>
+<th>SystemInit()</th>
+<th>按照默认配置设置系统时钟、嵌入式Flash等</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SystemCoreClockUpdate()</td>
+<td>根据当前的配置计算芯片主频</td>
+</tr>
+</tbody></table>
+<p>这两个函数在代码中都没有显式调用。实际上SystemInit()的调用是写在启动文件中的：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/* Call the clock system intitialization function.*/  </span><br><span class="line">bl  SystemInit</span><br></pre></td></tr></table></figure>
+
+<p>其调用发生在复位后、进入主函数前。其实本来可以通过修改该函数的参数就能实现时钟树的配置，但是HAL库选择了以自己的方法实现时钟配置，因此SystemInit()函数仅仅实现了默认的时钟配置，也就是采用内部时钟、主频为8MHz。真正的时钟配置是在主函数中进行的。</p>
+<h4 id="stm32f1xx-it-h-stm32f1xx-it-c"><a href="#stm32f1xx-it-h-stm32f1xx-it-c" class="headerlink" title="stm32f1xx_it.h&#x2F;stm32f1xx_it.c"></a>stm32f1xx_it.h&#x2F;stm32f1xx_it.c</h4><p>这两个文件包含了单片机用到的所有中断服务程序，主要分为两个部分：内核中断和外设中断。</p>
+<h5 id="内核中断"><a href="#内核中断" class="headerlink" title="内核中断"></a>内核中断</h5><p>在代码中内核中断以以下注释作为开始：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/**********************************************************************/ /*    Cortex-M3 Processor Interruption and Exception Handlers     */  /**********************************************************************/</span><br></pre></td></tr></table></figure>
+
+<p>内核中断指的是那些由STM32芯片中内核部分——包括F1系列采用的Cortex-M3内核、F4系列采用的Cortex-M4内核等——产生的中断。这些中断多是一些通用的、系统性的中断，如SysTick_Handler（系统滴答定时器中断）、HardFault_Handler（硬件错误中断）等。STM32CubeMX将其自动列出来，方便使用者修改。比如HardFault_Handler，当系统出现硬件错误的时候便会跳转到这里，可以利用这一中断函数很快定位bug的来源。</p>
+<p>注意，内核中断中的SysTick_Handler默认被HAL库用于计时。如果没有实现该中断函数则会使HAL库失去计时功能。当然这也是已经由STM32CubeMX软件自动完成了，可以在SysTick_Handler函数中看见被调用的库函数HAL_IncTick。</p>
+<p> 系统滴答定时器中断：由系统滴答定时器产生</p>
+<p> 硬件错误中断：当发生内存溢出、访问越界、堆栈溢出时进入</p>
+<p> HAL库计时功能默认采用系统滴答定时器来进行计时，但也可以换用TIM1、TIM2等外设计时器：可在STM32CubeMX的SYS部分配置</p>
+<h5 id="外设中断"><a href="#外设中断" class="headerlink" title="外设中断"></a>外设中断</h5><p>在代码中外设中断以以下注释作为开始：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/**********************************************************************/ /* STM32F1xx Peripheral Interrupt Handlers                 */ /* Add here the Interrupt Handlers for the used peripherals.      */ /* For the available peripheral interrupt handler names,         */ /* please refer to the startup file (startup_stm32f1xx.s).        */ /**********************************************************************/</span><br></pre></td></tr></table></figure>
+
+<p>外设中断指的是由单片机内非内核部分的外设硬件产生的中断，如定时器中断、外部中断、串口中断等。当在STM32CubeMX中选择了相应的中断时便会自动在此处添加中断服务函数。</p>
+<h4 id="stm32f1xx-hal-msp-c"><a href="#stm32f1xx-hal-msp-c" class="headerlink" title="stm32f1xx_hal_msp.c"></a>stm32f1xx_hal_msp.c</h4><p>MSP指的是MCU Specific Package，即单片机具体方案。HAL库体系下，初始化分为两个步骤：抽象层初始化和MSP初始化。</p>
+<p>以串口为例。串口的属性包括波特率、数据位、校验位等；但是这些属性属于抽象属性，无论这个串口是STM32单片机的串口1还是串口2，或者是Arduino上的甚至51单片机上的串口，都拥有这些属性。抽象属性的初始化即为抽象层的初始化。但是要让串口真正工作起来，仅仅告诉它波特率多少、数据位多少、有无校验位是不够的，还要配置串口的时钟、串口的DMA、串口的复用引脚等，而这些属性在不同单片机上是不一样的。这些初始化即为MSP初始化。只有经过了这两层初始化，开发者才能按照需求使用抽象硬件。</p>
+<p>该文件实现的即是单片机全局的MSP初始化函数：HAL_MspInit()。如下所示，实现了复用引脚和电源的时钟使能，并且关闭了JTAG调试而改用SWD调试：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> \* Initializes the Global MSP.</span><br><span class="line"> */</span><br><span class="line">void HAL_MspInit(void)</span><br><span class="line">&#123;</span><br><span class="line"> __HAL_RCC_AFIO_CLK_ENABLE();</span><br><span class="line"> __HAL_RCC_PWR_CLK_ENABLE();</span><br><span class="line"></span><br><span class="line"> /* System interrupt init*/</span><br><span class="line"></span><br><span class="line"> /** NOJTAG: JTAG-DP Disabled and SW-DP Enabled</span><br><span class="line"> */</span><br><span class="line"> __HAL_AFIO_REMAP_SWJ_NOJTAG();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>该函数并非在源文件中进行调用，而是在库文件中进行调用。HAL库的初始化函数在进行完毕抽象层的初始化后便会调用相应的MSP初始化函数。</p>
+<h4 id="main-h"><a href="#main-h" class="headerlink" title="main.h"></a>main.h</h4><p>该文件包含了全局的宏定义，并且包含了单片机的库文件。从STM32Cube的设计上来看，官方希望开发者将全局的定义、包含、常量等都写在该文件中，并在各个源文件中都包含该main.h</p>
+<p>文件中为开发者预留了填写包含（Private includes）、类型（Exported types）、常量（Exported constants）、宏函数（Exported macro）、函数原型（Exported functions prototypes）和宏定义（Private defines）。用户可将自己的代码填写在“USER CODE BEGIN”和“USER CODE END”之间。</p>
+<p>Tips:</p>
+<p>由于用户可能多次使用STM32CubeMX进行代码生成，故代码文件中的内容会被多次重写。如果要修改生成的源文件，请务必将代码填写在“USER CODE BEGIN”和“USER CODE END”之间，因为STM32CubeMX在重新生成代码时会识别该标志并保留其中的用户代码。</p>
+<h4 id="main-c"><a href="#main-c" class="headerlink" title="main.c"></a>main.c</h4><p>在main函数中，首先初始化了HAL库：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/* Reset of all peripherals, Initializes the Flash interface and the Systick. */</span><br><span class="line">HAL_Init();</span><br></pre></td></tr></table></figure>
+
+<p>然后配置了系统时钟。此处的时钟配置和之前的SystemInit函数不一样，SystemInit函数中直接修改寄存器配置时钟，而此处则使用HAL库的库函数来配置；该函数也在main.c文件中实现，将单片机的时钟配置成软件中时钟树所配置成的样子。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/* Configure the system clock */ SystemClock_Config();</span><br></pre></td></tr></table></figure>
+
+<p>其次初始化了所有外设。本例中仅有GPIO进行了初始化，因此此处也仅有GPIO的初始化函数。以后若有其他外设需要初始化，CubeMX也会将其放在该位置。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/* Initialize all configured peripherals */ MX_GPIO_Init();</span><br></pre></td></tr></table></figure>
+
+<p>接下来便进入死循环。单片机上的程序不像我们电脑上的程序；电脑上的程序运行结束后就由操作系统回收资源了，单片机上的程序则会一直运行，从主函数返回后就回到了汇编启动文件中，接下来单片机的行为就不是我们在C语言代码中可以控制的了。因此在main函数中写入一个死循环，程序就不会从main函数退出。而实际的应用场景中，我们需要实现的功能很多时候也正是需要写在死循环中不断去执行，本例中的LED灯闪烁。</p>
+<h3 id="代码组织"><a href="#代码组织" class="headerlink" title="代码组织"></a>代码组织</h3><p>stm32的工程为C语言工程，编译时不会产生元数据，全靠头文件的包含和源文件的编译链接来实现工程组成，因此尤其需要开发者设计好合适的工程结构。</p>
+<p>关于C语言工程的结构，网上有许多的文章都提供了如何组织代码的方法。实际上代码的组织并没有一个非常统一的方案，大多都是按照开发者自己的喜好来设计。此处也不会要求同学们使用某种代码组织方法，仅仅提供笔者使用的代码结构供参考。</p>
+<p><img src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230606131555059.png" alt="image-20230606131555059"></p>
+<p><img src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230606131609394.png" alt="image-20230606131609394"></p>
+<p>当程序的逻辑逐渐复杂的时候，也可以不仅仅使用一对App.h&#x2F;c文件来实现全部逻辑，而可以使用多个文件分别实现一部分，此处不详述。</p>
+<h4 id="一些别的原则"><a href="#一些别的原则" class="headerlink" title="一些别的原则"></a>一些别的原则</h4><ul>
+<li><p>不要包含源文件，而是包含头文件；头文件中也不要包含函数或者全局变量的定义，而仅仅包含其声明。将函数的定义放在源文件里，函数的声明放在头文件中；变量的定义放在源文件里，再在头文件中将其extern</p>
+</li>
+<li><p><img src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230606131804276.png" alt="image-20230606131804276"></p>
+</li>
+<li><p>使用易理解函数、类型、变量名称。杜绝使用意义不明的命名，如a、b、l、m等，而要使用意义明确的名字，如使用单词或者易于理解的缩写来描述。此处不推荐使用拼音进行命名。如下展示的是STM32的HAL库中的一个函数命名作为示例</p>
+<table>
+<thead>
+<tr>
+<th><em><strong>*函数名：HAL_GPIO_WritePin*</strong></em></th>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><em><strong>*HAL*</strong></em></td>
+<td><em><strong>*GPIO*</strong></em></td>
+<td><em><strong>*WritePin*</strong></em></td>
+</tr>
+<tr>
+<td>该函数隶属于HAL库</td>
+<td>该函数与GPIO相关</td>
+<td>该函数的功能是写引脚的值</td>
+</tr>
+</tbody></table>
+</li>
+<li><p>使用规律的命名规则。常见的几种基础的命名规则如下：</p>
+</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>驼峰命名</th>
+<th>组成变量名的第一个单词的首字母小写，其余的首字母大写。Arduino采用的便是驼峰命名规则，如analogWrite，attachInterrupt等。</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>帕斯卡命名</td>
+<td>组成变量名的各个单词的首字母均大写。C#就常用帕斯卡命名规则，如Console.WriteLine，XmlSerializer等。</td>
+</tr>
+<tr>
+<td>下划线命名</td>
+<td>组成变量名的单词均为小写，其间使用下划线连接。树莓派Pico的SDK采用的便是下划线命名，如hw_set_bits、sleep_ms</td>
+</tr>
+</tbody></table>
+<p>这些命名规则仅仅作为参考，实际上可以使用混合的命名规则，比如公共成员使用帕斯卡命名、私有成员使用驼峰命名，或者在一个变量中使用组合式的命名规则。但是在整个工程中对象的命名规则务必有迹可循。</p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>Immortal-Fates
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="http://example.com/2023/08/04/%E5%9F%BA%E4%BA%8EcubeMX%E5%88%9B%E5%BB%BA%E7%9A%84%E7%AC%AC%E4%B8%80%E4%B8%AAstm32%E5%B7%A5%E7%A8%8B/" title="基于cubeMX创建的第一个stm32工程">http://example.com/2023/08/04/基于cubeMX创建的第一个stm32工程/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/robomaster/" rel="tag"># robomaster</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2023/07/29/%E5%90%84%E7%A7%8D%E9%80%9A%E4%BF%A1%E6%96%B9%E5%BC%8F/" rel="prev" title="各种通信方式">
+      <i class="fa fa-chevron-left"></i> 各种通信方式
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2023/08/05/Git%E5%85%A5%E9%97%A8/" rel="next" title="Git入门">
+      Git入门 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Main-Takeaway"><span class="nav-number">1.</span> <span class="nav-text">Main Takeaway</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%B5%81%E7%A8%8B%E6%A2%B3%E7%90%86"><span class="nav-number">2.</span> <span class="nav-text">流程梳理</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E8%8A%AF%E7%89%87%E9%85%8D%E7%BD%AE"><span class="nav-number">3.</span> <span class="nav-text">芯片配置</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%80%89%E6%8B%A9%E8%8A%AF%E7%89%87-%E5%BC%80%E5%8F%91%E6%9D%BF"><span class="nav-number">3.0.1.</span> <span class="nav-text">选择芯片&#x2F;开发板</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE%E5%86%85%E6%A0%B8%E4%B8%8E%E5%A4%96%E8%AE%BE%E7%A1%AC%E4%BB%B6"><span class="nav-number">3.0.2.</span> <span class="nav-text">配置内核与外设硬件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE%E5%B7%A5%E7%A8%8B%EF%BC%8C%E7%94%9F%E6%88%90%E4%BB%A3%E7%A0%81"><span class="nav-number">3.0.3.</span> <span class="nav-text">配置工程，生成代码</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%B7%A5%E7%A8%8B%E5%90%8D%E7%A7%B0%EF%BC%8C%E8%B7%AF%E5%BE%84"><span class="nav-number">3.0.3.1.</span> <span class="nav-text">工程名称，路径</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%BA%94%E7%94%A8%E7%BB%93%E6%9E%84%EF%BC%9A"><span class="nav-number">3.0.3.2.</span> <span class="nav-text">应用结构：</span></a><ol class="nav-child"><li class="nav-item nav-level-6"><a class="nav-link"><span class="nav-number">3.0.3.2.0.1.</span> <span class="nav-text"></span></a></li></ol></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%B7%A5%E5%85%B7%E9%93%BE-IDE%EF%BC%9A"><span class="nav-number">3.0.3.3.</span> <span class="nav-text">工具链&#x2F;IDE：</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8C%85%E7%AE%A1%E7%90%86%EF%BC%9A"><span class="nav-number">3.0.3.4.</span> <span class="nav-text">包管理：</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%94%9F%E6%88%90%E9%80%89%E9%A1%B9%EF%BC%9A"><span class="nav-number">3.0.3.5.</span> <span class="nav-text">生成选项：</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%A8%8B%E5%BA%8F%E7%BC%96%E5%86%99"><span class="nav-number">4.</span> <span class="nav-text">程序编写</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%BC%96%E8%AF%91%E4%B8%8A%E4%BC%A0"><span class="nav-number">5.</span> <span class="nav-text">编译上传</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E8%B0%83%E8%AF%95%E7%A8%8B%E5%BA%8F"><span class="nav-number">6.</span> <span class="nav-text">调试程序</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BB%A3%E7%A0%81%E7%BB%93%E6%9E%84"><span class="nav-number">7.</span> <span class="nav-text">代码结构</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%93%E6%9E%84%E6%A6%82%E8%BF%B0"><span class="nav-number">7.0.1.</span> <span class="nav-text">结构概述</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%96%87%E4%BB%B6%E4%B8%8E%E7%A8%8B%E5%BA%8F%E5%8A%9F%E8%83%BD"><span class="nav-number">7.0.2.</span> <span class="nav-text">文件与程序功能</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#stm32f1xx-hal-conf-h%EF%BC%9A"><span class="nav-number">7.0.2.1.</span> <span class="nav-text">stm32f1xx_hal_conf.h：</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#system-stm32f1xx-c"><span class="nav-number">7.0.2.2.</span> <span class="nav-text">system_stm32f1xx.c</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#stm32f1xx-it-h-stm32f1xx-it-c"><span class="nav-number">7.0.2.3.</span> <span class="nav-text">stm32f1xx_it.h&#x2F;stm32f1xx_it.c</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#%E5%86%85%E6%A0%B8%E4%B8%AD%E6%96%AD"><span class="nav-number">7.0.2.3.1.</span> <span class="nav-text">内核中断</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E5%A4%96%E8%AE%BE%E4%B8%AD%E6%96%AD"><span class="nav-number">7.0.2.3.2.</span> <span class="nav-text">外设中断</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#stm32f1xx-hal-msp-c"><span class="nav-number">7.0.2.4.</span> <span class="nav-text">stm32f1xx_hal_msp.c</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#main-h"><span class="nav-number">7.0.2.5.</span> <span class="nav-text">main.h</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#main-c"><span class="nav-number">7.0.2.6.</span> <span class="nav-text">main.c</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%A3%E7%A0%81%E7%BB%84%E7%BB%87"><span class="nav-number">7.0.3.</span> <span class="nav-text">代码组织</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%B8%80%E4%BA%9B%E5%88%AB%E7%9A%84%E5%8E%9F%E5%88%99"><span class="nav-number">7.0.3.1.</span> <span class="nav-text">一些别的原则</span></a></li></ol></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Immortal-Fates"
+      src="/images/kuang.jpg">
+  <p class="site-author-name" itemprop="name">Immortal-Fates</p>
+  <div class="site-description" itemprop="description">愿你生命中有更多的云翳，来造就一个美丽的黄昏</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">5</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Immortal-Fates</span>
+</div>
+  <div class="powered-by">
+    <!--由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动 -->
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  
+  <script color='0,0,255' opacity='0.5' zIndex='-1' count='99' src="/lib/canvas-nest/canvas-nest.min.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>
