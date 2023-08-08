@@ -20,12 +20,12 @@
     var CONFIG = {"hostname":"example.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
-  <meta name="description" content="Main Takeaway了解及总结（同步通信-异步通信-全双工通信-串行通信-并行通信）各种通信方法">
+  <meta name="description" content="Main Takeaway 了解及总结（同步通信-异步通信-全双工通信-串行通信-并行通信）各种通信方法">
 <meta property="og:type" content="article">
 <meta property="og:title" content="各种通信方式">
 <meta property="og:url" content="http://example.com/2023/07/29/%E5%90%84%E7%A7%8D%E9%80%9A%E4%BF%A1%E6%96%B9%E5%BC%8F/index.html">
 <meta property="og:site_name" content="Immortal-Fates">
-<meta property="og:description" content="Main Takeaway了解及总结（同步通信-异步通信-全双工通信-串行通信-并行通信）各种通信方法">
+<meta property="og:description" content="Main Takeaway 了解及总结（同步通信-异步通信-全双工通信-串行通信-并行通信）各种通信方法">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2023-07-29T06:27:46.000Z">
 <meta property="article:modified_time" content="2023-08-08T07:27:40.654Z">
@@ -255,59 +255,85 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <h1 id="Main-Takeaway"><a href="#Main-Takeaway" class="headerlink" title="Main Takeaway"></a>Main Takeaway</h1><p>了解及总结（同步通信-异步通信-全双工通信-串行通信-并行通信）各种通信方法</p>
+        <h1 id="main-takeaway">Main Takeaway</h1>
+<p>了解及总结（同步通信-异步通信-全双工通信-串行通信-并行通信）各种通信方法</p>
 <span id="more"></span>
-
-<h1 id="并行通信-and-串行通信"><a href="#并行通信-and-串行通信" class="headerlink" title="并行通信 and 串行通信"></a>并行通信 and 串行通信</h1><h2 id="并行通信"><a href="#并行通信" class="headerlink" title="并行通信"></a>并行通信</h2><p>Parallel communication</p>
-<h4 id="传输方式"><a href="#传输方式" class="headerlink" title="传输方式"></a>传输方式</h4><p>多个数据bit位同时传输</p>
-<h4 id="常用总线"><a href="#常用总线" class="headerlink" title="常用总线"></a>常用总线</h4><p>local bus,  DDR</p>
-<h4 id="特点"><a href="#特点" class="headerlink" title="特点"></a>特点</h4><ul>
+<h1 id="并行通信-and-串行通信">并行通信 and 串行通信</h1>
+<h2 id="并行通信">并行通信</h2>
+<p>Parallel communication</p>
+<h4 id="传输方式">传输方式</h4>
+<p>多个数据bit位同时传输</p>
+<h4 id="常用总线">常用总线</h4>
+<p>local bus, DDR</p>
+<h4 id="特点">特点</h4>
+<ul>
 <li>同时传输，效率高</li>
 <li>数据线多，设计复杂</li>
 </ul>
-<h2 id="串行通信"><a href="#串行通信" class="headerlink" title="串行通信"></a>串行通信</h2><p>Serial communication </p>
-<h4 id="传输方式-1"><a href="#传输方式-1" class="headerlink" title="传输方式"></a>传输方式</h4><p>数据bit一位一位传输</p>
-<h4 id="常用总线-1"><a href="#常用总线-1" class="headerlink" title="常用总线"></a>常用总线</h4><p>local bus,  DDR</p>
-<h4 id="特点-1"><a href="#特点-1" class="headerlink" title="特点"></a>特点</h4><ul>
+<h2 id="串行通信">串行通信</h2>
+<p>Serial communication</p>
+<h4 id="传输方式-1">传输方式</h4>
+<p>数据bit一位一位传输</p>
+<h4 id="常用总线-1">常用总线</h4>
+<p>local bus, DDR</p>
+<h4 id="特点-1">特点</h4>
+<ul>
 <li>按bit逐位传输，效率低</li>
 <li>只需一根数据线，设计简单</li>
 </ul>
-<h1 id="异步串行通信-and-同步串行通信"><a href="#异步串行通信-and-同步串行通信" class="headerlink" title="异步串行通信 and 同步串行通信"></a>异步串行通信 and 同步串行通信</h1><h2 id="异步串行通信"><a href="#异步串行通信" class="headerlink" title="异步串行通信"></a>异步串行通信</h2><p>Asynchronous serial communication</p>
-<h4 id="特点-2"><a href="#特点-2" class="headerlink" title="特点"></a>特点</h4><ul>
+<h1 id="异步串行通信-and-同步串行通信">异步串行通信 and
+同步串行通信</h1>
+<h2 id="异步串行通信">异步串行通信</h2>
+<p>Asynchronous serial communication</p>
+<h4 id="特点-2">特点</h4>
+<ul>
 <li>信息发送设备与接收设备之间无时钟连接</li>
-<li>信息中包含特殊标志位Start&#x2F;Stop</li>
+<li>信息中包含特殊标志位Start/Stop</li>
 <li>接收设备根据特殊标志位利用本地时钟对数据采样</li>
 </ul>
-<h4 id="Example"><a href="#Example" class="headerlink" title="Example"></a>Example</h4><p>UART，无时钟线连接</p>
+<h4 id="example">Example</h4>
+<p>UART，无时钟线连接</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">接收器   发送器</span><br><span class="line">TxD-----&gt;RxD</span><br><span class="line">RxD&lt;-----TxD</span><br></pre></td></tr></table></figure>
-
-
-
-<h2 id="同步串行通信"><a href="#同步串行通信" class="headerlink" title="同步串行通信"></a>同步串行通信</h2><p>Synchronous serial communciation</p>
-<h4 id="特点-3"><a href="#特点-3" class="headerlink" title="特点"></a>特点</h4><ul>
+<h2 id="同步串行通信">同步串行通信</h2>
+<p>Synchronous serial communciation</p>
+<h4 id="特点-3">特点</h4>
+<ul>
 <li>信息发送设备与接收设备需要时钟同步</li>
 <li>两者间出数据线连接，还需要额外的时钟线连接</li>
 </ul>
-<h4 id="Example-1"><a href="#Example-1" class="headerlink" title="Example"></a>Example</h4><p>IIC,需要时钟线SCL连接</p>
-<h1 id="三种数据通路：单工，半双工，全双工"><a href="#三种数据通路：单工，半双工，全双工" class="headerlink" title="三种数据通路：单工，半双工，全双工"></a>三种数据通路：单工，半双工，全双工</h1><h2 id="单工通信"><a href="#单工通信" class="headerlink" title="单工通信"></a>单工通信</h2><p>Simplex communciation</p>
-<h4 id="特点-4"><a href="#特点-4" class="headerlink" title="特点"></a>特点</h4><ul>
+<h4 id="example-1">Example</h4>
+<p>IIC,需要时钟线SCL连接</p>
+<h1
+id="三种数据通路单工半双工全双工">三种数据通路：单工，半双工，全双工</h1>
+<h2 id="单工通信">单工通信</h2>
+<p>Simplex communciation</p>
+<h4 id="特点-4">特点</h4>
+<ul>
 <li>信息只能单一方向传输</li>
 </ul>
-<h4 id="Example-2"><a href="#Example-2" class="headerlink" title="Example"></a>Example</h4><p>广播，遥控器</p>
-<h2 id="半双工通信"><a href="#半双工通信" class="headerlink" title="半双工通信"></a>半双工通信</h2><p>Half-duplex communciation</p>
-<h4 id="特点-5"><a href="#特点-5" class="headerlink" title="特点"></a>特点</h4><ul>
+<h4 id="example-2">Example</h4>
+<p>广播，遥控器</p>
+<h2 id="半双工通信">半双工通信</h2>
+<p>Half-duplex communciation</p>
+<h4 id="特点-5">特点</h4>
+<ul>
 <li>数据支持双向传输</li>
 <li>发送和接收不能同时进行，同一时间只能发送or接收数据</li>
 </ul>
-<h4 id="Example-3"><a href="#Example-3" class="headerlink" title="Example"></a>Example</h4><p>IIC</p>
-<h2 id="全双工通信"><a href="#全双工通信" class="headerlink" title="全双工通信"></a>全双工通信</h2><p>Full-duplex communciation</p>
-<h4 id="特点-6"><a href="#特点-6" class="headerlink" title="特点"></a>特点</h4><ul>
+<h4 id="example-3">Example</h4>
+<p>IIC</p>
+<h2 id="全双工通信">全双工通信</h2>
+<p>Full-duplex communciation</p>
+<h4 id="特点-6">特点</h4>
+<ul>
 <li>数据支持双向传输</li>
 <li>数据接收和发送同时进行</li>
 </ul>
-<h4 id="Example-4"><a href="#Example-4" class="headerlink" title="Example"></a>Example</h4><p>电话、网口、UART</p>
-<h1 id="References"><a href="#References" class="headerlink" title="References"></a>References</h1><ul>
-<li>B站视频：【四分钟搞定【同步通信-异步通信-全双工通信-串行通信-并行通信】】<a target="_blank" rel="noopener" href="https://www.bilibili.com/video/BV1q64y1R72M?vd_source=93bb338120537438ee9180881deab9c1">https://www.bilibili.com/video/BV1q64y1R72M?vd_source=93bb338120537438ee9180881deab9c1</a></li>
+<h4 id="example-4">Example</h4>
+<p>电话、网口、UART</p>
+<h1 id="references">References</h1>
+<ul>
+<li>B站视频：【四分钟搞定【同步通信-异步通信-全双工通信-串行通信-并行通信】】https://www.bilibili.com/video/BV1q64y1R72M?vd_source=93bb338120537438ee9180881deab9c1</li>
 </ul>
 
     </div>
@@ -410,7 +436,8 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Main-Takeaway"><span class="nav-number">1.</span> <span class="nav-text">Main Takeaway</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%B9%B6%E8%A1%8C%E9%80%9A%E4%BF%A1-and-%E4%B8%B2%E8%A1%8C%E9%80%9A%E4%BF%A1"><span class="nav-number">2.</span> <span class="nav-text">并行通信 and 串行通信</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B9%B6%E8%A1%8C%E9%80%9A%E4%BF%A1"><span class="nav-number">2.1.</span> <span class="nav-text">并行通信</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BC%A0%E8%BE%93%E6%96%B9%E5%BC%8F"><span class="nav-number">2.1.0.1.</span> <span class="nav-text">传输方式</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%B8%B8%E7%94%A8%E6%80%BB%E7%BA%BF"><span class="nav-number">2.1.0.2.</span> <span class="nav-text">常用总线</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%89%B9%E7%82%B9"><span class="nav-number">2.1.0.3.</span> <span class="nav-text">特点</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%B2%E8%A1%8C%E9%80%9A%E4%BF%A1"><span class="nav-number">2.2.</span> <span class="nav-text">串行通信</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BC%A0%E8%BE%93%E6%96%B9%E5%BC%8F-1"><span class="nav-number">2.2.0.1.</span> <span class="nav-text">传输方式</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%B8%B8%E7%94%A8%E6%80%BB%E7%BA%BF-1"><span class="nav-number">2.2.0.2.</span> <span class="nav-text">常用总线</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%89%B9%E7%82%B9-1"><span class="nav-number">2.2.0.3.</span> <span class="nav-text">特点</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%BC%82%E6%AD%A5%E4%B8%B2%E8%A1%8C%E9%80%9A%E4%BF%A1-and-%E5%90%8C%E6%AD%A5%E4%B8%B2%E8%A1%8C%E9%80%9A%E4%BF%A1"><span class="nav-number">3.</span> <span class="nav-text">异步串行通信 and 同步串行通信</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BC%82%E6%AD%A5%E4%B8%B2%E8%A1%8C%E9%80%9A%E4%BF%A1"><span class="nav-number">3.1.</span> <span class="nav-text">异步串行通信</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%89%B9%E7%82%B9-2"><span class="nav-number">3.1.0.1.</span> <span class="nav-text">特点</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Example"><span class="nav-number">3.1.0.2.</span> <span class="nav-text">Example</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%90%8C%E6%AD%A5%E4%B8%B2%E8%A1%8C%E9%80%9A%E4%BF%A1"><span class="nav-number">3.2.</span> <span class="nav-text">同步串行通信</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%89%B9%E7%82%B9-3"><span class="nav-number">3.2.0.1.</span> <span class="nav-text">特点</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Example-1"><span class="nav-number">3.2.0.2.</span> <span class="nav-text">Example</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E7%A7%8D%E6%95%B0%E6%8D%AE%E9%80%9A%E8%B7%AF%EF%BC%9A%E5%8D%95%E5%B7%A5%EF%BC%8C%E5%8D%8A%E5%8F%8C%E5%B7%A5%EF%BC%8C%E5%85%A8%E5%8F%8C%E5%B7%A5"><span class="nav-number">4.</span> <span class="nav-text">三种数据通路：单工，半双工，全双工</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%95%E5%B7%A5%E9%80%9A%E4%BF%A1"><span class="nav-number">4.1.</span> <span class="nav-text">单工通信</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%89%B9%E7%82%B9-4"><span class="nav-number">4.1.0.1.</span> <span class="nav-text">特点</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Example-2"><span class="nav-number">4.1.0.2.</span> <span class="nav-text">Example</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%8A%E5%8F%8C%E5%B7%A5%E9%80%9A%E4%BF%A1"><span class="nav-number">4.2.</span> <span class="nav-text">半双工通信</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%89%B9%E7%82%B9-5"><span class="nav-number">4.2.0.1.</span> <span class="nav-text">特点</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Example-3"><span class="nav-number">4.2.0.2.</span> <span class="nav-text">Example</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%A8%E5%8F%8C%E5%B7%A5%E9%80%9A%E4%BF%A1"><span class="nav-number">4.3.</span> <span class="nav-text">全双工通信</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%89%B9%E7%82%B9-6"><span class="nav-number">4.3.0.1.</span> <span class="nav-text">特点</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Example-4"><span class="nav-number">4.3.0.2.</span> <span class="nav-text">Example</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#References"><span class="nav-number">5.</span> <span class="nav-text">References</span></a></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#main-takeaway"><span class="nav-number">1.</span> <span class="nav-text">Main Takeaway</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%B9%B6%E8%A1%8C%E9%80%9A%E4%BF%A1-and-%E4%B8%B2%E8%A1%8C%E9%80%9A%E4%BF%A1"><span class="nav-number">2.</span> <span class="nav-text">并行通信 and 串行通信</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B9%B6%E8%A1%8C%E9%80%9A%E4%BF%A1"><span class="nav-number">2.1.</span> <span class="nav-text">并行通信</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BC%A0%E8%BE%93%E6%96%B9%E5%BC%8F"><span class="nav-number">2.1.0.1.</span> <span class="nav-text">传输方式</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%B8%B8%E7%94%A8%E6%80%BB%E7%BA%BF"><span class="nav-number">2.1.0.2.</span> <span class="nav-text">常用总线</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%89%B9%E7%82%B9"><span class="nav-number">2.1.0.3.</span> <span class="nav-text">特点</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%B2%E8%A1%8C%E9%80%9A%E4%BF%A1"><span class="nav-number">2.2.</span> <span class="nav-text">串行通信</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BC%A0%E8%BE%93%E6%96%B9%E5%BC%8F-1"><span class="nav-number">2.2.0.1.</span> <span class="nav-text">传输方式</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%B8%B8%E7%94%A8%E6%80%BB%E7%BA%BF-1"><span class="nav-number">2.2.0.2.</span> <span class="nav-text">常用总线</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%89%B9%E7%82%B9-1"><span class="nav-number">2.2.0.3.</span> <span class="nav-text">特点</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%BC%82%E6%AD%A5%E4%B8%B2%E8%A1%8C%E9%80%9A%E4%BF%A1-and-%E5%90%8C%E6%AD%A5%E4%B8%B2%E8%A1%8C%E9%80%9A%E4%BF%A1"><span class="nav-number">3.</span> <span class="nav-text">异步串行通信 and
+同步串行通信</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BC%82%E6%AD%A5%E4%B8%B2%E8%A1%8C%E9%80%9A%E4%BF%A1"><span class="nav-number">3.1.</span> <span class="nav-text">异步串行通信</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%89%B9%E7%82%B9-2"><span class="nav-number">3.1.0.1.</span> <span class="nav-text">特点</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#example"><span class="nav-number">3.1.0.2.</span> <span class="nav-text">Example</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%90%8C%E6%AD%A5%E4%B8%B2%E8%A1%8C%E9%80%9A%E4%BF%A1"><span class="nav-number">3.2.</span> <span class="nav-text">同步串行通信</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%89%B9%E7%82%B9-3"><span class="nav-number">3.2.0.1.</span> <span class="nav-text">特点</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#example-1"><span class="nav-number">3.2.0.2.</span> <span class="nav-text">Example</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E7%A7%8D%E6%95%B0%E6%8D%AE%E9%80%9A%E8%B7%AF%E5%8D%95%E5%B7%A5%E5%8D%8A%E5%8F%8C%E5%B7%A5%E5%85%A8%E5%8F%8C%E5%B7%A5"><span class="nav-number">4.</span> <span class="nav-text">三种数据通路：单工，半双工，全双工</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%95%E5%B7%A5%E9%80%9A%E4%BF%A1"><span class="nav-number">4.1.</span> <span class="nav-text">单工通信</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%89%B9%E7%82%B9-4"><span class="nav-number">4.1.0.1.</span> <span class="nav-text">特点</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#example-2"><span class="nav-number">4.1.0.2.</span> <span class="nav-text">Example</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%8A%E5%8F%8C%E5%B7%A5%E9%80%9A%E4%BF%A1"><span class="nav-number">4.2.</span> <span class="nav-text">半双工通信</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%89%B9%E7%82%B9-5"><span class="nav-number">4.2.0.1.</span> <span class="nav-text">特点</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#example-3"><span class="nav-number">4.2.0.2.</span> <span class="nav-text">Example</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%A8%E5%8F%8C%E5%B7%A5%E9%80%9A%E4%BF%A1"><span class="nav-number">4.3.</span> <span class="nav-text">全双工通信</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%89%B9%E7%82%B9-6"><span class="nav-number">4.3.0.1.</span> <span class="nav-text">特点</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#example-4"><span class="nav-number">4.3.0.2.</span> <span class="nav-text">Example</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#references"><span class="nav-number">5.</span> <span class="nav-text">References</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
