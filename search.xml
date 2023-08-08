@@ -1,600 +1,80 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>CAN总线学习——底层逻辑</title>
-    <url>/2023/08/08/CAN%E6%80%BB%E7%BA%BF%E5%AD%A6%E4%B9%A0%E2%80%94%E2%80%94%E5%BA%95%E5%B1%82%E9%80%BB%E8%BE%91/</url>
+    <title>Hello World</title>
+    <url>/2023/07/27/Hello-World/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>记录学习CAN的历程，主要是CAN的底层逻辑。</p>
-<p>highly
-comment直接看References中的文章，在此仅作回顾总结，并就其中一些内容进行修改和补充(见Tips和Bonus)。</p>
-<p>感谢CAN总线学习笔记系列，让人受益匪浅。</p>
-<p>下一步学习CAN上层应用主要书CAN过滤器和API的使用</p>
+<p>仅以此blog记录生活点滴</p>
+<p>遇到困难第一时间找官方手册解决问题!</p>
+<p>优化进行ing</p>
 <span id="more"></span>
-<h1 id="can基础知识">CAN基础知识</h1>
-<h3 id="can的一些基本概念">CAN的一些基本概念</h3>
-<p>CAN(controller area
-network)是串行通信协议；CAN总线就是一种传输数据的线</p>
+<h1 id="优化">优化</h1>
 <ul>
-<li>高速CAN通信标准，闭环总线</li>
-<li>低俗CAN通信标准，开环总线</li>
-</ul>
-<blockquote>
-<p>Tips:总线传输速率：位速率or比特率</p>
-</blockquote>
-<h3 id="can的拓扑结构">CAN的拓扑结构</h3>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230807000301535.png"
-alt="image-20230807000301535" />
-<figcaption aria-hidden="true">image-20230807000301535</figcaption>
-</figure>
-<h3 id="can信号表示">CAN信号表示</h3>
-<p>CAN总线上，利用CAN_H and
-CAN_L两根线的电位差来表示CAN信号，显性电平（逻辑0），隐性电平（逻辑1）</p>
-<h3 id="can信号传输">CAN信号传输</h3>
-<ul>
-<li>发送方是总线电平发生变化</li>
-<li>接收方监听总线电平，读入自己的接收器</li>
-</ul>
-<h1 id="can通信的特点">CAN通信的特点</h1>
-<h3 id="多主工作方式">多主工作方式</h3>
-<p>结点无主从之分，只要总线空闲则均可发消息，最先发消息的结点获得总线的发送权（一起发则看优先权）</p>
-<blockquote>
-<p>Tips:<总线空闲状态>：连续的11位隐性电平（结合CAN协议的帧结构）</p>
-</blockquote>
-<h3 id="非破坏性位仲裁机制">非破坏性位仲裁机制</h3>
-<p>一起发消息的节点会进行逐位仲裁，不会造成已发送数据的延迟，也不会破坏已经发送的数据</p>
-<h3 id="系统的柔性">系统的柔性</h3>
-<p>节点无“地址”概念，因此增加节点对已有节点的软硬件及应用层造成影响</p>
-<h3 id="通信速度">通信速度</h3>
-<p>同一条CAN线，节点通信速度必须相同，如果两条不同通信速度总线上的节点想要实现信息交互，必须通过网关</p>
-<blockquote>
-<p>Tips:网关实质上是<strong>一个网络通向其他网络的IP地址</strong>。</p>
-</blockquote>
-<h3 id="数据传输方式">数据传输方式</h3>
-<p>可实现一对一，一对多以及广播的数据传输方式，依赖于验收滤波技术</p>
-<h3 id="远程数据请求">远程数据请求</h3>
-<p>Node_A可以通过发送“遥控帧”到总线上来请求Node_B发送由该遥控帧所指定的报文</p>
-<h3
-id="错误检测错误通知错误恢复functions">错误检测、错误通知、错误恢复functions</h3>
-<ul>
-<li>所有nodes都可以检测出错误（错误检测）</li>
-<li>检测出错误的node会立即通知总线上其它nodes(错误通知)</li>
-<li>正在发送消息的节点，if检测到错误，会立即停止当前的发送，并待总线空闲时不断重复发送此消息，知道改消息发送成功为止(错误恢复)</li>
-</ul>
-<h3 id="故障封闭">故障封闭</h3>
-<p>node能够判断错误的类型：暂时性地数据错误（如噪声干扰）还是持续性地数据错误（如节点内部故障），如果判断时严重的持续性错误，节点就会切断自己与总线地练习，避免影响其他nodes</p>
-<h1 id="can通信网络结构">CAN通信网络结构</h1>
-<p>理解每个结构中的作用就理解了CAN</p>
-<h3 id="osi基本参照模型">OSI基本参照模型</h3>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230807003930039.png"
-alt="image-20230807003930039" />
-<figcaption aria-hidden="true">image-20230807003930039</figcaption>
-</figure>
-<h3 id="can协议网络层次">CAN协议网络层次</h3>
-<p>ISO标准只对数据链路层和物理层做了规定</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230807004043599.png"
-alt="image-20230807004043599" />
-<figcaption aria-hidden="true">image-20230807004043599</figcaption>
-</figure>
-<h1 id="can协议中的帧">CAN协议中的帧</h1>
-<p>CAN中有5中帧结构</p>
-<ul>
-<li>数据帧：用于通讯节点向外传送数据。</li>
-<li>遥控帧：用于向远端节点请求数据。</li>
-<li>错误帧：用于向远端节点通知校验错误，请求重新发送上一个数据。</li>
-<li>过载帧：用于通知远端节点：本节点尚未做好接受准备。</li>
-<li>间隔帧：用于将数据帧及遥控帧与前面的帧分离开来的帧</li>
-</ul>
-<h2 id="数据帧与遥控帧">数据帧与遥控帧</h2>
-<ul>
-<li>数据帧：包含我们要传输的数据的帧，承载发送节点要传递的数据</li>
-<li>遥控帧：请求其它节点发出与本遥控帧具有相同ID号的数据帧</li>
-</ul>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230807180622274.png"
-alt="image-20230807180622274" />
-<figcaption aria-hidden="true">image-20230807180622274</figcaption>
-</figure>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230807180646925.png"
-alt="image-20230807180646925" />
-<figcaption aria-hidden="true">image-20230807180646925</figcaption>
-</figure>
-<p>遥控帧相比于数据帧缺少数据段，且遥控帧RTR位恒为隐性1，数据帧RTR位恒为显性0</p>
-<blockquote>
-<p>Tips:数据帧和遥控帧都分为标准帧（CAN2.0A）和扩展帧（CAN2.0B）</p>
-</blockquote>
-<h4 id="帧起始">帧起始</h4>
-<p>帧的最开始一位是帧起始，SOF(start of frame)，恒为显性0</p>
-<p>即CAN_H and CAN_L有电位差就表示SOF，总线上开始有报文了</p>
-<h4 id="仲裁段">仲裁段</h4>
-<p>判定报文优先级，ID号也是实现报文过滤机制的基础</p>
-<p>数据帧仲裁段：</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230807181639943.png"
-alt="image-20230807181639943" />
-<figcaption aria-hidden="true">image-20230807181639943</figcaption>
-</figure>
-<p>遥控帧仲裁段：</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230807181705793.png"
-alt="image-20230807181705793" />
-<figcaption aria-hidden="true">image-20230807181705793</figcaption>
-</figure>
-<p>遥控帧RTR位恒为隐性1，数据帧RTR位恒为显性0</p>
-<h4 id="仲裁过程">仲裁过程</h4>
-<ul>
-<li><strong>回读机制：</strong>节点在向总线上发送报文的过程中，同时也对总线上的二进制位进行“回读”。通过这种机制，节点就可以判断出本节点发出的二进制位与总线上当前的二进制位是否一致。<br />
-</li>
-<li><strong>线与机制：</strong>在总线上，显性位0能够覆盖隐性位1。</li>
-</ul>
-<p>当两个节点同时发送消息时会进行逐位仲裁直至分出胜负</p>
-<ul>
-<li><p>在Node_A获取总线的发送权之后，Node_A接着发送自己的Msg_A，因此在竞争总线的过程中不会对Msg_A的传输造成延时；</p></li>
-<li><p>在两个节点竞争总线的过程中，不会破坏Msg_A;</p></li>
-</ul>
-<h4 id="仲裁段中的rtrsrr和ide位">仲裁段中的RTR，SRR和IDE位</h4>
-<ul>
-<li><p>RTR位：Tranmission Request Bit
-（远程发送请求位）。在数据帧中，RTR位恒为显性位0，在遥控帧中，恒为隐性1。</p>
-<p>在ID号相同的情况下， 保证数据帧优先级高于遥控帧</p></li>
-<li><p>SRR位：Substitutes for Remote Requests
-Bit（替代远程请求位），在扩展帧（数据帧或遥控帧）中，SRR恒为隐性位1，并且可以发现，扩展帧的隐性SRR位正好对应标准帧的显性RTR位，所以</p>
-<p>在前11位ID号相同的情况下，保证标准数据帧的优先级高于扩展数据帧；</p></li>
-<li><p>IDE位：Identifier Extension
-Bit（标识符扩展位）。在扩展帧中恒为隐性1，在标准帧中，IDE位于控制段，且恒为显性0。且扩展帧IDE位和标准帧IDE位位置对应</p>
-<p>在前11位ID号相同的情况下，保证标准遥控帧的优先级一定高于扩展遥控帧。</p></li>
-</ul>
-<h4 id="报文过滤">报文过滤</h4>
-<p>在CAN总线中没有地址的概念，CAN总线是通过报文ID来实现收发数据的。CAN节点上都会有一个验收滤波ID表，其位于CAN节点的验收滤波器中，如果总线上的报文的ID号在某个节点的验收滤波ID表中，那么这一帧报文就能通过该节点验收滤波器的验收，该节点就会接收这一帧报文。</p>
-<p>比如：Node_A发送了一帧ID号为ID_1的报文Msg_1，Node_B的验收滤波ID表中恰好有ID_1，于是乎Msg_1就会被Node_B接收。</p>
-<p>报文过滤机制体现了CAN通信的两条特点：</p>
-<ol type="1">
-<li><p>一对一、组播和广播</p></li>
-<li><p>系统的柔性：正是因为CAN总线上收发报文是基于报文ID实现的，所以总线上添加节点时不会对总线上已有的节点造成影响。</p></li>
-</ol>
-<h4 id="控制段">控制段</h4>
-<p>数据帧和遥控帧的控制段结构相同：</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230807195944269.png"
-alt="image-20230807195944269" />
-<figcaption aria-hidden="true">image-20230807195944269</figcaption>
-</figure>
-<p>4位的DLC（DLC3、DLC2、DLC1、DLC0）代表<strong>数据长度</strong>，指示了数据段中的字节数。对于没有数据段的遥控帧，DLC表示该遥控帧对应的数据帧的数据段的字节数</p>
-<h4 id="数据段">数据段</h4>
-<p>数据段可以包含0~8个字节的数据，从MSB（最高位）开始输出。</p>
-<h4 id="crc段">CRC段</h4>
-<p>CRC校验序列是根据多项式生成的CRC值，其计算范围包括：帧起始、仲裁段、控制段和数据段。</p>
-<p>CRC界定符恒为隐性1</p>
-<h4 id="ack段">ACK段</h4>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230807200359857.png"
-alt="image-20230807200359857" />
-<figcaption aria-hidden="true">image-20230807200359857</figcaption>
-</figure>
-<ul>
-<li><p>发送节点在ACK段发送两个隐性位，即发送方发出的报文中ACK槽为隐性1</p></li>
-<li><p>接收节点在接收到正确的报文之后会在ACK槽发送显性位0（在ACK槽中填充显性位0使总线电平变为显性0），通知发送节点正常接收结束。</p></li>
-</ul>
-<h4 id="帧结束">帧结束</h4>
-<p>帧结束段表示该帧报文的结束，由7个隐性位构成。</p>
-<h2 id="错误帧">错误帧</h2>
-<p>在发送和接收报文时，Nodes如果检测出错误则会发送错误帧，通知其他节点，自己出错了</p>
-<h3 id="错误帧的帧结构">错误帧的帧结构</h3>
-<p>错误帧 = 错误标志+错误界定符</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230807222925553.png"
-alt="image-20230807222925553" />
-<figcaption aria-hidden="true">image-20230807222925553</figcaption>
-</figure>
-<ul>
-<li>主动错误标志：6个连续的显性位</li>
-<li>被动错误标志：6个连续的隐性位</li>
-<li>错误界定符：8个连续的隐性位</li>
-</ul>
-<h3 id="错误检测">错误检测</h3>
-<h4 id="位填充原则">位填充原则</h4>
-<p>CAN协议中规定，当相同极性的电平持续五位时，则添加一个极性相反的位（接收时自动删除下一位）——均由Nodes完成</p>
-<p>位填充的作用域：SOF–CRC(除去CRC界定符)之间的位流</p>
-<h4 id="错误的种类">错误的种类</h4>
-<p>共有五种错误</p>
-<ul>
-<li><p>位错误 (Bit Check Error)：自己发出的和回读的不一致</p>
-<blockquote>
-<p>Tips:有三种例外不是位错误</p>
-<ul>
-<li>在仲裁区，节点向bus发送隐性位却读到显性，表示该节点仲裁失败</li>
-<li>在ACK槽，表示有节点正确接收</li>
-<li>该节点发送被动错误标志（发送6个连续的隐性位），可能被其他节点发送的显性电平“吃掉”了</li>
-</ul>
-</blockquote></li>
-<li><p>ACK错误 (Acknowledge
-Error)：节点在ACK槽没有回读到显性位，即没有节点正确接收。产生ACK应答错误</p></li>
-<li><p>填充错误 (FIll
-Error)：在位填充作用域中检测到连续六个同性位</p></li>
-<li><p>CRC错误 (CRC
-Error)：节点发送和接收时都会计算CRC序列，不一致检测为CRC Error</p></li>
-<li><p>格式错误：在一帧报文发送时，如果在必须发送预定值的区域内检测到了非法值，那么就检测到了一个格式错误</p>
-<blockquote>
-<p>Tips:CAN报文中，有预定值的区域：</p>
-<ul>
-<li>数据帧和遥控帧的CRC界定符、ACK界定符、EOF</li>
-<li>错误帧界定符</li>
-<li>过载帧界定符</li>
-</ul>
-</blockquote></li>
-</ul>
-<h3 id="错误通知">错误通知</h3>
-<h4 id="节点错误状态">节点错误状态</h4>
-<ul>
-<li><p>主动错误状态（有说服力，较可靠）：可以正常通信；在检测到错误时，发出带有主动错误标志的错误帧（6个连续的显性位），会“覆盖”总线上其它节点的发送，于是正在发送的报文就被破坏掉了</p>
-<blockquote>
-<p>大家都相信主动错误状态的节点，“我发现错误了，你们收到的不算数”</p>
-</blockquote></li>
-<li><p>被动错误状态（无说服力）：可以正常通信；在检测到错误时，发出带有被动错误标志的错误帧（6个连续的隐性位），所以这个时候总线上正在传输的报文位流不会受到该被动错误帧的影响
-，没人搭理。</p>
-<p>如果发出被动错误帧的节点Node_A为报文的发送节点，那么在发送被动错误帧之后，刚刚正在发送的报文被破坏，并且Node_A不能在错误帧之后随着连续发送刚刚发送失败的那个报文。随之而来的是帧间隔，并且连带着8位隐性住的
-“延迟传送”
-段（即暂停段，见帧间隔）；这样总线电平就呈现出连续11位隐性位，总线上的其它节点就能判定总线处于空闲状态，就能参与总线竞争。此时如果Node_A能够竞争成功，那么它就能接着发送，如果竞争不能成功，那么就接着等待下一次竞争。这种机制的目的正是为了<strong>让其它正常节点
-(处于主动错误) 优先使用总线</strong></p>
-<blockquote>
-<p>Tips:
-处于被动错误状态，说明这个节点目前是不太可靠的，出现错误的原因可能是它本身的问题，即刚刚检测到的错误可能仅仅只有它自己遇到，正是因为这一点，整个总线才不信任它报告的错误，从而只允许它发送六个连续的隐性位，这样它才不会拖累别人</p>
-</blockquote></li>
-<li><p>总关闭状态：整个节点脱离总线。等到检测到128次11个连续的隐性位时，TEC和REC置0，重新回到主动错误状态（冷静一段时间）</p></li>
-</ul>
-<h4 id="错误状态的转换">错误状态的转换</h4>
-<p>CAN节点内，有两个计数器：<strong>发送错误计数器（TEC）and
-接受错误计数器（REC）</strong></p>
-<blockquote>
-<p>Tips:计数器的变化有个表格规定，而不是错一次+1</p>
-</blockquote>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230808104018271.png"
-alt="image-20230808104018271" />
-<figcaption aria-hidden="true">image-20230808104018271</figcaption>
-</figure>
-<p>节点错误状态的转换就是一个量变到质变的过程</p>
-<h3 id="错误帧的发送">错误帧的发送</h3>
-<ul>
-<li><p>位错误、填充错误、格式错误、ACK措误在错误产生的那一位的下一位开始发送错误帧。</p></li>
-<li><p>CRC错误：紧随ACK界定符后的位发送错误帧。</p></li>
-</ul>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230808105739885.png"
-alt="image-20230808105739885" />
-<figcaption aria-hidden="true">image-20230808105739885</figcaption>
-</figure>
-<h2 id="过载帧">过载帧</h2>
-<p>过载帧是接收节点向总线上其它节点报告自身接收能力达到极限的帧（我已经没有能力来处理你们发来的报文了）</p>
-<p>过载帧包括：过载标志+过载界定符</p>
-<ul>
-<li><p>过载标志：连续6个显性位；</p></li>
-<li><p>过载界定符：连续8个隐性位；</p></li>
-<li><p>与错误帧类似，过载帧中有过载帧重整部分，且形成过载重叠标志的原因与形成措误帧中的错误重慢标志的原因是相同的</p></li>
-</ul>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230808110424756.png"
-alt="image-20230808110424756" />
-<figcaption aria-hidden="true">image-20230808110424756</figcaption>
-</figure>
-<blockquote>
-<p>Tips:接收节点Node_A达到接收极限时，就会发出过载帧到总线上，显然，过载标志的6个连续显性位会屏蔽掉总线上其它节点的发送，也就是说这个时候Node_A通过发送过载帧的方式来破坏其它节点的发送，这样在Node_A发送过载帧期间，其它节点就不能成功发送报文，于是就相当于把其它节点的发送推迟了，也就是说Node_A在其发送过载帧的这段时间得以<strong>“休息”</strong>。</p>
-</blockquote>
-<p>有三种情况会引起过载帧：</p>
-<ul>
-<li><p>接收节点自身原因。接收节点由于某种原因需要延迟接收下一个数据帧或者遥控帧。</p></li>
-<li><p>在帧间隔的间歇段的第一位和第二位检测到一个显性位（正常的间歇段都是隐性位）</p>
-<p>帧间隔的间隔段本应是三个连续的隐性位，如果接收节点Node_A在间隔段检测到显性位，那么就意味着此时有报文发向接收节点Node_A,
-但这个时候是不应该有报文发来的，于是Node_A发送过载帧。</p></li>
-<li><p>CAN节点在错误界定符或过载界定符的第八位（最后一位）听到一个显性位0,
-节点会发送一个过载帧，且错误计数器不会增加。</p>
-<p>接收节点Node_A在错误界定符和过载界定符的最后一位听到显性位，也意味着有报文发向Node_A,
-但这个时候是不应该有报文发来的，于是Node_A发送过载帧。</p></li>
-</ul>
-<h2 id="帧间隔">帧间隔</h2>
-<p>帧间隔是用来隔离数据帧（或者遥控帧）的，也就是说，数据帧（或者遥控帧）通过插入帧间隔可以将本帧与先行帧（数据帧、遥控帧、错误帧、过载帧）分隔开来。</p>
-<blockquote>
-<p>Tips: 过载帧和错误帧的前面不能插入帧间隔。</p>
-</blockquote>
-<p>帧间隔有两种不同的状态：</p>
-<p>主动错误状态的帧间隔： <img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230808111701098.png"
-alt="image-20230808111701098" /></p>
-<p>被动错误状态的帧间隔：</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230808111723987.png"
-alt="image-20230808111723987" />
-<figcaption aria-hidden="true">image-20230808111723987</figcaption>
-</figure>
-<ul>
-<li><p>间隔段：连续三个隐性位；间隔段期间，所有节点不允许发送数据这或遥控帧，只要在这期间监听到显性位，接收节点就会发送过载帧。</p></li>
-<li><p>空闲段：连续隐性位，个数不一定，个或者多个都可以。总线空闲的时间是任意长的，只要总线空闲，节点就可以竞争总线。</p></li>
-<li><p>暂停段：只有处于被动错误状态的节点在发送帧间隔的时候，才会在帧间隔中插入8个连续隐性位的暂停段。</p>
-<p>暂停段，又叫做延迟传送段，为什么节点处于被动状态时会有这样一段呢？原因如下：首先，考虑主动错误状态的节点Node_A,
-发送主动错误标志之后，随之就要重新发送刚刚发送失败的报文，但是为了间隔开与前面刚刚发送的错误帧，总线在错误帧之后就会插入3个隐形位的帧间隔，在这3个隐形位期间，其它的节点不足以判定总线空闲（需要连续11个隐性位才能判定），所以Node_A仍然占据着总线的控制权，于是在帧间隔之后，Node_A能够接着发送报文。现在Node_A转入到被动错误状态了，说明它已经不是很可靠了，这个时候如果没有延迟传送段，在Node_A发出被动错误标志之后，它仍然能够在3位的帧间隔之后立即重新发送报文，这是不符合我们对被动错误状态的处理要求的当然也是不符合CAN协议的，于是乎对于发送出被动错误标志的节点，总线在帧间隔中加入了8
-个连续隐性位的延迟传送段，这样的3+8=11个连续隐性位。<strong>就能让Node_A在这个帧间隔期间失去对总线的控制权，从而优先保证其它正常（处于主动错误状态）节点能够使用总线，而不必等着一个已经不可靠的Node_A占据总线。</strong></p></li>
-</ul>
-<h1 id="can通信的位定时与同步">CAN通信的位定时与同步</h1>
-<h2 id="位定位">位定位</h2>
-<p>CAN总线是两项调制，即此时数值上波特率和比特率（见Bonus）是一样的。</p>
-<h3 id="位时间">位时间</h3>
-<h4 id="位时间的基本概念">位时间的基本概念</h4>
-<p>表示一个二进制位在总线上传输时所需要的时间。 <span
-class="math display">\[
-位速率=\frac{1}{位时间}
-\]</span> CAN总线中的两个时钟：晶振时钟周期+CAN时钟周期</p>
-<ul>
-<li><p>晶振时钟周期：是由单片机振荡器的晶振频率决定的，指的是振荡器每震荡一次所消耗的时间长度，也是整个系统中最小的时间单位。</p></li>
-<li><p>CAN时钟周期：CAN时钟是由系统时钟分频而来的一个时间长度值，实际上就是一个时间份额Tq。
-<span class="math display">\[
-CAN时钟周期 = 2×晶振时钟周期×BRP
-\]</span></p>
-<blockquote>
-<p>BRP即波特率预分频值（baudrate
-prescaler）:它的作用是将晶振频率进行预分频，以满足CAN总线波特率的要求。
-在CAN协议中，BRP的取值范围是<strong>1~64</strong>，它决定了一个时间单元（Time
-Quantum，Tq）的长度。</p>
-</blockquote></li>
-</ul>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230808135508935.png"
-alt="image-20230808135508935" />
-<figcaption aria-hidden="true">image-20230808135508935</figcaption>
-</figure>
-<h4 id="位时间的分段">位时间的分段</h4>
-<p>在CAN的位定时中，一个CAN时钟周期称为一个时间量子一Tq（Time
-Quantum）</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230808135931239.png"
-alt="image-20230808135931239" />
-<figcaption aria-hidden="true">image-20230808135931239</figcaption>
-</figure>
-<ul>
-<li>同步段 (Synchronization Segment) :
-<ul>
-<li>长度固定，1个时间量子Tq；</li>
-<li>一个位的传输从同步段开始；</li>
-<li>同步段用于同步总线上的各个节点，一个位的跳边沿在此时间段内。</li>
-</ul></li>
-<li>传播段 (Propagation Segment)：
-<ul>
-<li>传播段用于补偿报文在总线和节点上传输时所产生的时间延迟；</li>
-<li>传播段时长<span
-class="math inline">\(≥2×\)</span>报文在总线和节点上传输时产生的时间延迟；</li>
-<li>传播段时长可编程 (1~8个时间量子Tq)。</li>
-</ul></li>
-<li>相位缓冲段1 (Phase Buffer Segment)：
-<ul>
-<li>用于补偿节点间的晶振误差；</li>
-<li>允许通过重同步对该段加长；</li>
-<li>在这个时间段的末端进行总线状态的采样；</li>
-<li>长度可编程 (1~8个时间量子Tq)。</li>
-</ul></li>
-<li>相位冲段2 (Phase Buffer Segment2) :
-<ul>
-<li>用于补偿节点间的晶振误差；</li>
-<li>允许通过重同步对该段缩短；</li>
-<li>长度可编程 (1~8个时间量子Tq)。</li>
-</ul></li>
-</ul>
-<p><span class="math display">\[
-tBit = tSS+tPS+tPBS1+tPBS2
-\]</span></p>
-<p><span class="math display">\[
-tBit：位时间，tSS：同步段时间，tPS：传播段时间，tPBS1：相位缓冲时间段1，tPBS2：相位缓冲时间段2
-\]</span></p>
-<h2 id="can的同步机制">CAN的同步机制</h2>
-<p>CAN有两种同步机制：<strong>硬同步+重同步</strong></p>
-<ul>
-<li>一个位时间内只允许一种同步方式，要么硬同步要么重同步；</li>
-<li>任何一个从 “隐性” 到 “显性”的下降沿都可以用于同步；</li>
-<li>硬同步发生在报文的SOF位，所有接收节点调整各自当前位的同步段，使其位于发送的SOF位内；</li>
-<li>重同步发生在一个报文SOF位之外的其它段，当下降沿落在了同步段之外时发生重同步；</li>
-<li>在SOF到仲裁场发送的时间段内，如果有多个节点同时发送报文，那么这些发送节点对跳变沿不进行重同步。</li>
-</ul>
-<h3 id="硬同步">硬同步</h3>
-<p>硬同步发生在SOF位，所有接收节点调整各自当前位的同步段，调整宽度不限</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230808141854318.png"
-alt="image-20230808141854318" />
-<figcaption aria-hidden="true">image-20230808141854318</figcaption>
-</figure>
-<h3 id="重同步">重同步</h3>
-<p>在两个缓冲段中间的位置，即使读取总线电平的采样点位置，当检测到总线上存在相位差的时候，通过延长PBS1或缩短PBS2来获得同步。这两个相位缓冲段的延长or缩短时间上限再有同步跳转宽度SJW给定。</p>
-<blockquote>
-<p>Tips:CAN是异步通信，需要通过不断地重新同步才能保证收发节点的采样准确。所以SJW决定了接收节点是否能有比较好的兼容性。</p>
-</blockquote>
-<h4 id="pbs1延长">PBS1延长</h4>
-<p>发的晚，收的早，导致PBS1延长</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230808142134094.png"
-alt="image-20230808142134094" />
-<figcaption aria-hidden="true">image-20230808142134094</figcaption>
-</figure>
-<h4 id="pbs2缩短">PBS2缩短</h4>
-<p>发的早，收的晚，导致PBS2缩短</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230808142317458.png"
-alt="image-20230808142317458" />
-<figcaption aria-hidden="true">image-20230808142317458</figcaption>
-</figure>
-<h4 id="同步跳转宽度">同步跳转宽度</h4>
-<p>在重同步时，有个同步跳转宽度 (SJW,Synchro Jump Width)
-的概念，表示的是PBS1和PBS2重同步时允许跳转的最大宽度，SJW决定了接收节点是否能有比较好的兼容性。同步跳转宽度必须满足以下几个条件：</p>
-<ul>
-<li><p>SJW必须小于PBS1和PBS2的最小值</p></li>
-<li><p>SJW最大值不能超过4</p></li>
-</ul>
-<h2 id="位定时参数">位定时参数</h2>
-<ul>
-<li><p>位速率：bps、kbps、Mbps</p></li>
-<li><p>位时间：tBit，单位一般为纳秒ns</p></li>
-<li><p>时间量子Tq： <span class="math display">\[
-Tq=\frac{1}{NBT},NBT：一个位时间内包含Tq的个数
-\]</span></p></li>
-<li><p>传输延迟时间tPTS</p>
-<p>CAN报文在CAN总线上的传输时，物理延迟包括两个部分：</p>
-<ul>
-<li>在CAN-BUS上传输造成的延迟</li>
-<li>在节点上传输造成延迟</li>
-</ul></li>
-</ul>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230808144634176.png"
-alt="image-20230808144634176" />
-<figcaption aria-hidden="true">image-20230808144634176</figcaption>
-</figure>
-<p>按照CAN通信协议的规定，补偿给传播延迟的时间长度要至少等于实际实际传播延迟时长的2倍，即:
-<span class="math display">\[
-tPTS≥2×t_{del} = 2×(t_{el}+t_{Bus})
-\]</span></p>
-<blockquote>
-<p>Tips：在CAN总线通信系统中是以时间量子Tq来度量时间的，所以如果延迟补偿时间tPTS=3.1Tq,
-那么这个时候要取：tPTS= 4Tq。</p>
-</blockquote>
-<ul>
-<li><p>相位缓冲段：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">if (NBT-1-tPTS_Tq)/2==偶数</span><br><span class="line">	PBSl_Tq = PBS2_Tq = (NBT-1-tPTS_Tq)/2</span><br><span class="line">else</span><br><span class="line">	PBSl_Tq = (NBT-1-tPTS_Tq)/2</span><br><span class="line">	PBS2_Tq = PBSl_Tq + 1</span><br></pre></td></tr></table></figure></li>
-<li><p>同步跳转宽度： <span class="math display">\[
-SJW=min(PBS1\_Tq,PBS2\_Tq,4)
-\]</span></p></li>
-<li><p>验证晶振误差Df</p></li>
-</ul>
-<p>晶振误差必须满足三个条件</p>
-<ul>
-<li><p><span class="math display">\[
-Df&lt;=\frac{SJW}{(2*10*NBT)}
-\]</span></p></li>
-<li><p><span class="math display">\[
-Df&lt;=\frac{min(PBS1\_Tq,PBS2\_Tq)}{2*(13*NBT-PBS2\_Tq)}
-\]</span></p></li>
-<li><p><span class="math display">\[
-Df&lt;=1.58\%
-\]</span></p></li>
+<li><p>以PicGo作为图床上传工具，在github上创建figure
+bed并连接typora（一键式typora插入图片自动上传并转化为url）</p></li>
+<li><p>增加search function</p></li>
+<li><p>设置预览摘要</p></li>
+<li><p>主页文章添加阴影效果</p></li>
+<li><p>给一篇文章设置多标签</p></li>
+<li><p>让blog支持LaTex数学公式</p>
+<p>hexo并不支持LaTex数学公式<a
+href="https://theme-next.js.org/docs/third-party-services/math-equations.html">Math
+Equations | NexT (theme-next.js.org)</a></p>
+<p>卸载hexo-math，Render
+Engines替换渲染hexo-renderer-marked（并下载pandoc，hexo-renderer-pandoc）修改config</p></li>
 </ul>
 <h1 id="bonus">Bonus</h1>
-<h3 id="比特率波特率和频率带宽">比特率、波特率和频率带宽</h3>
+<p>记录搭建blog过程中遇到的一些东西</p>
 <ul>
-<li>比特率（bit
-rate）：每秒传送的比特数量，又称为传信率，信息传输率，位速率。比特率基本单位为bit/s或bps，全称为bit
-per second</li>
-<li>波特率（Baud）：每秒钟传送的符号（码元）数量，又称为传码率，信号传输率，单位是波特（Baud、B，即symbol/s）。在通信系统中，携带数据信息的信号单元称为码元，也称为符号（symbol）。</li>
+<li><p>github.io是静态网页每次修改都需要重新部署</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#在/blog/source/_posts 中添加文件，然后再bash中重新部署</span><br><span class="line">hexo clean</span><br><span class="line">hexo g</span><br><span class="line">hexo d</span><br><span class="line">###本地查看</span><br><span class="line">hexo s</span><br><span class="line">###新建文章</span><br><span class="line">hexo n &#x27;filename&#x27;</span><br></pre></td></tr></table></figure></li>
+<li><p>设置文章的tags and categories</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">---</span><br><span class="line">title:</span><br><span class="line">date:</span><br><span class="line">tags: [ &#x27;标签1&#x27; , &#x27;标签2&#x27; , &#x27;标签3&#x27; ]  #注意空格</span><br><span class="line">categories: life</span><br><span class="line">---</span><br><span class="line">### 以下是正文</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">总结下有两种格式都适用：</span><br><span class="line"></span><br><span class="line">第一种：</span><br><span class="line"></span><br><span class="line">tags: [ &#x27;Ruby&#x27;, &#x27;Perl&#x27;, &#x27;Python&#x27; ]</span><br><span class="line"></span><br><span class="line">第二种：</span><br><span class="line"></span><br><span class="line">tags:</span><br><span class="line"></span><br><span class="line">- hexo</span><br><span class="line"></span><br><span class="line">- disqus</span><br></pre></td></tr></table></figure></li>
+<li><p>CDN(Content Delivery
+Network，内容分发网络)是一项非常有效的<strong>缩短时延</strong>的技术，采用更多的缓存服务器（CDN边缘节点），布放在用户访问相对集中的地区或网络中。当用户访问网站时，利用全局负载技术，将用户的访问指向距离最近的缓存服务器上，由缓存服务器响应用户请求</p></li>
+<li><p>YAML(.yml文件)，一种数据序列化格式，方便传输和存储</p></li>
+<li><p>只要我们在文章中插入
+<!-- more -->，该标签之上的是摘要，之后的内容不可见，需点击全文阅读按钮。</p></li>
 </ul>
-<table style="width:100%;">
-<colgroup>
-<col style="width: 16%" />
-<col style="width: 46%" />
-<col style="width: 17%" />
-<col style="width: 19%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th>码元类型</th>
-<th>码元状态</th>
-<th>码元状态总数量</th>
-<th>码元所需比特位数</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>2种状态的码元</td>
-<td>0、1</td>
-<td>2</td>
-<td>1</td>
-</tr>
-<tr class="even">
-<td>4种状态的码元</td>
-<td>00、01、10、11</td>
-<td>4</td>
-<td>2</td>
-</tr>
-<tr class="odd">
-<td>8种状态的码元</td>
-<td>000、001、010、100、011、101、110、111</td>
-<td>8</td>
-<td>3</td>
-</tr>
-</tbody>
-</table>
-<p><span class="math display">\[
-比特位数=log_2N,N为码元状态数
-\]</span></p>
-<p><span class="math display">\[
-比特率Rb=波特率Rs*log_2N(仅考虑信息净荷)
-\]</span></p>
-<p>频谱带宽其实是通信信号的最高频率与最低频率的差值。</p>
-<p>波特率越高，比特率越高，所占用的信道频谱带宽也越大</p>
-<h3 id="网关">网关</h3>
-<p>网关(Gateway)又称网间连接器、协议转换器。就是一个网络连接到另一个网咯的“关口”。</p>
-<p>网关实质上是<strong>一个网络通向其他网络的IP地址</strong>。</p>
-<h3 id="ocr识别">OCR识别</h3>
-<p>OCR （Optical Character
-Recognition，光学字符识别）是指电子设备（例如扫描仪或数码相机）检查纸上打印的字符，通过检测暗、亮的模式确定其形状，然后用字符识别方法将形状翻译成计算机文字的过程。</p>
-<p>福昕PDF阅读器自带的快速识别功能（可秒杀一众OCR专业工具），墙裂推荐</p>
-<blockquote>
-<p>但实际使用并不是完全好，有意思的是我遇到 “一位” 被识别为
-“T立”，“。”被识别为“0”。特别是对数学公式的识别一言难尽。。。</p>
-</blockquote>
 <h1 id="references">References</h1>
 <ul>
-<li><a
-href="https://zhuanlan.zhihu.com/p/630588317">一文搞懂比特率和波特率 -
-知乎 (zhihu.com)</a></li>
-<li><a
-href="https://blog.csdn.net/weixin_40528417/article/details/79476186">CAN总线学习笔记（1）-
-CAN基础知识_关于can通讯的重点和难点_weixin_40528417的博客-CSDN博客</a></li>
-<li><a
-href="https://blog.csdn.net/weixin_40528417/article/details/79534483?spm=1001.2014.3001.5502">CAN总线学习笔记（2）-
-CAN协议数据帧与遥控帧_weixin_40528417的博客-CSDN博客</a></li>
-<li><a
-href="https://blog.csdn.net/weixin_40528417/article/details/79771270?spm=1001.2014.3001.5502">CAN总线学习笔记（3）-
-CAN协议错误帧_weixin_40528417的博客-CSDN博客</a></li>
-<li><a
-href="https://blog.csdn.net/weixin_40528417/article/details/79871311?spm=1001.2014.3001.5502">CAN总线学习笔记（4）-
-CAN协议过载帧和帧间隔_weixin_40528417的博客-CSDN博客</a></li>
-<li><a
-href="https://blog.csdn.net/weixin_40528417/article/details/79936476?spm=1001.2014.3001.5502">CAN总线学习笔记（5）-
-CAN通信的位定时与同步_weixin_40528417的博客-CSDN博客</a></li>
-<li><a
-href="https://zhuanlan.zhihu.com/p/165142303">什么是网关，网关的作用是什么？
-- 知乎 (zhihu.com)</a></li>
-<li><a
-href="https://zhuanlan.zhihu.com/p/65226634">一文搞懂网络知识，IP、子网掩码、网关、DNS、端口号
-- 知乎 (zhihu.com)</a></li>
-<li><a
-href="https://www.dianyuan.com/article/46751.html">CAN总线同步跳转宽度的作用-电源网
-(dianyuan.com)</a></li>
+<li><p><a href="https://theme-next.js.org/">NexT - Theme for Hexo
+(theme-next.js.org)</a>Next主题官方文档</p></li>
+<li><p><a
+href="https://zhuanlan.zhihu.com/p/381508379">Hexo显示latex公式 - 知乎
+(zhihu.com)</a></p></li>
+<li><p>跟随知乎枫叶大佬<a
+href="https://zhuanlan.zhihu.com/p/102592286">从零开始搭建个人博客（超详细）
+- 知乎 (zhihu.com)</a>搭建此blog</p></li>
+<li><p><a
+href="https://github.com/jackfrued/Python-100-Days/blob/master/番外篇/使用Hexo搭建自己的博客.md">Python-100-Days/番外篇/使用Hexo搭建自己的博客.md
+at master · jackfrued/Python-100-Days (github.com)</a></p></li>
+<li><p>Next主题设置：<a
+href="https://github.com/theme-next/hexo-theme-next/blob/master/README.md">hexo-theme-next/README.md
+at master · theme-next/hexo-theme-next (github.com)</a></p></li>
+<li><p><a href="https://zhuanlan.zhihu.com/p/52362950">到底什么是CDN？ -
+知乎 (zhihu.com)</a></p></li>
+<li><p><a
+href="https://zhuanlan.zhihu.com/p/433176170">两分钟带你了解YAML（.yml后缀文件）
+- 知乎 (zhihu.com)</a></p></li>
+<li><p><a
+href="https://news.netshop168.com/article-85934.html">rss订阅是什么意思?为什么要使用RSS?RSS也称为RSS订阅或RSS提要
+(netshop168.com)</a></p></li>
+<li><p><a href="https://zhuanlan.zhihu.com/p/347342082">如何利用 Github
+搭建自己的免费图床？ - 知乎 (zhihu.com)</a></p></li>
+<li><p><a
+href="https://zhuanlan.zhihu.com/p/489236769">使用Github+picGo搭建图床，保姆级教程来了
+- 知乎 (zhihu.com)</a></p></li>
+<li><p><a href="https://www.ruanyifeng.com/blog/2016/07/yaml.html">YAML
+语言教程 - 阮一峰的网络日志 (ruanyifeng.com)</a></p></li>
 </ul>
 ]]></content>
       <categories>
-        <category>嵌入式</category>
+        <category>奇技淫巧</category>
       </categories>
       <tags>
-        <tag>robomaster</tag>
-        <tag>CAN</tag>
+        <tag>奇技淫巧</tag>
       </tags>
   </entry>
   <entry>
@@ -859,83 +339,6 @@ Branching</a></li>
       </tags>
   </entry>
   <entry>
-    <title>Hello World</title>
-    <url>/2023/07/27/Hello-World/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>仅以此blog记录生活点滴</p>
-<p>遇到困难第一时间找官方手册解决问题!</p>
-<p>优化进行ing</p>
-<span id="more"></span>
-<h1 id="优化">优化</h1>
-<ul>
-<li><p>以PicGo作为图床上传工具，在github上创建figure
-bed并连接typora（一键式typora插入图片自动上传并转化为url）</p></li>
-<li><p>增加search function</p></li>
-<li><p>设置预览摘要</p></li>
-<li><p>主页文章添加阴影效果</p></li>
-<li><p>给一篇文章设置多标签</p></li>
-<li><p>让blog支持LaTex数学公式</p>
-<p>hexo并不支持LaTex数学公式<a
-href="https://theme-next.js.org/docs/third-party-services/math-equations.html">Math
-Equations | NexT (theme-next.js.org)</a></p>
-<p>卸载hexo-math，Render
-Engines替换渲染hexo-renderer-marked（并下载pandoc，hexo-renderer-pandoc）修改config</p></li>
-</ul>
-<h1 id="bonus">Bonus</h1>
-<p>记录搭建blog过程中遇到的一些东西</p>
-<ul>
-<li><p>github.io是静态网页每次修改都需要重新部署</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#在/blog/source/_posts 中添加文件，然后再bash中重新部署</span><br><span class="line">hexo clean</span><br><span class="line">hexo g</span><br><span class="line">hexo d</span><br><span class="line">###本地查看</span><br><span class="line">hexo s</span><br><span class="line">###新建文章</span><br><span class="line">hexo n &#x27;filename&#x27;</span><br></pre></td></tr></table></figure></li>
-<li><p>设置文章的tags and categories</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">---</span><br><span class="line">title:</span><br><span class="line">date:</span><br><span class="line">tags: [ &#x27;标签1&#x27; , &#x27;标签2&#x27; , &#x27;标签3&#x27; ]  #注意空格</span><br><span class="line">categories: life</span><br><span class="line">---</span><br><span class="line">### 以下是正文</span><br></pre></td></tr></table></figure>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">总结下有两种格式都适用：</span><br><span class="line"></span><br><span class="line">第一种：</span><br><span class="line"></span><br><span class="line">tags: [ &#x27;Ruby&#x27;, &#x27;Perl&#x27;, &#x27;Python&#x27; ]</span><br><span class="line"></span><br><span class="line">第二种：</span><br><span class="line"></span><br><span class="line">tags:</span><br><span class="line"></span><br><span class="line">- hexo</span><br><span class="line"></span><br><span class="line">- disqus</span><br></pre></td></tr></table></figure></li>
-<li><p>CDN(Content Delivery
-Network，内容分发网络)是一项非常有效的<strong>缩短时延</strong>的技术，采用更多的缓存服务器（CDN边缘节点），布放在用户访问相对集中的地区或网络中。当用户访问网站时，利用全局负载技术，将用户的访问指向距离最近的缓存服务器上，由缓存服务器响应用户请求</p></li>
-<li><p>YAML(.yml文件)，一种数据序列化格式，方便传输和存储</p></li>
-<li><p>只要我们在文章中插入
-<!-- more -->，该标签之上的是摘要，之后的内容不可见，需点击全文阅读按钮。</p></li>
-</ul>
-<h1 id="references">References</h1>
-<ul>
-<li><p><a href="https://theme-next.js.org/">NexT - Theme for Hexo
-(theme-next.js.org)</a>Next主题官方文档</p></li>
-<li><p><a
-href="https://zhuanlan.zhihu.com/p/381508379">Hexo显示latex公式 - 知乎
-(zhihu.com)</a></p></li>
-<li><p>跟随知乎枫叶大佬<a
-href="https://zhuanlan.zhihu.com/p/102592286">从零开始搭建个人博客（超详细）
-- 知乎 (zhihu.com)</a>搭建此blog</p></li>
-<li><p><a
-href="https://github.com/jackfrued/Python-100-Days/blob/master/番外篇/使用Hexo搭建自己的博客.md">Python-100-Days/番外篇/使用Hexo搭建自己的博客.md
-at master · jackfrued/Python-100-Days (github.com)</a></p></li>
-<li><p>Next主题设置：<a
-href="https://github.com/theme-next/hexo-theme-next/blob/master/README.md">hexo-theme-next/README.md
-at master · theme-next/hexo-theme-next (github.com)</a></p></li>
-<li><p><a href="https://zhuanlan.zhihu.com/p/52362950">到底什么是CDN？ -
-知乎 (zhihu.com)</a></p></li>
-<li><p><a
-href="https://zhuanlan.zhihu.com/p/433176170">两分钟带你了解YAML（.yml后缀文件）
-- 知乎 (zhihu.com)</a></p></li>
-<li><p><a
-href="https://news.netshop168.com/article-85934.html">rss订阅是什么意思?为什么要使用RSS?RSS也称为RSS订阅或RSS提要
-(netshop168.com)</a></p></li>
-<li><p><a href="https://zhuanlan.zhihu.com/p/347342082">如何利用 Github
-搭建自己的免费图床？ - 知乎 (zhihu.com)</a></p></li>
-<li><p><a
-href="https://zhuanlan.zhihu.com/p/489236769">使用Github+picGo搭建图床，保姆级教程来了
-- 知乎 (zhihu.com)</a></p></li>
-<li><p><a href="https://www.ruanyifeng.com/blog/2016/07/yaml.html">YAML
-语言教程 - 阮一峰的网络日志 (ruanyifeng.com)</a></p></li>
-</ul>
-]]></content>
-      <categories>
-        <category>奇技淫巧</category>
-      </categories>
-      <tags>
-        <tag>奇技淫巧</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>各种通信方式</title>
     <url>/2023/07/29/%E5%90%84%E7%A7%8D%E9%80%9A%E4%BF%A1%E6%96%B9%E5%BC%8F/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
@@ -1025,6 +428,603 @@ id="三种数据通路单工半双工全双工">三种数据通路：单工，�
       <tags>
         <tag>通信</tag>
         <tag>嵌入式</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>CAN总线学习——底层逻辑</title>
+    <url>/2023/08/08/CAN%E6%80%BB%E7%BA%BF%E5%AD%A6%E4%B9%A0%E2%80%94%E2%80%94%E5%BA%95%E5%B1%82%E9%80%BB%E8%BE%91/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>记录学习CAN的历程，主要是CAN的底层逻辑。</p>
+<p>highly
+comment直接看References中的文章，在此仅作回顾总结，并就其中一些内容进行修改和补充(见Tips和Bonus)。</p>
+<p>感谢CAN总线学习笔记系列，让人受益匪浅。</p>
+<p>下一步学习CAN上层应用主要书CAN过滤器和API的使用</p>
+<span id="more"></span>
+<h1 id="can基础知识">CAN基础知识</h1>
+<h3 id="can的一些基本概念">CAN的一些基本概念</h3>
+<p>CAN(controller area
+network)是串行通信协议；CAN总线就是一种传输数据的线</p>
+<ul>
+<li>高速CAN通信标准，闭环总线</li>
+<li>低俗CAN通信标准，开环总线</li>
+</ul>
+<blockquote>
+<p>Tips:总线传输速率：位速率or比特率</p>
+</blockquote>
+<h3 id="can的拓扑结构">CAN的拓扑结构</h3>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230807000301535.png"
+alt="image-20230807000301535" />
+<figcaption aria-hidden="true">image-20230807000301535</figcaption>
+</figure>
+<h3 id="can信号表示">CAN信号表示</h3>
+<p>CAN总线上，利用CAN_H and
+CAN_L两根线的电位差来表示CAN信号，显性电平（逻辑0），隐性电平（逻辑1）</p>
+<h3 id="can信号传输">CAN信号传输</h3>
+<ul>
+<li>发送方是总线电平发生变化</li>
+<li>接收方监听总线电平，读入自己的接收器</li>
+</ul>
+<h1 id="can通信的特点">CAN通信的特点</h1>
+<h3 id="多主工作方式">多主工作方式</h3>
+<p>结点无主从之分，只要总线空闲则均可发消息，最先发消息的结点获得总线的发送权（一起发则看优先权）</p>
+<blockquote>
+<p>Tips:<总线空闲状态>：连续的11位隐性电平（结合CAN协议的帧结构）</p>
+</blockquote>
+<h3 id="非破坏性位仲裁机制">非破坏性位仲裁机制</h3>
+<p>一起发消息的节点会进行逐位仲裁，不会造成已发送数据的延迟，也不会破坏已经发送的数据</p>
+<h3 id="系统的柔性">系统的柔性</h3>
+<p>节点无“地址”概念，因此增加节点对已有节点的软硬件及应用层造成影响</p>
+<h3 id="通信速度">通信速度</h3>
+<p>同一条CAN线，节点通信速度必须相同，如果两条不同通信速度总线上的节点想要实现信息交互，必须通过网关</p>
+<blockquote>
+<p>Tips:网关实质上是<strong>一个网络通向其他网络的IP地址</strong>。</p>
+</blockquote>
+<h3 id="数据传输方式">数据传输方式</h3>
+<p>可实现一对一，一对多以及广播的数据传输方式，依赖于验收滤波技术</p>
+<h3 id="远程数据请求">远程数据请求</h3>
+<p>Node_A可以通过发送“遥控帧”到总线上来请求Node_B发送由该遥控帧所指定的报文</p>
+<h3
+id="错误检测错误通知错误恢复functions">错误检测、错误通知、错误恢复functions</h3>
+<ul>
+<li>所有nodes都可以检测出错误（错误检测）</li>
+<li>检测出错误的node会立即通知总线上其它nodes(错误通知)</li>
+<li>正在发送消息的节点，if检测到错误，会立即停止当前的发送，并待总线空闲时不断重复发送此消息，知道改消息发送成功为止(错误恢复)</li>
+</ul>
+<h3 id="故障封闭">故障封闭</h3>
+<p>node能够判断错误的类型：暂时性地数据错误（如噪声干扰）还是持续性地数据错误（如节点内部故障），如果判断时严重的持续性错误，节点就会切断自己与总线地练习，避免影响其他nodes</p>
+<h1 id="can通信网络结构">CAN通信网络结构</h1>
+<p>理解每个结构中的作用就理解了CAN</p>
+<h3 id="osi基本参照模型">OSI基本参照模型</h3>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230807003930039.png"
+alt="image-20230807003930039" />
+<figcaption aria-hidden="true">image-20230807003930039</figcaption>
+</figure>
+<h3 id="can协议网络层次">CAN协议网络层次</h3>
+<p>ISO标准只对数据链路层和物理层做了规定</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230807004043599.png"
+alt="image-20230807004043599" />
+<figcaption aria-hidden="true">image-20230807004043599</figcaption>
+</figure>
+<h1 id="can协议中的帧">CAN协议中的帧</h1>
+<p>CAN中有5中帧结构</p>
+<ul>
+<li>数据帧：用于通讯节点向外传送数据。</li>
+<li>遥控帧：用于向远端节点请求数据。</li>
+<li>错误帧：用于向远端节点通知校验错误，请求重新发送上一个数据。</li>
+<li>过载帧：用于通知远端节点：本节点尚未做好接受准备。</li>
+<li>间隔帧：用于将数据帧及遥控帧与前面的帧分离开来的帧</li>
+</ul>
+<h2 id="数据帧与遥控帧">数据帧与遥控帧</h2>
+<ul>
+<li>数据帧：包含我们要传输的数据的帧，承载发送节点要传递的数据</li>
+<li>遥控帧：请求其它节点发出与本遥控帧具有相同ID号的数据帧</li>
+</ul>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230807180622274.png"
+alt="image-20230807180622274" />
+<figcaption aria-hidden="true">image-20230807180622274</figcaption>
+</figure>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230807180646925.png"
+alt="image-20230807180646925" />
+<figcaption aria-hidden="true">image-20230807180646925</figcaption>
+</figure>
+<p>遥控帧相比于数据帧缺少数据段，且遥控帧RTR位恒为隐性1，数据帧RTR位恒为显性0</p>
+<blockquote>
+<p>Tips:数据帧和遥控帧都分为标准帧（CAN2.0A）和扩展帧（CAN2.0B）</p>
+</blockquote>
+<h4 id="帧起始">帧起始</h4>
+<p>帧的最开始一位是帧起始，SOF(start of frame)，恒为显性0</p>
+<p>即CAN_H and CAN_L有电位差就表示SOF，总线上开始有报文了</p>
+<h4 id="仲裁段">仲裁段</h4>
+<p>判定报文优先级，ID号也是实现报文过滤机制的基础</p>
+<p>数据帧仲裁段：</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230807181639943.png"
+alt="image-20230807181639943" />
+<figcaption aria-hidden="true">image-20230807181639943</figcaption>
+</figure>
+<p>遥控帧仲裁段：</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230807181705793.png"
+alt="image-20230807181705793" />
+<figcaption aria-hidden="true">image-20230807181705793</figcaption>
+</figure>
+<p>遥控帧RTR位恒为隐性1，数据帧RTR位恒为显性0</p>
+<h4 id="仲裁过程">仲裁过程</h4>
+<ul>
+<li><strong>回读机制：</strong>节点在向总线上发送报文的过程中，同时也对总线上的二进制位进行“回读”。通过这种机制，节点就可以判断出本节点发出的二进制位与总线上当前的二进制位是否一致。<br />
+</li>
+<li><strong>线与机制：</strong>在总线上，显性位0能够覆盖隐性位1。</li>
+</ul>
+<p>当两个节点同时发送消息时会进行逐位仲裁直至分出胜负</p>
+<ul>
+<li><p>在Node_A获取总线的发送权之后，Node_A接着发送自己的Msg_A，因此在竞争总线的过程中不会对Msg_A的传输造成延时；</p></li>
+<li><p>在两个节点竞争总线的过程中，不会破坏Msg_A;</p></li>
+</ul>
+<h4 id="仲裁段中的rtrsrr和ide位">仲裁段中的RTR，SRR和IDE位</h4>
+<ul>
+<li><p>RTR位：Tranmission Request Bit
+（远程发送请求位）。在数据帧中，RTR位恒为显性位0，在遥控帧中，恒为隐性1。</p>
+<p>在ID号相同的情况下， 保证数据帧优先级高于遥控帧</p></li>
+<li><p>SRR位：Substitutes for Remote Requests
+Bit（替代远程请求位），在扩展帧（数据帧或遥控帧）中，SRR恒为隐性位1，并且可以发现，扩展帧的隐性SRR位正好对应标准帧的显性RTR位，所以</p>
+<p>在前11位ID号相同的情况下，保证标准数据帧的优先级高于扩展数据帧；</p></li>
+<li><p>IDE位：Identifier Extension
+Bit（标识符扩展位）。在扩展帧中恒为隐性1，在标准帧中，IDE位于控制段，且恒为显性0。且扩展帧IDE位和标准帧IDE位位置对应</p>
+<p>在前11位ID号相同的情况下，保证标准遥控帧的优先级一定高于扩展遥控帧。</p></li>
+</ul>
+<h4 id="报文过滤">报文过滤</h4>
+<p>在CAN总线中没有地址的概念，CAN总线是通过报文ID来实现收发数据的。CAN节点上都会有一个验收滤波ID表，其位于CAN节点的验收滤波器中，如果总线上的报文的ID号在某个节点的验收滤波ID表中，那么这一帧报文就能通过该节点验收滤波器的验收，该节点就会接收这一帧报文。</p>
+<p>比如：Node_A发送了一帧ID号为ID_1的报文Msg_1，Node_B的验收滤波ID表中恰好有ID_1，于是乎Msg_1就会被Node_B接收。</p>
+<p>报文过滤机制体现了CAN通信的两条特点：</p>
+<ol type="1">
+<li><p>一对一、组播和广播</p></li>
+<li><p>系统的柔性：正是因为CAN总线上收发报文是基于报文ID实现的，所以总线上添加节点时不会对总线上已有的节点造成影响。</p></li>
+</ol>
+<h4 id="控制段">控制段</h4>
+<p>数据帧和遥控帧的控制段结构相同：</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230807195944269.png"
+alt="image-20230807195944269" />
+<figcaption aria-hidden="true">image-20230807195944269</figcaption>
+</figure>
+<p>4位的DLC（DLC3、DLC2、DLC1、DLC0）代表<strong>数据长度</strong>，指示了数据段中的字节数。对于没有数据段的遥控帧，DLC表示该遥控帧对应的数据帧的数据段的字节数</p>
+<h4 id="数据段">数据段</h4>
+<p>数据段可以包含0~8个字节的数据，从MSB（最高位）开始输出。</p>
+<h4 id="crc段">CRC段</h4>
+<p>CRC校验序列是根据多项式生成的CRC值，其计算范围包括：帧起始、仲裁段、控制段和数据段。</p>
+<p>CRC界定符恒为隐性1</p>
+<h4 id="ack段">ACK段</h4>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230807200359857.png"
+alt="image-20230807200359857" />
+<figcaption aria-hidden="true">image-20230807200359857</figcaption>
+</figure>
+<ul>
+<li><p>发送节点在ACK段发送两个隐性位，即发送方发出的报文中ACK槽为隐性1</p></li>
+<li><p>接收节点在接收到正确的报文之后会在ACK槽发送显性位0（在ACK槽中填充显性位0使总线电平变为显性0），通知发送节点正常接收结束。</p></li>
+</ul>
+<h4 id="帧结束">帧结束</h4>
+<p>帧结束段表示该帧报文的结束，由7个隐性位构成。</p>
+<h2 id="错误帧">错误帧</h2>
+<p>在发送和接收报文时，Nodes如果检测出错误则会发送错误帧，通知其他节点，自己出错了</p>
+<h3 id="错误帧的帧结构">错误帧的帧结构</h3>
+<p>错误帧 = 错误标志+错误界定符</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230807222925553.png"
+alt="image-20230807222925553" />
+<figcaption aria-hidden="true">image-20230807222925553</figcaption>
+</figure>
+<ul>
+<li>主动错误标志：6个连续的显性位</li>
+<li>被动错误标志：6个连续的隐性位</li>
+<li>错误界定符：8个连续的隐性位</li>
+</ul>
+<h3 id="错误检测">错误检测</h3>
+<h4 id="位填充原则">位填充原则</h4>
+<p>CAN协议中规定，当相同极性的电平持续五位时，则添加一个极性相反的位（接收时自动删除下一位）——均由Nodes完成</p>
+<p>位填充的作用域：SOF--CRC(除去CRC界定符)之间的位流</p>
+<h4 id="错误的种类">错误的种类</h4>
+<p>共有五种错误</p>
+<ul>
+<li><p>位错误 (Bit Check Error)：自己发出的和回读的不一致</p>
+<blockquote>
+<p>Tips:有三种例外不是位错误</p>
+<ul>
+<li>在仲裁区，节点向bus发送隐性位却读到显性，表示该节点仲裁失败</li>
+<li>在ACK槽，表示有节点正确接收</li>
+<li>该节点发送被动错误标志（发送6个连续的隐性位），可能被其他节点发送的显性电平“吃掉”了</li>
+</ul>
+</blockquote></li>
+<li><p>ACK错误 (Acknowledge
+Error)：节点在ACK槽没有回读到显性位，即没有节点正确接收。产生ACK应答错误</p></li>
+<li><p>填充错误 (FIll
+Error)：在位填充作用域中检测到连续六个同性位</p></li>
+<li><p>CRC错误 (CRC
+Error)：节点发送和接收时都会计算CRC序列，不一致检测为CRC Error</p></li>
+<li><p>格式错误：在一帧报文发送时，如果在必须发送预定值的区域内检测到了非法值，那么就检测到了一个格式错误</p>
+<blockquote>
+<p>Tips:CAN报文中，有预定值的区域：</p>
+<ul>
+<li>数据帧和遥控帧的CRC界定符、ACK界定符、EOF</li>
+<li>错误帧界定符</li>
+<li>过载帧界定符</li>
+</ul>
+</blockquote></li>
+</ul>
+<h3 id="错误通知">错误通知</h3>
+<h4 id="节点错误状态">节点错误状态</h4>
+<ul>
+<li><p>主动错误状态（有说服力，较可靠）：可以正常通信；在检测到错误时，发出带有主动错误标志的错误帧（6个连续的显性位），会“覆盖”总线上其它节点的发送，于是正在发送的报文就被破坏掉了</p>
+<blockquote>
+<p>大家都相信主动错误状态的节点，“我发现错误了，你们收到的不算数”</p>
+</blockquote></li>
+<li><p>被动错误状态（无说服力）：可以正常通信；在检测到错误时，发出带有被动错误标志的错误帧（6个连续的隐性位），所以这个时候总线上正在传输的报文位流不会受到该被动错误帧的影响
+，没人搭理。</p>
+<p>如果发出被动错误帧的节点Node_A为报文的发送节点，那么在发送被动错误帧之后，刚刚正在发送的报文被破坏，并且Node_A不能在错误帧之后随着连续发送刚刚发送失败的那个报文。随之而来的是帧间隔，并且连带着8位隐性住的
+“延迟传送”
+段（即暂停段，见帧间隔）；这样总线电平就呈现出连续11位隐性位，总线上的其它节点就能判定总线处于空闲状态，就能参与总线竞争。此时如果Node_A能够竞争成功，那么它就能接着发送，如果竞争不能成功，那么就接着等待下一次竞争。这种机制的目的正是为了<strong>让其它正常节点
+(处于主动错误) 优先使用总线</strong></p>
+<blockquote>
+<p>Tips:
+处于被动错误状态，说明这个节点目前是不太可靠的，出现错误的原因可能是它本身的问题，即刚刚检测到的错误可能仅仅只有它自己遇到，正是因为这一点，整个总线才不信任它报告的错误，从而只允许它发送六个连续的隐性位，这样它才不会拖累别人</p>
+</blockquote></li>
+<li><p>总关闭状态：整个节点脱离总线。等到检测到128次11个连续的隐性位时，TEC和REC置0，重新回到主动错误状态（冷静一段时间）</p></li>
+</ul>
+<h4 id="错误状态的转换">错误状态的转换</h4>
+<p>CAN节点内，有两个计数器：<strong>发送错误计数器（TEC）and
+接受错误计数器（REC）</strong></p>
+<blockquote>
+<p>Tips:计数器的变化有个表格规定，而不是错一次+1</p>
+</blockquote>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230808104018271.png"
+alt="image-20230808104018271" />
+<figcaption aria-hidden="true">image-20230808104018271</figcaption>
+</figure>
+<p>节点错误状态的转换就是一个量变到质变的过程</p>
+<h3 id="错误帧的发送">错误帧的发送</h3>
+<ul>
+<li><p>位错误、填充错误、格式错误、ACK措误在错误产生的那一位的下一位开始发送错误帧。</p></li>
+<li><p>CRC错误：紧随ACK界定符后的位发送错误帧。</p></li>
+</ul>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230808105739885.png"
+alt="image-20230808105739885" />
+<figcaption aria-hidden="true">image-20230808105739885</figcaption>
+</figure>
+<h2 id="过载帧">过载帧</h2>
+<p>过载帧是接收节点向总线上其它节点报告自身接收能力达到极限的帧（我已经没有能力来处理你们发来的报文了）</p>
+<p>过载帧包括：过载标志+过载界定符</p>
+<ul>
+<li><p>过载标志：连续6个显性位；</p></li>
+<li><p>过载界定符：连续8个隐性位；</p></li>
+<li><p>与错误帧类似，过载帧中有过载帧重整部分，且形成过载重叠标志的原因与形成措误帧中的错误重慢标志的原因是相同的</p></li>
+</ul>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230808110424756.png"
+alt="image-20230808110424756" />
+<figcaption aria-hidden="true">image-20230808110424756</figcaption>
+</figure>
+<blockquote>
+<p>Tips:接收节点Node_A达到接收极限时，就会发出过载帧到总线上，显然，过载标志的6个连续显性位会屏蔽掉总线上其它节点的发送，也就是说这个时候Node_A通过发送过载帧的方式来破坏其它节点的发送，这样在Node_A发送过载帧期间，其它节点就不能成功发送报文，于是就相当于把其它节点的发送推迟了，也就是说Node_A在其发送过载帧的这段时间得以<strong>“休息”</strong>。</p>
+</blockquote>
+<p>有三种情况会引起过载帧：</p>
+<ul>
+<li><p>接收节点自身原因。接收节点由于某种原因需要延迟接收下一个数据帧或者遥控帧。</p></li>
+<li><p>在帧间隔的间歇段的第一位和第二位检测到一个显性位（正常的间歇段都是隐性位）</p>
+<p>帧间隔的间隔段本应是三个连续的隐性位，如果接收节点Node_A在间隔段检测到显性位，那么就意味着此时有报文发向接收节点Node_A,
+但这个时候是不应该有报文发来的，于是Node_A发送过载帧。</p></li>
+<li><p>CAN节点在错误界定符或过载界定符的第八位（最后一位）听到一个显性位0,
+节点会发送一个过载帧，且错误计数器不会增加。</p>
+<p>接收节点Node_A在错误界定符和过载界定符的最后一位听到显性位，也意味着有报文发向Node_A,
+但这个时候是不应该有报文发来的，于是Node_A发送过载帧。</p></li>
+</ul>
+<h2 id="帧间隔">帧间隔</h2>
+<p>帧间隔是用来隔离数据帧（或者遥控帧）的，也就是说，数据帧（或者遥控帧）通过插入帧间隔可以将本帧与先行帧（数据帧、遥控帧、错误帧、过载帧）分隔开来。</p>
+<blockquote>
+<p>Tips: 过载帧和错误帧的前面不能插入帧间隔。</p>
+</blockquote>
+<p>帧间隔有两种不同的状态：</p>
+<p>主动错误状态的帧间隔： <img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230808111701098.png"
+alt="image-20230808111701098" /></p>
+<p>被动错误状态的帧间隔：</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230808111723987.png"
+alt="image-20230808111723987" />
+<figcaption aria-hidden="true">image-20230808111723987</figcaption>
+</figure>
+<ul>
+<li><p>间隔段：连续三个隐性位；间隔段期间，所有节点不允许发送数据这或遥控帧，只要在这期间监听到显性位，接收节点就会发送过载帧。</p></li>
+<li><p>空闲段：连续隐性位，个数不一定，个或者多个都可以。总线空闲的时间是任意长的，只要总线空闲，节点就可以竞争总线。</p></li>
+<li><p>暂停段：只有处于被动错误状态的节点在发送帧间隔的时候，才会在帧间隔中插入8个连续隐性位的暂停段。</p>
+<p>暂停段，又叫做延迟传送段，为什么节点处于被动状态时会有这样一段呢？原因如下：首先，考虑主动错误状态的节点Node_A,
+发送主动错误标志之后，随之就要重新发送刚刚发送失败的报文，但是为了间隔开与前面刚刚发送的错误帧，总线在错误帧之后就会插入3个隐形位的帧间隔，在这3个隐形位期间，其它的节点不足以判定总线空闲（需要连续11个隐性位才能判定），所以Node_A仍然占据着总线的控制权，于是在帧间隔之后，Node_A能够接着发送报文。现在Node_A转入到被动错误状态了，说明它已经不是很可靠了，这个时候如果没有延迟传送段，在Node_A发出被动错误标志之后，它仍然能够在3位的帧间隔之后立即重新发送报文，这是不符合我们对被动错误状态的处理要求的当然也是不符合CAN协议的，于是乎对于发送出被动错误标志的节点，总线在帧间隔中加入了8
+个连续隐性位的延迟传送段，这样的3+8=11个连续隐性位。<strong>就能让Node_A在这个帧间隔期间失去对总线的控制权，从而优先保证其它正常（处于主动错误状态）节点能够使用总线，而不必等着一个已经不可靠的Node_A占据总线。</strong></p></li>
+</ul>
+<h1 id="can通信的位定时与同步">CAN通信的位定时与同步</h1>
+<h2 id="位定位">位定位</h2>
+<p>CAN总线是两项调制，即此时数值上波特率和比特率（见Bonus）是一样的。</p>
+<h3 id="位时间">位时间</h3>
+<h4 id="位时间的基本概念">位时间的基本概念</h4>
+<p>表示一个二进制位在总线上传输时所需要的时间。 <span
+class="math display">\[
+位速率=\frac{1}{位时间}
+\]</span> CAN总线中的两个时钟：晶振时钟周期+CAN时钟周期</p>
+<ul>
+<li><p>晶振时钟周期：是由单片机振荡器的晶振频率决定的，指的是振荡器每震荡一次所消耗的时间长度，也是整个系统中最小的时间单位。</p></li>
+<li><p>CAN时钟周期：CAN时钟是由系统时钟分频而来的一个时间长度值，实际上就是一个时间份额Tq。
+<span class="math display">\[
+CAN时钟周期 = 2×晶振时钟周期×BRP
+\]</span></p>
+<blockquote>
+<p>BRP即波特率预分频值（baudrate
+prescaler）:它的作用是将晶振频率进行预分频，以满足CAN总线波特率的要求。
+在CAN协议中，BRP的取值范围是<strong>1~64</strong>，它决定了一个时间单元（Time
+Quantum，Tq）的长度。</p>
+</blockquote></li>
+</ul>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230808135508935.png"
+alt="image-20230808135508935" />
+<figcaption aria-hidden="true">image-20230808135508935</figcaption>
+</figure>
+<h4 id="位时间的分段">位时间的分段</h4>
+<p>在CAN的位定时中，一个CAN时钟周期称为一个时间量子一Tq（Time
+Quantum）</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230808135931239.png"
+alt="image-20230808135931239" />
+<figcaption aria-hidden="true">image-20230808135931239</figcaption>
+</figure>
+<ul>
+<li>同步段 (Synchronization Segment) :
+<ul>
+<li>长度固定，1个时间量子Tq；</li>
+<li>一个位的传输从同步段开始；</li>
+<li>同步段用于同步总线上的各个节点，一个位的跳边沿在此时间段内。</li>
+</ul></li>
+<li>传播段 (Propagation Segment)：
+<ul>
+<li>传播段用于补偿报文在总线和节点上传输时所产生的时间延迟；</li>
+<li>传播段时长<span
+class="math inline">\(≥2×\)</span>报文在总线和节点上传输时产生的时间延迟；</li>
+<li>传播段时长可编程 (1~8个时间量子Tq)。</li>
+</ul></li>
+<li>相位缓冲段1 (Phase Buffer Segment)：
+<ul>
+<li>用于补偿节点间的晶振误差；</li>
+<li>允许通过重同步对该段加长；</li>
+<li>在这个时间段的末端进行总线状态的采样；</li>
+<li>长度可编程 (1~8个时间量子Tq)。</li>
+</ul></li>
+<li>相位冲段2 (Phase Buffer Segment2) :
+<ul>
+<li>用于补偿节点间的晶振误差；</li>
+<li>允许通过重同步对该段缩短；</li>
+<li>长度可编程 (1~8个时间量子Tq)。</li>
+</ul></li>
+</ul>
+<p><span class="math display">\[
+tBit = tSS+tPS+tPBS1+tPBS2
+\]</span></p>
+<p><span class="math display">\[
+tBit：位时间，tSS：同步段时间，tPS：传播段时间，tPBS1：相位缓冲时间段1，tPBS2：相位缓冲时间段2
+\]</span></p>
+<h2 id="can的同步机制">CAN的同步机制</h2>
+<p>CAN有两种同步机制：<strong>硬同步+重同步</strong></p>
+<ul>
+<li>一个位时间内只允许一种同步方式，要么硬同步要么重同步；</li>
+<li>任何一个从 "隐性" 到 "显性"的下降沿都可以用于同步；</li>
+<li>硬同步发生在报文的SOF位，所有接收节点调整各自当前位的同步段，使其位于发送的SOF位内；</li>
+<li>重同步发生在一个报文SOF位之外的其它段，当下降沿落在了同步段之外时发生重同步；</li>
+<li>在SOF到仲裁场发送的时间段内，如果有多个节点同时发送报文，那么这些发送节点对跳变沿不进行重同步。</li>
+</ul>
+<h3 id="硬同步">硬同步</h3>
+<p>硬同步发生在SOF位，所有接收节点调整各自当前位的同步段，调整宽度不限</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230808141854318.png"
+alt="image-20230808141854318" />
+<figcaption aria-hidden="true">image-20230808141854318</figcaption>
+</figure>
+<h3 id="重同步">重同步</h3>
+<p>在两个缓冲段中间的位置，即使读取总线电平的采样点位置，当检测到总线上存在相位差的时候，通过延长PBS1或缩短PBS2来获得同步。这两个相位缓冲段的延长or缩短时间上限再有同步跳转宽度SJW给定。</p>
+<blockquote>
+<p>Tips:CAN是异步通信，需要通过不断地重新同步才能保证收发节点的采样准确。所以SJW决定了接收节点是否能有比较好的兼容性。</p>
+</blockquote>
+<h4 id="pbs1延长">PBS1延长</h4>
+<p>发的晚，收的早，导致PBS1延长</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230808142134094.png"
+alt="image-20230808142134094" />
+<figcaption aria-hidden="true">image-20230808142134094</figcaption>
+</figure>
+<h4 id="pbs2缩短">PBS2缩短</h4>
+<p>发的早，收的晚，导致PBS2缩短</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230808142317458.png"
+alt="image-20230808142317458" />
+<figcaption aria-hidden="true">image-20230808142317458</figcaption>
+</figure>
+<h4 id="同步跳转宽度">同步跳转宽度</h4>
+<p>在重同步时，有个同步跳转宽度 (SJW,Synchro Jump Width)
+的概念，表示的是PBS1和PBS2重同步时允许跳转的最大宽度，SJW决定了接收节点是否能有比较好的兼容性。同步跳转宽度必须满足以下几个条件：</p>
+<ul>
+<li><p>SJW必须小于PBS1和PBS2的最小值</p></li>
+<li><p>SJW最大值不能超过4</p></li>
+</ul>
+<h2 id="位定时参数">位定时参数</h2>
+<ul>
+<li><p>位速率：bps、kbps、Mbps</p></li>
+<li><p>位时间：tBit，单位一般为纳秒ns</p></li>
+<li><p>时间量子Tq： <span class="math display">\[
+Tq=\frac{1}{NBT},NBT：一个位时间内包含Tq的个数
+\]</span></p></li>
+<li><p>传输延迟时间tPTS</p>
+<p>CAN报文在CAN总线上的传输时，物理延迟包括两个部分：</p>
+<ul>
+<li>在CAN-BUS上传输造成的延迟</li>
+<li>在节点上传输造成延迟</li>
+</ul></li>
+</ul>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230808144634176.png"
+alt="image-20230808144634176" />
+<figcaption aria-hidden="true">image-20230808144634176</figcaption>
+</figure>
+<p>按照CAN通信协议的规定，补偿给传播延迟的时间长度要至少等于实际实际传播延迟时长的2倍，即:
+<span class="math display">\[
+tPTS≥2×t_{del} = 2×(t_{el}+t_{Bus})
+\]</span></p>
+<blockquote>
+<p>Tips：在CAN总线通信系统中是以时间量子Tq来度量时间的，所以如果延迟补偿时间tPTS=3.1Tq,
+那么这个时候要取：tPTS= 4Tq。</p>
+</blockquote>
+<ul>
+<li><p>相位缓冲段：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">if (NBT-1-tPTS_Tq)/2==偶数</span><br><span class="line">	PBSl_Tq = PBS2_Tq = (NBT-1-tPTS_Tq)/2</span><br><span class="line">else</span><br><span class="line">	PBSl_Tq = (NBT-1-tPTS_Tq)/2</span><br><span class="line">	PBS2_Tq = PBSl_Tq + 1</span><br></pre></td></tr></table></figure></li>
+<li><p>同步跳转宽度： <span class="math display">\[
+SJW=min(PBS1\_Tq,PBS2\_Tq,4)
+\]</span></p></li>
+<li><p>验证晶振误差Df</p></li>
+</ul>
+<p>晶振误差必须满足三个条件</p>
+<ul>
+<li><p><span class="math display">\[
+Df&lt;=\frac{SJW}{(2*10*NBT)}
+\]</span></p></li>
+<li><p><span class="math display">\[
+Df&lt;=\frac{min(PBS1\_Tq,PBS2\_Tq)}{2*(13*NBT-PBS2\_Tq)}
+\]</span></p></li>
+<li><p><span class="math display">\[
+Df&lt;=1.58\%
+\]</span></p></li>
+</ul>
+<h1 id="bonus">Bonus</h1>
+<h3 id="比特率波特率和频率带宽">比特率、波特率和频率带宽</h3>
+<ul>
+<li>比特率（bit
+rate）：每秒传送的比特数量，又称为传信率，信息传输率，位速率。比特率基本单位为bit/s或bps，全称为bit
+per second</li>
+<li>波特率（Baud）：每秒钟传送的符号（码元）数量，又称为传码率，信号传输率，单位是波特（Baud、B，即symbol/s）。在通信系统中，携带数据信息的信号单元称为码元，也称为符号（symbol）。</li>
+</ul>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 46%" />
+<col style="width: 17%" />
+<col style="width: 19%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>码元类型</th>
+<th>码元状态</th>
+<th>码元状态总数量</th>
+<th>码元所需比特位数</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>2种状态的码元</td>
+<td>0、1</td>
+<td>2</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td>4种状态的码元</td>
+<td>00、01、10、11</td>
+<td>4</td>
+<td>2</td>
+</tr>
+<tr class="odd">
+<td>8种状态的码元</td>
+<td>000、001、010、100、011、101、110、111</td>
+<td>8</td>
+<td>3</td>
+</tr>
+</tbody>
+</table>
+<p><span class="math display">\[
+比特位数=log_2N,N为码元状态数
+\]</span></p>
+<p><span class="math display">\[
+比特率Rb=波特率Rs*log_2N(仅考虑信息净荷)
+\]</span></p>
+<p>频谱带宽其实是通信信号的最高频率与最低频率的差值。</p>
+<p>波特率越高，比特率越高，所占用的信道频谱带宽也越大</p>
+<h3 id="网关">网关</h3>
+<p>网关(Gateway)又称网间连接器、协议转换器。就是一个网络连接到另一个网咯的“关口”。</p>
+<p>网关实质上是<strong>一个网络通向其他网络的IP地址</strong>。</p>
+<h3 id="ocr识别">OCR识别</h3>
+<p>OCR （Optical Character
+Recognition，光学字符识别）是指电子设备（例如扫描仪或数码相机）检查纸上打印的字符，通过检测暗、亮的模式确定其形状，然后用字符识别方法将形状翻译成计算机文字的过程。</p>
+<p>福昕PDF阅读器自带的快速识别功能（可秒杀一众OCR专业工具），墙裂推荐</p>
+<blockquote>
+<p>但实际使用并不是完全好，有意思的是我遇到 “一位” 被识别为
+“T立”，“。”被识别为“0”。特别是对数学公式的识别一言难尽。。。</p>
+</blockquote>
+<h1 id="references">References</h1>
+<ul>
+<li><a
+href="https://zhuanlan.zhihu.com/p/630588317">一文搞懂比特率和波特率 -
+知乎 (zhihu.com)</a></li>
+<li><a
+href="https://blog.csdn.net/weixin_40528417/article/details/79476186">CAN总线学习笔记（1）-
+CAN基础知识_关于can通讯的重点和难点_weixin_40528417的博客-CSDN博客</a></li>
+<li><a
+href="https://blog.csdn.net/weixin_40528417/article/details/79534483?spm=1001.2014.3001.5502">CAN总线学习笔记（2）-
+CAN协议数据帧与遥控帧_weixin_40528417的博客-CSDN博客</a></li>
+<li><a
+href="https://blog.csdn.net/weixin_40528417/article/details/79771270?spm=1001.2014.3001.5502">CAN总线学习笔记（3）-
+CAN协议错误帧_weixin_40528417的博客-CSDN博客</a></li>
+<li><a
+href="https://blog.csdn.net/weixin_40528417/article/details/79871311?spm=1001.2014.3001.5502">CAN总线学习笔记（4）-
+CAN协议过载帧和帧间隔_weixin_40528417的博客-CSDN博客</a></li>
+<li><a
+href="https://blog.csdn.net/weixin_40528417/article/details/79936476?spm=1001.2014.3001.5502">CAN总线学习笔记（5）-
+CAN通信的位定时与同步_weixin_40528417的博客-CSDN博客</a></li>
+<li><a
+href="https://zhuanlan.zhihu.com/p/165142303">什么是网关，网关的作用是什么？
+- 知乎 (zhihu.com)</a></li>
+<li><a
+href="https://zhuanlan.zhihu.com/p/65226634">一文搞懂网络知识，IP、子网掩码、网关、DNS、端口号
+- 知乎 (zhihu.com)</a></li>
+<li><a
+href="https://www.dianyuan.com/article/46751.html">CAN总线同步跳转宽度的作用-电源网
+(dianyuan.com)</a></li>
+</ul>
+]]></content>
+      <categories>
+        <category>嵌入式</category>
+      </categories>
+      <tags>
+        <tag>robomaster</tag>
+        <tag>CAN</tag>
       </tags>
   </entry>
   <entry>
@@ -1297,8 +1297,8 @@ alt="image-20230606131804276" />
         <category>嵌入式</category>
       </categories>
       <tags>
-        <tag>robomaster</tag>
         <tag>嵌入式</tag>
+        <tag>robomaster</tag>
       </tags>
   </entry>
 </search>
