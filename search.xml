@@ -675,200 +675,6 @@ href="https://zhuanlan.zhihu.com/p/489236769">使用Github+picGo搭建图床，�
       </tags>
   </entry>
   <entry>
-    <title>YAML初探</title>
-    <url>/2023/08/08/YAML%E5%88%9D%E6%8E%A2/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>利用hexo和next遇到了YAML语法写的config，借此机会了解下YAML语言</p>
-<p>目标：了解基本语法，能看懂就行（虽然大部分都是copy但是人家真写得够简洁了）</p>
-<span id="more"></span>
-<h1 id="introduction">Introduction</h1>
-<p>YAML (（发音 /ˈjæməl/
-）)是专门用来写配置文件的语言，非常简洁和强大，远比 JSON
-格式方便，实质上是一种通用的数据串行化格式。</p>
-<h1 id="基本语法规则">基本语法规则</h1>
-<ul>
-<li>大小写敏感</li>
-<li>使用缩进表示层级关系</li>
-<li>缩进时不允许使用Tab键，只允许使用空格。</li>
-<li>缩进的空格数目不重要，只要相同层级的元素左侧对齐即可</li>
-<li># 是注释</li>
-</ul>
-<h1 id="数据结构">数据结构</h1>
-<h3 id="对象">对象</h3>
-<p>键值对的集合，又称为映射（mapping）/ 哈希（hashes） /
-字典（dictionary）</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">animal: pets</span><br><span class="line">hash: &#123; name: Steve, foo: bar &#125; #也可以将所有键值对写成一个行内对象</span><br></pre></td></tr></table></figure>
-<h3 id="数组">数组</h3>
-<p>一组按次序排列的值，又称为序列（sequence） / 列表（list）</p>
-<p>一组连词线开头的行，构成一个数组。</p>
-<blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">- <span class="title class_">Cat</span></span><br><span class="line">- <span class="title class_">Dog</span></span><br><span class="line">- <span class="title class_">Goldfish</span></span><br></pre></td></tr></table></figure>
-</blockquote>
-<p>数据结构的子成员是一个数组，则可以在该项下面缩进一个空格。</p>
-<blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">-</span><br><span class="line"> - <span class="title class_">Cat</span></span><br><span class="line"> - <span class="title class_">Dog</span></span><br><span class="line"> - <span class="title class_">Goldfish</span></span><br></pre></td></tr></table></figure>
-</blockquote>
-<p>数组也可以采用行内表示法。</p>
-<blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="attr">animal</span>: [<span class="title class_">Cat</span>, <span class="title class_">Dog</span>]</span><br></pre></td></tr></table></figure>
-</blockquote>
-<blockquote>
-<p>Tips:对象和数组可以结合使用，形成复合结构。</p>
-</blockquote>
-<h3 id="纯量scalars">纯量（scalars）</h3>
-<p>单个的、不可再分的值，以下数据类型都属于 JavaScript 的纯量。</p>
-<blockquote>
-<ul>
-<li>字符串</li>
-<li>布尔值</li>
-<li>整数</li>
-<li>浮点数</li>
-<li>Null</li>
-<li>时间</li>
-<li>日期</li>
-</ul>
-</blockquote>
-<p>数值直接以字面量的形式表示。</p>
-<blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="attr">number</span>: <span class="number">12.30</span></span><br></pre></td></tr></table></figure>
-</blockquote>
-<p>布尔值用<code>true</code>和<code>false</code>表示。</p>
-<blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="attr">isSet</span>: <span class="literal">true</span></span><br></pre></td></tr></table></figure>
-</blockquote>
-<p><code>null</code>用<code>~</code>表示。</p>
-<blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="attr">parent</span>: ~ </span><br></pre></td></tr></table></figure>
-</blockquote>
-<p>时间采用 ISO8601 格式。</p>
-<blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="attr">iso8601</span>: <span class="number">2001</span>-<span class="number">12</span>-14<span class="attr">t21</span>:<span class="number">59</span>:<span class="number">43.10</span>-<span class="number">05</span>:<span class="number">00</span> </span><br></pre></td></tr></table></figure>
-</blockquote>
-<p>日期采用复合 iso8601 格式的年、月、日表示。</p>
-<blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="attr">date</span>: <span class="number">1976</span>-<span class="number">07</span>-<span class="number">31</span></span><br></pre></td></tr></table></figure>
-</blockquote>
-<p>YAML 允许使用两个感叹号，强制转换数据类型。</p>
-<blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="attr">e</span>: !!str <span class="number">123</span></span><br><span class="line"><span class="attr">f</span>: !!str <span class="literal">true</span></span><br></pre></td></tr></table></figure>
-</blockquote>
-<p>转为 JavaScript 如下。</p>
-<blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">&#123; <span class="attr">e</span>: <span class="string">&#x27;123&#x27;</span>, <span class="attr">f</span>: <span class="string">&#x27;true&#x27;</span> &#125;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h1 id="字符串">字符串</h1>
-<p>字符串是最常见，也是最复杂的一种数据类型。</p>
-<p>字符串默认不使用引号表示。</p>
-<blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="attr">str</span>: 这是一行字符串</span><br></pre></td></tr></table></figure>
-</blockquote>
-<p>转为 JavaScript 如下。</p>
-<blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">&#123; <span class="attr">str</span>: <span class="string">&#x27;这是一行字符串&#x27;</span> &#125;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<p>如果字符串之中包含空格或特殊字符，需要放在引号之中。</p>
-<blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="attr">str</span>: <span class="string">&#x27;内容： 字符串&#x27;</span></span><br></pre></td></tr></table></figure>
-</blockquote>
-<p>转为 JavaScript 如下。</p>
-<blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">&#123; <span class="attr">str</span>: <span class="string">&#x27;内容: 字符串&#x27;</span> &#125;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<p>单引号和双引号都可以使用，<strong>双引号不会对特殊字符转义</strong>。</p>
-<blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="attr">s1</span>: <span class="string">&#x27;内容\n字符串&#x27;</span></span><br><span class="line"><span class="attr">s2</span>: <span class="string">&quot;内容\n字符串&quot;</span></span><br></pre></td></tr></table></figure>
-</blockquote>
-<p>转为 JavaScript 如下。</p>
-<blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">&#123; <span class="attr">s1</span>: <span class="string">&#x27;内容\\n字符串&#x27;</span>, <span class="attr">s2</span>: <span class="string">&#x27;内容\n字符串&#x27;</span> &#125;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<p>单引号之中如果还有单引号，必须连续使用两个单引号转义。</p>
-<blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="attr">str</span>: <span class="string">&#x27;labor&#x27;</span><span class="string">&#x27;s day&#x27;</span> </span><br></pre></td></tr></table></figure>
-</blockquote>
-<p>转为 JavaScript 如下。</p>
-<blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">&#123; <span class="attr">str</span>: <span class="string">&#x27;labor\&#x27;s day&#x27;</span> &#125;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<p>字符串可以写成多行，从第二行开始，必须有一个单空格缩进。换行符会被转为空格。</p>
-<blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="attr">str</span>: 这是一段</span><br><span class="line">  多行</span><br><span class="line">  字符串</span><br></pre></td></tr></table></figure>
-</blockquote>
-<p>转为 JavaScript 如下。</p>
-<blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">&#123; <span class="attr">str</span>: <span class="string">&#x27;这是一段 多行 字符串&#x27;</span> &#125;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<p>多行字符串可以使用<code>|</code>保留换行符，也可以使用<code>&gt;</code>折叠换行。</p>
-<blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="attr">this</span>: |</span><br><span class="line">  <span class="title class_">Foo</span></span><br><span class="line">  <span class="title class_">Bar</span></span><br><span class="line"><span class="attr">that</span>: &gt;</span><br><span class="line">  <span class="title class_">Foo</span></span><br><span class="line">  <span class="title class_">Bar</span></span><br></pre></td></tr></table></figure>
-</blockquote>
-<p>转为 JavaScript 代码如下。</p>
-<blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">&#123; <span class="attr">this</span>: <span class="string">&#x27;Foo\nBar\n&#x27;</span>, <span class="attr">that</span>: <span class="string">&#x27;Foo Bar\n&#x27;</span> &#125;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<p><code>+</code>表示保留文字块末尾的换行，<code>-</code>表示删除字符串末尾的换行。</p>
-<blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="attr">s1</span>: |</span><br><span class="line">  <span class="title class_">Foo</span></span><br><span class="line"></span><br><span class="line"><span class="attr">s2</span>: |+</span><br><span class="line">  <span class="title class_">Foo</span></span><br><span class="line"></span><br><span class="line"><span class="attr">s3</span>: |-</span><br><span class="line">  <span class="title class_">Foo</span></span><br></pre></td></tr></table></figure>
-</blockquote>
-<p>转为 JavaScript 代码如下。</p>
-<blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">&#123; <span class="attr">s1</span>: <span class="string">&#x27;Foo\n&#x27;</span>, <span class="attr">s2</span>: <span class="string">&#x27;Foo\n\n\n&#x27;</span>, <span class="attr">s3</span>: <span class="string">&#x27;Foo&#x27;</span> &#125;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<p>字符串之中可以插入 HTML 标记。</p>
-<blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="attr">message</span>: |</span><br><span class="line"></span><br><span class="line">  <span class="language-xml"><span class="tag">&lt;<span class="name">p</span> <span class="attr">style</span>=<span class="string">&quot;color: red&quot;</span>&gt;</span></span></span><br><span class="line"><span class="language-xml">    段落</span></span><br><span class="line"><span class="language-xml">  <span class="tag">&lt;/<span class="name">p</span>&gt;</span></span></span><br></pre></td></tr></table></figure>
-</blockquote>
-<p>转为 JavaScript 如下。</p>
-<blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">&#123; <span class="attr">message</span>: <span class="string">&#x27;\n&lt;p style=&quot;color: red&quot;&gt;\n  段落\n&lt;/p&gt;\n&#x27;</span> &#125;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h1 id="引用">引用</h1>
-<p>锚点<code>&amp;</code>和别名<code>*</code>，可以用来引用。</p>
-<blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="attr">defaults</span>: &amp;defaults</span><br><span class="line">  <span class="attr">adapter</span>:  postgres</span><br><span class="line">  <span class="attr">host</span>:     localhost</span><br><span class="line"></span><br><span class="line"><span class="attr">development</span>:</span><br><span class="line">  <span class="attr">database</span>: myapp_development</span><br><span class="line">  &lt;&lt;: *defaults</span><br><span class="line"></span><br><span class="line"><span class="attr">test</span>:</span><br><span class="line">  <span class="attr">database</span>: myapp_test</span><br><span class="line">  &lt;&lt;: *defaults</span><br></pre></td></tr></table></figure>
-</blockquote>
-<p>等同于下面的代码。</p>
-<blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="attr">defaults</span>:</span><br><span class="line">  <span class="attr">adapter</span>:  postgres</span><br><span class="line">  <span class="attr">host</span>:     localhost</span><br><span class="line"></span><br><span class="line"><span class="attr">development</span>:</span><br><span class="line">  <span class="attr">database</span>: myapp_development</span><br><span class="line">  <span class="attr">adapter</span>:  postgres</span><br><span class="line">  <span class="attr">host</span>:     localhost</span><br><span class="line"></span><br><span class="line"><span class="attr">test</span>:</span><br><span class="line">  <span class="attr">database</span>: myapp_test</span><br><span class="line">  <span class="attr">adapter</span>:  postgres</span><br><span class="line">  <span class="attr">host</span>:     localhost</span><br></pre></td></tr></table></figure>
-</blockquote>
-<p><code>&amp;</code>用来建立锚点（<code>defaults</code>），<code>&lt;&lt;</code>表示合并到当前数据，<code>*</code>用来引用锚点。</p>
-<p>下面是另一个例子。</p>
-<blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">- &amp;showell <span class="title class_">Steve</span> </span><br><span class="line">- <span class="title class_">Clark</span> </span><br><span class="line">- <span class="title class_">Brian</span> </span><br><span class="line">- <span class="title class_">Oren</span> </span><br><span class="line">- *showell </span><br></pre></td></tr></table></figure>
-</blockquote>
-<p>转为 JavaScript 代码如下。</p>
-<blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">[ <span class="string">&#x27;Steve&#x27;</span>, <span class="string">&#x27;Clark&#x27;</span>, <span class="string">&#x27;Brian&#x27;</span>, <span class="string">&#x27;Oren&#x27;</span>, <span class="string">&#x27;Steve&#x27;</span> ]</span><br></pre></td></tr></table></figure>
-</blockquote>
-<h1 id="函数和正则表达式的转换">函数和正则表达式的转换</h1>
-<p>这是 <a href="https://github.com/nodeca/js-yaml">JS-YAML</a>
-库特有的功能，可以把函数和正则表达式转为字符串。（不太懂）</p>
-<blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"># example.<span class="property">yml</span></span><br><span class="line"><span class="attr">fn</span>: <span class="keyword">function</span> (<span class="params"></span>) &#123; <span class="keyword">return</span> <span class="number">1</span> &#125;</span><br><span class="line"><span class="attr">reg</span>: <span class="regexp">/test/</span></span><br></pre></td></tr></table></figure>
-</blockquote>
-<p>解析上面的 yml 文件的代码如下。</p>
-<blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">var</span> yaml = <span class="built_in">require</span>(<span class="string">&#x27;js-yaml&#x27;</span>);</span><br><span class="line"><span class="keyword">var</span> fs   = <span class="built_in">require</span>(<span class="string">&#x27;fs&#x27;</span>);</span><br><span class="line"></span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">  <span class="keyword">var</span> doc = yaml.<span class="title function_">load</span>(</span><br><span class="line">    fs.<span class="title function_">readFileSync</span>(<span class="string">&#x27;./example.yml&#x27;</span>, <span class="string">&#x27;utf8&#x27;</span>)</span><br><span class="line">  );</span><br><span class="line">  <span class="variable language_">console</span>.<span class="title function_">log</span>(doc);</span><br><span class="line">&#125; <span class="keyword">catch</span> (e) &#123;</span><br><span class="line">  <span class="variable language_">console</span>.<span class="title function_">log</span>(e);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-</blockquote>
-<p>从 JavaScript 对象还原到 yaml 文件的代码如下。</p>
-<blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">var</span> yaml = <span class="built_in">require</span>(<span class="string">&#x27;js-yaml&#x27;</span>);</span><br><span class="line"><span class="keyword">var</span> fs   = <span class="built_in">require</span>(<span class="string">&#x27;fs&#x27;</span>);</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> obj = &#123;</span><br><span class="line">  <span class="attr">fn</span>: <span class="keyword">function</span> (<span class="params"></span>) &#123; <span class="keyword">return</span> <span class="number">1</span> &#125;,</span><br><span class="line">  <span class="attr">reg</span>: <span class="regexp">/test/</span></span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">  fs.<span class="title function_">writeFileSync</span>(</span><br><span class="line">    <span class="string">&#x27;./example.yml&#x27;</span>,</span><br><span class="line">    yaml.<span class="title function_">dump</span>(obj),</span><br><span class="line">    <span class="string">&#x27;utf8&#x27;</span></span><br><span class="line">  );</span><br><span class="line">&#125; <span class="keyword">catch</span> (e) &#123;</span><br><span class="line">  <span class="variable language_">console</span>.<span class="property">log</span></span><br></pre></td></tr></table></figure>
-</blockquote>
-<h1 id="references">References</h1>
-<ul>
-<li><a href="https://www.ruanyifeng.com/blog/2016/07/yaml.html">YAML
-语言教程 - 阮一峰的网络日志 (ruanyifeng.com)</a></li>
-</ul>
-]]></content>
-      <categories>
-        <category>CS</category>
-      </categories>
-      <tags>
-        <tag>YAML</tag>
-        <tag>CS</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Git入门</title>
     <url>/2023/08/05/Git%E5%85%A5%E9%97%A8/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
@@ -1125,8 +931,202 @@ Branching</a></li>
         <category>CS</category>
       </categories>
       <tags>
-        <tag>CS</tag>
         <tag>Git</tag>
+        <tag>CS</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>YAML初探</title>
+    <url>/2023/08/08/YAML%E5%88%9D%E6%8E%A2/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>利用hexo和next遇到了YAML语法写的config，借此机会了解下YAML语言</p>
+<p>目标：了解基本语法，能看懂就行（虽然大部分都是copy但是人家真写得够简洁了）</p>
+<span id="more"></span>
+<h1 id="introduction">Introduction</h1>
+<p>YAML (（发音 /ˈjæməl/
+）)是专门用来写配置文件的语言，非常简洁和强大，远比 JSON
+格式方便，实质上是一种通用的数据串行化格式。</p>
+<h1 id="基本语法规则">基本语法规则</h1>
+<ul>
+<li>大小写敏感</li>
+<li>使用缩进表示层级关系</li>
+<li>缩进时不允许使用Tab键，只允许使用空格。</li>
+<li>缩进的空格数目不重要，只要相同层级的元素左侧对齐即可</li>
+<li># 是注释</li>
+</ul>
+<h1 id="数据结构">数据结构</h1>
+<h3 id="对象">对象</h3>
+<p>键值对的集合，又称为映射（mapping）/ 哈希（hashes） /
+字典（dictionary）</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">animal: pets</span><br><span class="line">hash: &#123; name: Steve, foo: bar &#125; #也可以将所有键值对写成一个行内对象</span><br></pre></td></tr></table></figure>
+<h3 id="数组">数组</h3>
+<p>一组按次序排列的值，又称为序列（sequence） / 列表（list）</p>
+<p>一组连词线开头的行，构成一个数组。</p>
+<blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">- <span class="title class_">Cat</span></span><br><span class="line">- <span class="title class_">Dog</span></span><br><span class="line">- <span class="title class_">Goldfish</span></span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>数据结构的子成员是一个数组，则可以在该项下面缩进一个空格。</p>
+<blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">-</span><br><span class="line"> - <span class="title class_">Cat</span></span><br><span class="line"> - <span class="title class_">Dog</span></span><br><span class="line"> - <span class="title class_">Goldfish</span></span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>数组也可以采用行内表示法。</p>
+<blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="attr">animal</span>: [<span class="title class_">Cat</span>, <span class="title class_">Dog</span>]</span><br></pre></td></tr></table></figure>
+</blockquote>
+<blockquote>
+<p>Tips:对象和数组可以结合使用，形成复合结构。</p>
+</blockquote>
+<h3 id="纯量scalars">纯量（scalars）</h3>
+<p>单个的、不可再分的值，以下数据类型都属于 JavaScript 的纯量。</p>
+<blockquote>
+<ul>
+<li>字符串</li>
+<li>布尔值</li>
+<li>整数</li>
+<li>浮点数</li>
+<li>Null</li>
+<li>时间</li>
+<li>日期</li>
+</ul>
+</blockquote>
+<p>数值直接以字面量的形式表示。</p>
+<blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="attr">number</span>: <span class="number">12.30</span></span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>布尔值用<code>true</code>和<code>false</code>表示。</p>
+<blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="attr">isSet</span>: <span class="literal">true</span></span><br></pre></td></tr></table></figure>
+</blockquote>
+<p><code>null</code>用<code>~</code>表示。</p>
+<blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="attr">parent</span>: ~ </span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>时间采用 ISO8601 格式。</p>
+<blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="attr">iso8601</span>: <span class="number">2001</span>-<span class="number">12</span>-14<span class="attr">t21</span>:<span class="number">59</span>:<span class="number">43.10</span>-<span class="number">05</span>:<span class="number">00</span> </span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>日期采用复合 iso8601 格式的年、月、日表示。</p>
+<blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="attr">date</span>: <span class="number">1976</span>-<span class="number">07</span>-<span class="number">31</span></span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>YAML 允许使用两个感叹号，强制转换数据类型。</p>
+<blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="attr">e</span>: !!str <span class="number">123</span></span><br><span class="line"><span class="attr">f</span>: !!str <span class="literal">true</span></span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>转为 JavaScript 如下。</p>
+<blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">&#123; <span class="attr">e</span>: <span class="string">&#x27;123&#x27;</span>, <span class="attr">f</span>: <span class="string">&#x27;true&#x27;</span> &#125;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h1 id="字符串">字符串</h1>
+<p>字符串是最常见，也是最复杂的一种数据类型。</p>
+<p>字符串默认不使用引号表示。</p>
+<blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="attr">str</span>: 这是一行字符串</span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>转为 JavaScript 如下。</p>
+<blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">&#123; <span class="attr">str</span>: <span class="string">&#x27;这是一行字符串&#x27;</span> &#125;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>如果字符串之中包含空格或特殊字符，需要放在引号之中。</p>
+<blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="attr">str</span>: <span class="string">&#x27;内容： 字符串&#x27;</span></span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>转为 JavaScript 如下。</p>
+<blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">&#123; <span class="attr">str</span>: <span class="string">&#x27;内容: 字符串&#x27;</span> &#125;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>单引号和双引号都可以使用，<strong>双引号不会对特殊字符转义</strong>。</p>
+<blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="attr">s1</span>: <span class="string">&#x27;内容\n字符串&#x27;</span></span><br><span class="line"><span class="attr">s2</span>: <span class="string">&quot;内容\n字符串&quot;</span></span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>转为 JavaScript 如下。</p>
+<blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">&#123; <span class="attr">s1</span>: <span class="string">&#x27;内容\\n字符串&#x27;</span>, <span class="attr">s2</span>: <span class="string">&#x27;内容\n字符串&#x27;</span> &#125;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>单引号之中如果还有单引号，必须连续使用两个单引号转义。</p>
+<blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="attr">str</span>: <span class="string">&#x27;labor&#x27;</span><span class="string">&#x27;s day&#x27;</span> </span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>转为 JavaScript 如下。</p>
+<blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">&#123; <span class="attr">str</span>: <span class="string">&#x27;labor\&#x27;s day&#x27;</span> &#125;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>字符串可以写成多行，从第二行开始，必须有一个单空格缩进。换行符会被转为空格。</p>
+<blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="attr">str</span>: 这是一段</span><br><span class="line">  多行</span><br><span class="line">  字符串</span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>转为 JavaScript 如下。</p>
+<blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">&#123; <span class="attr">str</span>: <span class="string">&#x27;这是一段 多行 字符串&#x27;</span> &#125;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>多行字符串可以使用<code>|</code>保留换行符，也可以使用<code>&gt;</code>折叠换行。</p>
+<blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="attr">this</span>: |</span><br><span class="line">  <span class="title class_">Foo</span></span><br><span class="line">  <span class="title class_">Bar</span></span><br><span class="line"><span class="attr">that</span>: &gt;</span><br><span class="line">  <span class="title class_">Foo</span></span><br><span class="line">  <span class="title class_">Bar</span></span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>转为 JavaScript 代码如下。</p>
+<blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">&#123; <span class="attr">this</span>: <span class="string">&#x27;Foo\nBar\n&#x27;</span>, <span class="attr">that</span>: <span class="string">&#x27;Foo Bar\n&#x27;</span> &#125;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<p><code>+</code>表示保留文字块末尾的换行，<code>-</code>表示删除字符串末尾的换行。</p>
+<blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="attr">s1</span>: |</span><br><span class="line">  <span class="title class_">Foo</span></span><br><span class="line"></span><br><span class="line"><span class="attr">s2</span>: |+</span><br><span class="line">  <span class="title class_">Foo</span></span><br><span class="line"></span><br><span class="line"><span class="attr">s3</span>: |-</span><br><span class="line">  <span class="title class_">Foo</span></span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>转为 JavaScript 代码如下。</p>
+<blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">&#123; <span class="attr">s1</span>: <span class="string">&#x27;Foo\n&#x27;</span>, <span class="attr">s2</span>: <span class="string">&#x27;Foo\n\n\n&#x27;</span>, <span class="attr">s3</span>: <span class="string">&#x27;Foo&#x27;</span> &#125;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>字符串之中可以插入 HTML 标记。</p>
+<blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="attr">message</span>: |</span><br><span class="line"></span><br><span class="line">  <span class="language-xml"><span class="tag">&lt;<span class="name">p</span> <span class="attr">style</span>=<span class="string">&quot;color: red&quot;</span>&gt;</span></span></span><br><span class="line"><span class="language-xml">    段落</span></span><br><span class="line"><span class="language-xml">  <span class="tag">&lt;/<span class="name">p</span>&gt;</span></span></span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>转为 JavaScript 如下。</p>
+<blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">&#123; <span class="attr">message</span>: <span class="string">&#x27;\n&lt;p style=&quot;color: red&quot;&gt;\n  段落\n&lt;/p&gt;\n&#x27;</span> &#125;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h1 id="引用">引用</h1>
+<p>锚点<code>&amp;</code>和别名<code>*</code>，可以用来引用。</p>
+<blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="attr">defaults</span>: &amp;defaults</span><br><span class="line">  <span class="attr">adapter</span>:  postgres</span><br><span class="line">  <span class="attr">host</span>:     localhost</span><br><span class="line"></span><br><span class="line"><span class="attr">development</span>:</span><br><span class="line">  <span class="attr">database</span>: myapp_development</span><br><span class="line">  &lt;&lt;: *defaults</span><br><span class="line"></span><br><span class="line"><span class="attr">test</span>:</span><br><span class="line">  <span class="attr">database</span>: myapp_test</span><br><span class="line">  &lt;&lt;: *defaults</span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>等同于下面的代码。</p>
+<blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="attr">defaults</span>:</span><br><span class="line">  <span class="attr">adapter</span>:  postgres</span><br><span class="line">  <span class="attr">host</span>:     localhost</span><br><span class="line"></span><br><span class="line"><span class="attr">development</span>:</span><br><span class="line">  <span class="attr">database</span>: myapp_development</span><br><span class="line">  <span class="attr">adapter</span>:  postgres</span><br><span class="line">  <span class="attr">host</span>:     localhost</span><br><span class="line"></span><br><span class="line"><span class="attr">test</span>:</span><br><span class="line">  <span class="attr">database</span>: myapp_test</span><br><span class="line">  <span class="attr">adapter</span>:  postgres</span><br><span class="line">  <span class="attr">host</span>:     localhost</span><br></pre></td></tr></table></figure>
+</blockquote>
+<p><code>&amp;</code>用来建立锚点（<code>defaults</code>），<code>&lt;&lt;</code>表示合并到当前数据，<code>*</code>用来引用锚点。</p>
+<p>下面是另一个例子。</p>
+<blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">- &amp;showell <span class="title class_">Steve</span> </span><br><span class="line">- <span class="title class_">Clark</span> </span><br><span class="line">- <span class="title class_">Brian</span> </span><br><span class="line">- <span class="title class_">Oren</span> </span><br><span class="line">- *showell </span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>转为 JavaScript 代码如下。</p>
+<blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">[ <span class="string">&#x27;Steve&#x27;</span>, <span class="string">&#x27;Clark&#x27;</span>, <span class="string">&#x27;Brian&#x27;</span>, <span class="string">&#x27;Oren&#x27;</span>, <span class="string">&#x27;Steve&#x27;</span> ]</span><br></pre></td></tr></table></figure>
+</blockquote>
+<h1 id="函数和正则表达式的转换">函数和正则表达式的转换</h1>
+<p>这是 <a href="https://github.com/nodeca/js-yaml">JS-YAML</a>
+库特有的功能，可以把函数和正则表达式转为字符串。（不太懂）</p>
+<blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"># example.<span class="property">yml</span></span><br><span class="line"><span class="attr">fn</span>: <span class="keyword">function</span> (<span class="params"></span>) &#123; <span class="keyword">return</span> <span class="number">1</span> &#125;</span><br><span class="line"><span class="attr">reg</span>: <span class="regexp">/test/</span></span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>解析上面的 yml 文件的代码如下。</p>
+<blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">var</span> yaml = <span class="built_in">require</span>(<span class="string">&#x27;js-yaml&#x27;</span>);</span><br><span class="line"><span class="keyword">var</span> fs   = <span class="built_in">require</span>(<span class="string">&#x27;fs&#x27;</span>);</span><br><span class="line"></span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">  <span class="keyword">var</span> doc = yaml.<span class="title function_">load</span>(</span><br><span class="line">    fs.<span class="title function_">readFileSync</span>(<span class="string">&#x27;./example.yml&#x27;</span>, <span class="string">&#x27;utf8&#x27;</span>)</span><br><span class="line">  );</span><br><span class="line">  <span class="variable language_">console</span>.<span class="title function_">log</span>(doc);</span><br><span class="line">&#125; <span class="keyword">catch</span> (e) &#123;</span><br><span class="line">  <span class="variable language_">console</span>.<span class="title function_">log</span>(e);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>从 JavaScript 对象还原到 yaml 文件的代码如下。</p>
+<blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">var</span> yaml = <span class="built_in">require</span>(<span class="string">&#x27;js-yaml&#x27;</span>);</span><br><span class="line"><span class="keyword">var</span> fs   = <span class="built_in">require</span>(<span class="string">&#x27;fs&#x27;</span>);</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> obj = &#123;</span><br><span class="line">  <span class="attr">fn</span>: <span class="keyword">function</span> (<span class="params"></span>) &#123; <span class="keyword">return</span> <span class="number">1</span> &#125;,</span><br><span class="line">  <span class="attr">reg</span>: <span class="regexp">/test/</span></span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">  fs.<span class="title function_">writeFileSync</span>(</span><br><span class="line">    <span class="string">&#x27;./example.yml&#x27;</span>,</span><br><span class="line">    yaml.<span class="title function_">dump</span>(obj),</span><br><span class="line">    <span class="string">&#x27;utf8&#x27;</span></span><br><span class="line">  );</span><br><span class="line">&#125; <span class="keyword">catch</span> (e) &#123;</span><br><span class="line">  <span class="variable language_">console</span>.<span class="property">log</span></span><br></pre></td></tr></table></figure>
+</blockquote>
+<h1 id="references">References</h1>
+<ul>
+<li><a href="https://www.ruanyifeng.com/blog/2016/07/yaml.html">YAML
+语言教程 - 阮一峰的网络日志 (ruanyifeng.com)</a></li>
+</ul>
+]]></content>
+      <categories>
+        <category>CS</category>
+      </categories>
+      <tags>
+        <tag>CS</tag>
+        <tag>YAML</tag>
       </tags>
   </entry>
   <entry>
