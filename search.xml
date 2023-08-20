@@ -520,6 +520,376 @@ CAN通信的位定时与同步_weixin_40528417的博客-CSDN博客</a></li>
       </tags>
   </entry>
   <entry>
+    <title>EXTI入门</title>
+    <url>/2023/08/21/EXTI%E5%85%A5%E9%97%A8/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>Following
+哈工深上传到B站的电控组培训来入门robomaster电控组，我购买了普中科技玄武套餐开发板作为硬件。</p>
+<p>本篇介绍我学习EXIT的见闻</p>
+<span id="more"></span>
+<h1 id="exti">EXTI</h1>
+<h2 id="中断简介">中断简介</h2>
+<p>中断指计算机运行过程中，出现某些意外情况需要主机干预时，机器能自动停止正在运行的程序并转入处理新情况的程序，处理完毕后又返回原被暂停的程序继续运行。<strong>中断是实现多线程设计的必要条件</strong>。</p>
+<p>EXTI：（External interrupt/event controller）外部中断/事件控制器</p>
+<h2 id="nvic">NVIC</h2>
+<p>NVIC的全称是Nested vectoredinterrupt
+controller，即嵌套向量中断控制器</p>
+<p>能够打断当前代码执行流程的事件分为<strong>异常(exception)</strong>和<strong>中断(interrupt)</strong>，他们都被编排在中断向量表（在stm32中文参考手册中可查找，在stm32的启动文件中也能找到eg:startup_stm32f103xe.s）里面。</p>
+<ul>
+<li>编号为负的内核异常不能被设置优先级，如复位(Reset)、不可屏蔽中断
+(NMI)、硬错误(Hardfault)。从编号 7
+开始的为外部中断，这些中断的优先级都是可以自行设置的。</li>
+<li>NVIC的核心功能是中断优先级分组、中断优先级的配置、读中断请求标志、清除中断请求标志、使能中断、清除中断等.</li>
+<li>外部中断信号从核外发出，信号最终要传递到NVIC(嵌套向量中断控制器)。</li>
+<li>NVIC跟内核紧密耦合，它控制着整个芯片中断的相关功能。</li>
+</ul>
+<h2 id="中断优先级分组">中断优先级分组</h2>
+<p>STM32 的中断向量具有两个属性：抢占，响应</p>
+<ul>
+<li><p>抢占（编号越小，优先级越高），是指打断其它中断的属性，即因为具有这个属性，会出现嵌套中断(在执行中断服务函数
+A 的过程中被中断 B 打断，执行完中断服务函数 B 再继续执行中断服务函数
+A)。</p></li>
+<li><p>响应（编号越小，优先级越高）属性则应用在抢占属性相同的情况下，当两个中断向量的抢占优先级相同时，如果两个中断同时到达，则先处理响应优先级高的中断。（不能打断其他中断）</p></li>
+<li><p>在STM32中，抢占优先级和响应优先级的数量由一个 4
+位的数字来决定，把这个 4
+位数字的位数分配成抢占优先级部分和响应优先级部分。（都写在寄存器内）</p></li>
+</ul>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230607154202250.png"
+alt="image-20230607154202250" />
+<figcaption aria-hidden="true">image-20230607154202250</figcaption>
+</figure>
+<blockquote>
+<p>Tips:两个中断不可能同时来，所以响应优先级主要给出了一种响应的优先队列，当多个中断向量的抢占优先级相同时，它们不会互相打断，后续的排队会按照响应优先级排队。</p>
+</blockquote>
+<h2 id="exti介绍">EXTI介绍</h2>
+<p>中断引脚的序号需要不一样才能配置不停的中断（F1系列的硬件实现）</p>
+<blockquote>
+<p>Tips:F1系列中断是共用的eg:中断/事件线EXTI0，输入源PX0（X可为A,B,...I）PA0用了则PB0就用不了。</p>
+</blockquote>
+<p>EXTI有两大模式;中断模式和事件模式</p>
+<ul>
+<li>中断模式产生中断：把输入信号输入到NVIC中，进一步执行中断服务函数，实现功能，这是软件级别的。</li>
+<li>事件模式产生事件：传输一个脉冲信号给其他外设使用，并且这是电路级别的信号传输，不需要软件处理，硬件直接触发</li>
+</ul>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230821013658350.png"
+alt="image-20230821013658350" />
+<figcaption aria-hidden="true">image-20230821013658350</figcaption>
+</figure>
+<ul>
+<li>23：并行传输数据，和这个寄存器一样的有23个</li>
+<li>边沿检测电路：一个符合则输出1</li>
+</ul>
+<p>每一种模式都可配置为上升沿触发、下降沿触发，以及上升下降沿触发三种触发方式</p>
+<h2 id="中断函数的实现">中断函数的实现</h2>
+<p>要产生中断，必须先配置好并使能中断线。根据需要的边沿检测设置2个触发寄存器，同时在中断屏蔽寄存器的相应位写’1’允许中断请求。当外部中断线上发生了期待的边沿时，将产生一个中断请求，对应的挂起位也随之被置’1’。在挂起寄存器的对应位写’1’，将清除该中断请求。</p>
+<p>如果需要产生事件，必须先配置好并使能事件线。根据需要的边沿检测通过设置2个触发寄存器，同时在事件屏蔽寄存器的相应位写’1’允许事件请求。当事件线上发生了需要的边沿时，将产生一个事件请求脉冲，对应的挂起位不被置’1’。</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230607154902377.png"
+alt="image-20230607154902377" />
+<figcaption aria-hidden="true">image-20230607154902377</figcaption>
+</figure>
+<p>通过在软件中断/事件寄存器写’1’，也可以通过软件产生中断/事件请求。</p>
+<ul>
+<li><p>一般来说单片机的中断发生有两个条件，一是<strong>中断标志位置位</strong>，二是<strong>中断允许</strong>（中断屏蔽寄存器），如果这两个条件都满足则进入中断，因为正常情况下中断一直是允许的，那么只能通过标志位来区分是否有中断挂起</p></li>
+<li><p>中断标志位：挂起请求寄存器设置。</p>
+<p>PRx:挂起为（pending bit）：</p>
+<p>0没有发生触发请求，1发生了选择触发请求</p>
+<p>当在外部中断线上发生了选择的边沿事件，该位被置1。在该位写入1可以清楚它，也可以通过改变边沿检测的极性清除。</p></li>
+<li><p>如果进入中断不清除标志位，那么这一中断服务程序结束后由于标志位还是置位的并且中断是允许的，那么还会再次进入该中断，就会发生一直在执行中断程序的情况</p></li>
+<li><p>周期性中断是由定时器辅助完成的，只要定时时间到，硬件就会自动置位标志位，这时中断发生，定时器还在运行，<strong>与中断处理是并行的没有冲突</strong>，因此周期性的中断不是从中断标志位清零开始的。</p>
+<blockquote>
+<p>Tips:MCU和定时器是并行的，互不影响</p>
+</blockquote></li>
+<li><p>如果中断程序没有执行完并且一下个中断又来了，那么硬件还是会自动置位标志位的，如果在这之前已经清零标志位那么中断结束后会再进入一次该中断，如果这时还没有清除中断标志位，则第二个中断无效。</p>
+<blockquote>
+<p>Tips:有中断，中断标志位变为1,不清0，则不能响应新的中断。</p>
+</blockquote></li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**</span><br><span class="line"> * @brief EXTI line detection callbacks.</span><br><span class="line"> * @param GPIO_Pin: Specifies the pins connected EXTI line</span><br><span class="line"> * @retval None</span><br><span class="line"> *外部中断的回调函数,hal库</span><br><span class="line"> */ </span><br><span class="line">__weak void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) </span><br><span class="line">&#123;</span><br><span class="line"> /* Prevent unused argument(s) compilation warning */</span><br><span class="line"> UNUSED(GPIO_Pin);</span><br><span class="line"> /* NOTE: This function Should not be modified, when the callback is needed, the HAL_GPIO_EXTI_Callback could be implemented in the user file */ </span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>Tips:
+<code>_weak</code>在其他地方重新定义该函数此_weak定义的函数会被覆盖,即我们要重写void
+HAL_GPIO_EXTI_Callback(uin16_t,GPIO_Pin);函数</p>
+</blockquote>
+<h2 id="实验">实验</h2>
+<h3 id="按键扫描">按键扫描</h3>
+<p>根据需要确定GPIO模式：选择下拉输入还是上拉输入or浮空输入，通过反复读取按键状态是否为高电平判断按键是否被触发</p>
+<p><strong>按键扫描的原理</strong>：
+按键的两个引脚的一端通过下拉电阻拉倒低电平，另一端接着电源。当按下开关时，输入引脚为高电平。通过反复读取按键状态是否为高电平判断按键是否被触发。</p>
+<p><strong>notes:</strong></p>
+<ul>
+<li><p>记得在cubeMX的GPIO把NVIC设置为enable</p></li>
+<li><p>在keil
+5中添加新文件：先将文件放在同一目录下，右键add添加.c文件/双击add即可，.h文件用#include包含即可</p></li>
+<li><p>机械按键的抖动，毛刺，延时再判断，hal_delay是用systick实现的</p>
+<blockquote>
+<p>Tips:设置中断优先级（比时钟低，不然不能HAL_Delay(),会陷入死循环）</p>
+</blockquote></li>
+</ul>
+<p>如下图：数码管8位一般定义为：DP G F E D C B A</p>
+<p>B C亮表示1，即00000110=0x06;</p>
+<p>A B G E D亮表示2 即01011011=0x5b；</p>
+<p>依次类推</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/a1ec08fa513d26975dfc13c055fbb2fb4316d87b.jpg"
+alt="a1ec08fa513d26975dfc13c055fbb2fb4316d87b" />
+<figcaption
+aria-hidden="true">a1ec08fa513d26975dfc13c055fbb2fb4316d87b</figcaption>
+</figure>
+<h1 id="references">References</h1>
+<ul>
+<li>哈工深电控内训</li>
+<li><a
+href="https://zhidao.baidu.com/question/1959763145635584700.html">单片机的中断标志位是有什么作用？_百度知道
+(baidu.com)</a></li>
+</ul>
+]]></content>
+      <categories>
+        <category>嵌入式</category>
+      </categories>
+      <tags>
+        <tag>robomaster</tag>
+        <tag>嵌入式</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>GPIO入门</title>
+    <url>/2023/08/20/GPIO/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>Following
+哈工深上传到B站的电控组培训来入门robomaster电控组，我购买了普中科技玄武套餐开发板作为硬件。</p>
+<p>本篇介绍我学习GPIO的见闻</p>
+<span id="more"></span>
+<h1 id="gpio">GPIO</h1>
+<h2 id="简介">简介</h2>
+<p>GPIO：general purpose input
+output通用输入输出，一种外设与大部分芯片引脚挂钩。</p>
+<p>GPIO时最基本功能，高电平3.3V，低电平0V，<strong>单片机对外设的所有操作</strong>都通过GPIO进行的</p>
+<h2 id="八种模式">八种模式</h2>
+<p>四种输入，四种输出</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230815145636958.png"
+alt="image-20230815145636958" />
+<figcaption aria-hidden="true">image-20230815145636958</figcaption>
+</figure>
+<p><strong>VDD表示器件内部的工作电压，VSS通常指电路公共接地端电压</strong>。
+对于数字电路来说，VDD是芯片的工作电压，VSS是接地点，在场效应管中，VDD为漏极，VSS为源极，VDD和VSS指的是元件引脚</p>
+<ul>
+<li><p>输入浮空：不确定，根据阈值确定0和1（不常用），浮空什么都不接，高阻态，数据传输时较多</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230815145657948.png"
+alt="image-20230815145657948" />
+<figcaption aria-hidden="true">image-20230815145657948</figcaption>
+</figure></li>
+<li><p><strong>输入上拉：</strong>拉就是把点位拉高，比如拉到Vcc。上拉就是将不确定的信号通过一个上拉电阻嵌位在高电平。电阻同时起到限流的作用。</p>
+<p>无输入——1，有输入——取决于输入</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230815145710226.png"
+alt="image-20230815145710226" />
+<figcaption aria-hidden="true">image-20230815145710226</figcaption>
+</figure></li>
+<li><p><strong>输入下拉：</strong></p>
+<p>无输入——0，有输入——取决于输入</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230815145727794.png"
+alt="image-20230815145727794" />
+<figcaption aria-hidden="true">image-20230815145727794</figcaption>
+</figure></li>
+<li><p>模拟输入：ADC，可推出读入电压的大小</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230815145737614.png"
+alt="image-20230815145737614" />
+<figcaption aria-hidden="true">image-20230815145737614</figcaption>
+</figure></li>
+<li><p>开漏输出：一般来说，开漏是用来连接不同电平的器件，匹配电平用的，因为开漏引脚不连接外部的上拉电阻时，只能输出低电平，如果需要同时具备输出高电平的功能，则需要接上拉电阻，很好的一个优点是通过改变上拉电源的电压，便可以改变传输电平。（低电压控制高电压）</p>
+<p>0——输出0，1——浮空</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230815145748091.png"
+alt="image-20230815145748091" />
+<figcaption aria-hidden="true">image-20230815145748091</figcaption>
+</figure></li>
+<li><p><strong>推挽输出（最多）</strong>：可以输出高，低电平，连接数字器件。推挽结构一般是指两个三级管分别受到互补信号的控制，总是在一个三极管导通的时候另一个截止</p>
+<p>0——0，1——1</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230815145757519.png"
+alt="image-20230815145757519" />
+<figcaption aria-hidden="true">image-20230815145757519</figcaption>
+</figure></li>
+<li><p>推挽式复用：可以理解为GPIO口被用作第二功能时的配置情况（即并非作为通用IO口使用）</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230815145810824.png"
+alt="image-20230815145810824" />
+<figcaption aria-hidden="true">image-20230815145810824</figcaption>
+</figure></li>
+<li><p>开漏式复用：可以理解为GPIO口被用作第二功能时的配置情况（即并非作为通用IO口使用）</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230815145820371.png"
+alt="image-20230815145820371" />
+<figcaption aria-hidden="true">image-20230815145820371</figcaption>
+</figure></li>
+</ul>
+<h2 id="常用函数">常用函数</h2>
+<ul>
+<li>设置GPIO电平高低</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_GPIO_WritePin(GPIOx,GPIO_Pin,GPIO_state);</span><br></pre></td></tr></table></figure>
+<p>GPIOX代表目标引脚的端口号，例如GPIOB。
+GPIO_Pin代表目标引脚的引脚号，例如GPIO_Pin_5。
+GPIO_state代表当前引脚的高低电平，<strong>高电平(GPIO_PIN_SET)、低电平(GPIO_PIN_RESET)。</strong></p>
+<ul>
+<li>翻转GPIO电平状态</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_GPIO_TogglePin(GPIOx,GPIO_Pin); //toggle  v.切换</span><br></pre></td></tr></table></figure>
+<ul>
+<li>读取GPIO电平状态</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_GPIO_ReadPin(GPIOx,GPIO_Pin);</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>Tips:GPIO用|，挺常见的（用+也一样）</p>
+</blockquote>
+<h2 id="实验">实验</h2>
+<p>分别做了跑马灯和按键点亮GPIO的实验</p>
+<h1 id="bonus">BONUS</h1>
+<h2 id="cubemx">CubeMX</h2>
+<h3 id="一基本概念">一、基本概念：</h3>
+<ul>
+<li><p>RCC： Reset and Clock Control，即复位和时钟控制。</p></li>
+<li><p>HSE： High Speed External Clock
+signal，高速外部时钟信号，即是OSC_IN和OSC_OUT接口所接的4~16MHz的晶振，一般接8MHz。</p>
+<blockquote>
+<p>Tips:72MHz，我在CubeMX中设置的72但是在keil中打开工程还是8MHz，很奇怪（我只能手动修改）</p>
+</blockquote></li>
+<li><p>LSE： Low Speed External Clock
+signal，低速外部时钟信号，即是OSC32_IN和OSC32_OUT接口，指外部用于RTC的32.768KHz晶振。</p></li>
+<li><p>HSI： High Speed Internal Clock
+signal，高速内部时钟信号，出厂校准的8MHz内部RC振荡器。</p></li>
+<li><p>LSI： Low Speed Internal Clock
+signal，高速内部时钟信号，带有校准功能的40KHz的内部RC振荡器。</p></li>
+<li><p>RTC： Real Time
+Clock实时时钟，用于带有年、月、日、小时、分钟、秒钟的计时器。</p></li>
+<li><p>PLL：锁相环倍频输出，其时钟输入源可选择为HSI/2、HSE或者HSE/2。倍频可选择为2~16倍，但是其输出频率最大不得超过72MHz。</p></li>
+<li><p>SYSCLK：系统时钟，最高72MHz。</p></li>
+<li><p>AHB：高级高性能总线，这是一种“系统总线”AHB主要用于高性能模块(如CPU、DMA和DSP等)之间的连接。AHB
+系统由主模块、从模块和基础结构(Infrastructure)3部分组成，整个AHB总线上的传输都由主模块发出，由从模块负责回应。</p></li>
+<li><p>APB：是一种外围总线。APB主要用于低带宽的周边外设之间的连接，例如UART等，它的总线架构不像
+AHB支持多个主模块，在APB里面唯一的主模块就是APB 桥。</p></li>
+</ul>
+<h3 id="二外部晶振与内部晶振的区别">二、外部晶振与内部晶振的区别：</h3>
+<p>外部晶振比较稳定而内部晶振的误差比较大，但如果对频率要求不高，如不涉及到串口通信和精确定时等情况时，则可以使用内部晶振。所以如果对频率要求不高，则一般是优先使用内部晶振。如果要省电，用到了SLEEP，则不能使用内部晶振，因为内部振荡会停止。</p>
+<ul>
+<li><p>debug:SWD，JTAG(4/5 pins)</p></li>
+<li><p>选引脚后，在GPIO中进一步配置：</p>
+<p>GPIO mode,maximum output
+speed(速度越快耗电越大,high就完事了)</p></li>
+<li><p>RCC配置时钟（Crystal）：选择HSE:Crystal/Ceramic
+Reasonator外部晶振（HSI内部时钟，慢/不准确）</p>
+<blockquote>
+<p>Tips:时钟树的配置，晶振能在板子原理图中看</p>
+</blockquote></li>
+</ul>
+<h2 id="普中arm仿真器">普中ARM仿真器</h2>
+<p>普中免驱版ARM仿真器：选择CMSIS-DAP Debugger</p>
+<blockquote>
+<p>Tips:一般开始先build（比rebuild节约时间）</p>
+</blockquote>
+<p>可用20PIN的线直连，也可自己接线用杜邦线把仿真器和板子对应引脚连接：</p>
+<p>JTAG接线方式：1、3、4、5、7、9、13、15</p>
+<p>SWJ接线方式：1、 4、 7、 9</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230821005945795.png"
+alt="仿真器接线" />
+<figcaption aria-hidden="true">仿真器接线</figcaption>
+</figure>
+<h1 id="arm-仿真器种类与概念">ARM 仿真器种类与概念</h1>
+<p>JTAG、SWD是仿真器协议接口。</p>
+<p>JLink、ULink、ST-Link是各家公司仿真器的名字：调试仿真器是为了嵌入式程序开发时，连接电脑和单片机，方便于调试、仿真、下载嵌入式程序的设备。</p>
+<h2 id="jatg协议">JATG协议</h2>
+<p>JTAG（Joint Test Action
+Group，联合测试行动小组）是一种国际标准测试协议（IEEE
+1149.1兼容），主要用于芯片内部测试。现在多数的高级器件都支持JTAG协议，如ARM、DSP、FPGA器件等。JTAG调试接口必须使用VCC、GND电源信号，以及TMS、TCK、TDI、TDO四根调试信号，可选TRST、RESET复位信号和RTCK（同步时钟）信号。</p>
+<ul>
+<li>VREF:目标表参考电压信号，用于检测目标板是否供电，直接与目标板VDD相连，并不向外提供输出电压；</li>
+<li>TRST:JTAG复位，连接到目标板CPU的nTRST引脚，用于复位CPU调试接口的TAP控制器；目标板上应该将此脚上拉到高电位，避免意外复位，可选引脚；</li>
+<li><strong>TDI:测试数据输入，建议在目标板上上拉到VDD；</strong></li>
+<li><strong>TMS:测试模式选择，必须在目标板上将此引脚上拉；</strong></li>
+<li><strong>TCK:测试时钟输入，建议在目标板上将此引脚上拉；</strong></li>
+<li><strong>TDO:测试数据输出；</strong></li>
+<li>RTCK:
+目标板提供仿真器的时钟信号，有些项目中是要求JTAG的输入与其内部时钟信号同步，仿真器利用此引脚的输入可动态的控制自己的TCK速率；</li>
+<li>RESET:仿真器输出至目标CPU的系统复位信号，可选信号；</li>
+</ul>
+<h2 id="swd接口">SWD接口</h2>
+<p>串行调试（Serial Wire
+Debug），SWD是ARM调试公司提出的另外一种调试接口，相对于JTAG接口，占用更少的端口资源，四根信号如下：</p>
+<ul>
+<li><p>Vre：目标表参考电压信号，用于检测目标板是否供电，直接与目标板VDD相连，并不向外提供输出电压；</p></li>
+<li><p>GND：公共地信号；</p></li>
+<li><p>SWDIO：串行数据输入信号，作为仿真信号的双向数据信号线，建议上拉；</p></li>
+<li><p>SWCLK：串行时钟输入，作为仿真信号的时钟信号线，建议下拉；</p></li>
+<li><p>SWO：串行数据输出，CPU调试接口可通过SWO输出一些调试信息，该引脚可选。</p></li>
+<li><p>RESET：仿真器输出至目标CPU的系统复位信号；是可选信号。</p></li>
+</ul>
+<blockquote>
+<p>Tips:JTAG中的TRST和RESET，以及SWD中的RESET：虽然都是可选信号，建议连接，使得仿真器能够在连接器前对器件进行复位，已获得较理想的状态，便于后续连接仿真。</p>
+</blockquote>
+<h2 id="jlink仿真器">JLink仿真器</h2>
+<p>J-Link连接到计算机用的是USB接口，而到目标板内部用的还是jtag协议。它完成了一个从软件到硬件转换的工作。</p>
+<p>J-Link是德国 SEGGER 公司的仿真器，得到所有主流的 IDE 的支持。支持SWIM
+/ JTAG /
+SWD下载。速度，效率，功能都很好，据说是众多仿真器里最强悍的。</p>
+<h2 id="ulink仿真器">ULink仿真器</h2>
+<p>ULINK是ARM/KEIL公司推出的仿真器，ULINK2和ULINK
+Pro仿真器。ULINK/ULINK2可以配合Keil软件实现仿真功能，</p>
+<blockquote>
+<p>Tips:但是要注意的是，ULINK是KEIL公司开发的仿真器，专用于KEIL平台下使用，ADS、IAR下不能使用。</p>
+</blockquote>
+<h2 id="st-link仿真器">ST-Link仿真器</h2>
+<p>​ ST-LINK是专门针对意法半导体STM8和STM32系列芯片的仿真器。ST-LINK
+/V2指定的SWIM标准接口和JTAG / SWD标准接口，其主要功能有：</p>
+<ul>
+<li>编程功能：可烧写FLASH ROM、EEPROM、AFR等；</li>
+<li>仿真功能：支持全速运行、单步调试、断点调试等各种调试方法，可查看IO状态，变量数据等；</li>
+<li>仿真性能：采用USB2.0接口进行仿真调试，单步调试，断点调试，反应速度快；</li>
+<li>编程性能：采用USB2.0接口，进行SWIM / JTAG /
+SWD下载，下载速度快；</li>
+</ul>
+<h1 id="references">References</h1>
+<ul>
+<li><p><a
+href="https://zhuanlan.zhihu.com/p/429091473">简述调试仿真器协议（JTAG、SWD）及各类调试器（Jlink、Ulink、STlink）
+- 知乎 (zhihu.com)</a></p></li>
+<li><p><a
+href="https://blog.csdn.net/weixin_46672094/article/details/121106421">ARM
+仿真器种类与概念(JTAG、SWD、JLink、ULink、ST-Link)_arm仿真器jtag+swd接口定义_匠在江湖的博客-CSDN博客</a></p></li>
+<li><p><a
+href="https://blog.csdn.net/qq_35157382/article/details/119653413">嵌入式-STM32-GPIO输出和输入的HAL库函数_hal_gpio_writepin_南迦巴瓦峰_yang的博客-CSDN博客</a></p></li>
+</ul>
+]]></content>
+      <categories>
+        <category>嵌入式</category>
+      </categories>
+      <tags>
+        <tag>robomaster</tag>
+        <tag>嵌入式</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Environment_variables</title>
     <url>/2023/08/14/Environment-variables/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
@@ -1932,103 +2302,6 @@ Branching</a></li>
       </tags>
   </entry>
   <entry>
-    <title>Markdown_in_Typora</title>
-    <url>/2023/08/09/Markdown-in-Typora/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>Typora写markdown是必修课，在此学习Typora常用的快捷键操作，以更方便地使用</p>
-<span id="more"></span>
-<h1 id="快捷键集合">快捷键集合</h1>
-<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">Typora快捷键整合</span><br><span class="line">```</span><br><span class="line">Ctrl+1  一阶标题    Ctrl+B  字体加粗</span><br><span class="line">Ctrl+2  二阶标题    Ctrl+I  字体倾斜</span><br><span class="line">Ctrl+3  三阶标题    Ctrl+U  下划线</span><br><span class="line">Ctrl+4  四阶标题    Ctrl+Home   返回Typora顶部</span><br><span class="line">Ctrl+5  五阶标题    Ctrl+End    返回Typora底部</span><br><span class="line">Ctrl+6  六阶标题    Ctrl+T  创建表格</span><br><span class="line">Ctrl+L  选中某句话   Ctrl+K  创建超链接</span><br><span class="line">Ctrl+D  选中某个单词  Ctrl+F  搜索</span><br><span class="line">Ctrl+E  选中相同格式的文字   Ctrl+H  搜索并替换</span><br><span class="line">Alt+Shift+5 删除线 Ctrl+Shift+I    插入图片</span><br><span class="line">Ctrl+Shift+M    公式块 Ctrl+Shift+Q    引用</span><br><span class="line"></span><br><span class="line">注：一些实体符号需要在实体符号之前加”\”才能够显示</span><br></pre></td></tr></table></figure>
-<h1 id="换行符">换行符</h1>
-<p>在markdown中，段落由多个空格分隔。在Typora中，只需回车即可创建新段落。</p>
-<h1 id="标题级别">标题级别</h1>
-<p># 一级标题 快捷键为 Ctrl + 1 ## 二级标题 快捷键为 Ctrl + 2 ......
-###### 六级标题 快捷键为 Ctrl + 6</p>
-<h1 id="引用文字">引用文字</h1>
-<p>&gt; + 空格 + 引用文字</p>
-<h1 id="无序列表">无序列表</h1>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Ctrl+Shift+}</span><br></pre></td></tr></table></figure>
-<p>使用 * + - 都可以创建一个无序列表</p>
-<ul>
-<li><p>AAA</p></li>
-<li><p>BBB</p></li>
-<li><p>CCC</p></li>
-</ul>
-<h1 id="有序列表">有序列表</h1>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Ctrl+Shift+{</span><br></pre></td></tr></table></figure>
-<p>使用 1. 2. 3. 创建有序列表</p>
-<ol type="1">
-<li>AAA</li>
-<li>BBB</li>
-<li>CCC</li>
-</ol>
-<h1 id="任务列表">任务列表</h1>
-<p> -[ ] 不勾选  -[x] 勾选</p>
-<h1 id="代码块">代码块</h1>
-<p>在Typora中插入程序代码的方式有两种：使用反引号 `（~
-键）、使用缩进（Tab）。</p>
-<ul>
-<li>插入行内代码，即插入一个单词或者一句代码的情况，使用
-<code>code</code> 这样的形式插入。</li>
-<li>插入多行代码输入3个反引号（`） +
-回车，并在后面选择一个语言名称即可实现语法高亮。</li>
-</ul>
-<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">def helloworld():</span><br><span class="line">    print("hello, world!")</span><br></pre></td></tr></table></figure>
-<h1 id="数学表达式">数学表达式</h1>
-<p><a href="https://blog.csdn.net/mingzhuo_126/article/details/82722455">(15条消息)
-使用Typora添加数学公式_typora数学公式_姚明明的博客-CSDN博客</a></p>
-<p><a href="https://blog.csdn.net/qq_43444349/article/details/105400052">(15条消息)
-全面整理Typora的Latex数学公式语法_M010K的博客-CSDN博客</a></p>
-<p>当你需要在编辑器中插入数学公式时，可以使用两个美元符 $$ 包裹 TeX 或
-LaTeX 格式的数学公式来实现。根据需要加载 Mathjax
-对数学公式进行渲染。</p>
-<p>按下 <code>$$</code>，然后按下回车键，即可进行数学公式的编辑。</p>
-<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">$$</span><br><span class="line">\mathbf{V}_1\times\mathbf{V}_2 = \mathbf{X}_3</span><br><span class="line">$$</span><br></pre></td></tr></table></figure>
-<h1 id="插入表格">插入表格</h1>
-<p>输入
-<code>| 表头1 | 表头2 |</code>并回车。即可创建一个包含2列表。快捷键
-<code>Ctrl + T</code>弹出对话框。</p>
-<div class="line-block">id | number | | ---- | ------ | | | |</div>
-<ul>
-<li>不管是哪种方式，第一行为表头，第二行为分割表头和主体部分，第三行开始每一行为一个表格行</li>
-<li>列与列之间用管道符号<code>|</code> 隔开</li>
-<li>还可设置对齐方式(表头与内容之间)，如果不使用对齐标记，内容默认左对齐，表头居中对齐</li>
-<li>左对齐 ：|</li>
-<li>右对齐 |：</li>
-<li>中对齐 ：|：</li>
-<li>为了美观，可以使用空格对齐不同行的单元格，并在左右两侧都使用 |
-来标记单元格边界</li>
-<li>为了使 Markdown 更清晰，| 和 -
-两侧需要至少有一个空格（最左侧和最右侧的 | 外就不需要了）。</li>
-</ul>
-<h1 id="脚注">脚注</h1>
-<p>这个例子的脚注为[<a href="https://link.zhihu.com/?target=https%3A//www.cnblogs.com/hider/p/11614688.html%23fn1">1]</a>。</p>
-<p>注意：该例子脚注标识是1，脚注标识可以为字母数字下划线，但是暂不支持中文。脚注内容可为任意字符，包括中文。</p>
-<h1 id="分割线">分割线</h1>
-<p>输入 <code>***</code> 或者 <code>---</code>
-再按回车即可绘制一条水平线，如下：</p>
-<hr>
-<h1 id="目录toc">目录（TOC）</h1>
-<p>输入 <code>[ toc ]</code>
-然后回车，即可创建一个“目录”。TOC从文档中提取所有标题，其内容将自动更新。</p>
-<h1 id="图片">图片</h1>
-<p>以我的github库作为image
-host，利用PicGo作为上传工具，再连接Typora，实现一条龙服务</p>
-<h1 id="plugins-in-vs-code">plugins in VS Code</h1>
-<ul>
-<li><p>Markdown All in One：支持markdown语法</p></li>
-<li><p>Markdown Preview Github：预览</p></li>
-<li><p>Markmap：markdown自动生成思维导图</p></li>
-</ul>
-]]></content>
-      <categories>
-        <category>奇技淫巧</category>
-      </categories>
-      <tags>
-        <tag>奇技淫巧</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Vim（1）</title>
     <url>/2023/08/12/Vim%EF%BC%881%EF%BC%89/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
@@ -2463,6 +2736,127 @@ vim插件_皛心的博客-CSDN博客](</p></li>
       </tags>
   </entry>
   <entry>
+    <title>Vim（3）</title>
+    <url>/2023/08/14/Vim%EF%BC%883%EF%BC%89/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>Following missing semester of MIT to learn Vim.</p>
+<p>希望通过<a
+href="https://learnvimscriptthehardway.stevelosh.com/">Learn Vimscript
+the Hard Way (stevelosh.com)</a>+<a
+href="https://vim-adventures.com/">Vim Adventures</a>
+来进一步练习Vim的使用</p>
+<p>Vim（3）——Vim在其他应用上的应用</p>
+<blockquote>
+<p>双手离开鼠标！</p>
+</blockquote>
+<span id="more"></span>
+<h1 id="vim-in-other-programs">Vim in other programs</h1>
+<p>很多工具提供了 Vim 模式。这些 Vim
+模式的质量参差不齐；取决于具体工具，有的提供了很多酷炫的 Vim
+功能，但是大多数对基本功能支持的很好。</p>
+<h2 id="shell">Shell</h2>
+<p>如果你是一个 Bash 用户，用 <code>set -o vi</code>。如果你用
+Zsh：<code>bindkey -v</code>。Fish 用
+<code>fish_vi_key_bindings</code>。另外，不管利用什么 shell，你可以
+<code>export EDITOR=vim</code>。
+这是一个用来决定当一个程序需要启动编辑时启动哪个的环境变量。
+例如，<code>git</code> 会使用这个编辑器来编辑 commit 信息。</p>
+<h2 id="readline">Readline</h2>
+<p>很多程序使用 <a
+href="https://tiswww.case.edu/php/chet/readline/rltop.html">GNU
+Readline</a> 库来作为 它们的命令控制行界面。Readline 也支持基本的 Vim
+模式， 可以通过在 <code>~/.inputrc</code> 添加如下行开启：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">set editing-mode vi</span><br></pre></td></tr></table></figure>
+<p>比如，在这个设置下，Python REPL 会支持 Vim 快捷键。</p>
+<h2 id="vscode">VSCode</h2>
+<p>add extention——vim,enable</p>
+<p>Vim有些功能在VSCode中不能用，例如宏录制</p>
+<h3 id="导入vimrc">导入vimrc</h3>
+<p>再vscode的setting中enable vimrc配置方式，并填写vimrc文件地址</p>
+<p>用 vscode 打开 my.vimrc 文件，输入
+<code>set clipboard=unnamedplusset</code>。或者，直接在设置中搜索
+<code>vim.useSystemClipboard</code> ，打钩。默认使用的 vim
+无名缓存器已经与系统剪切板连通了。</p>
+<h3 id="vscode常用快捷键">VSCode常用快捷键</h3>
+<ul>
+<li><p>ctrl+B:侧边栏隐藏/显示</p></li>
+<li><p>ctrl+J:终端显示</p></li>
+<li><p>ctrl+Tab:切换tab</p></li>
+<li><p>ctrl+<number>：切换分屏，没有就创建</p></li>
+<li><p>ctrl+\:水平分屏</p></li>
+<li><p>ctrl+k+ctrl+\:竖直分屏;我改为:ctrl+&lt;]+\&gt;</p></li>
+<li><p>ctrl+w:删除当前屏幕（当当前屏幕无tab时）or tab</p></li>
+<li><p>ctrl+P:搜索文件,加上&gt;等价于ctrl+shift+P</p></li>
+<li><p>ctrl+shift+P:VSCode中的，命令:open folder</p></li>
+<li><p>ctrl+,:打开settings:配置一些json文件+vim</p></li>
+</ul>
+<p>函数定义之类：</p>
+<ul>
+<li><code>gd</code> : 进入函数定义</li>
+<li><code>Ctrl+o</code> : 从函数定义中返回</li>
+<li><code>gh</code> : 查看函数参数等信息</li>
+</ul>
+<h2 id="vimium">Vimium</h2>
+<ul>
+<li><p>基础移动hjkl,gg,G</p></li>
+<li><p>J，K跳转标签页，H(Shift+h):打开上一个网页，L(Shift+l):打开下一个网页</p></li>
+<li><p>g0，g$跳转到第一个，最后一个标签页</p></li>
+<li><p>t:打开新的标签页</p></li>
+<li><p>x:关闭当前标签页；X重新打开最后关闭的标签页</p></li>
+<li><p>d向下翻半页，u向上翻半页</p></li>
+<li><p>yy:复制当前页面地址到剪切板。如下图所示,按下yy后在按下Win+V可以看到已经将当前页面的链接复制到剪切板了</p></li>
+<li><p>p（P）:如果剪切板第一个是URL，则打开链接，是记录则搜索该内容</p></li>
+<li><p>建议直接Tab or shift+Tab（
+gi:定位到页面中的第一个输入框,前面也可以加数字）</p></li>
+<li><p>r:刷新界面</p></li>
+<li><p><strong>f（F）</strong>:在当前（新）标签页打开指定的链接。如下图所示,按下f后就会在链接上出现字母或者字母组合,只要按下相应的字母或者字母组合就可以打开对应的链接</p></li>
+</ul>
+<blockquote>
+<p>Tips:好用！</p>
+</blockquote>
+<ul>
+<li><strong>o（O）</strong>:在当前（新）标签页打开链接、书签（b是打开书签）、历史记录。如下图所示,按下o输入关键字后可以看到有符合条件的历史记录、书签等结果,可以通过上下箭头选择项目后按下Enter键即可在当前（新）标签页打开所选的项目。</li>
+<li>T:是在所有打开的标签页中搜索/</li>
+<li>m:添加标记,当你看一篇长文章时,如果你需要看前面的内容,或者想先看后面某部分内容再回来看当前的内容,则可以通过标记实现这需求。通过按下m之后再按一个字母就可以在当前位置标记,如果你在页面的其他地方想回到标记的地方,则可以通过`+之前标记的字母快速返回。</li>
+</ul>
+<h3 id="复制东西">复制东西</h3>
+<p>一般先/{}匹配到位置，再v进入可视化y复制</p>
+<h2 id="其他">其他</h2>
+<p>甚至有 Vim 的网页浏览快捷键 <a
+href="http://vim.wikia.com/wiki/Vim_key_bindings_for_web_browsers">browsers</a>,
+受欢迎的有用于 Google Chrome 的 <a
+href="https://chrome.google.com/webstore/detail/vimium/dbepggeogbaibhgnhhndojpepiihcmeb?hl=en">Vimium</a>
+和用于 Firefox 的 <a
+href="https://github.com/tridactyl/tridactyl">Tridactyl</a>。
+你甚至可以在 <a
+href="https://github.com/lambdalisue/jupyter-vim-binding">Jupyter
+notebooks</a> 中用 Vim 快捷键。 <a
+href="https://reversed.top/2016-08-13/big-list-of-vim-like-software">这个列表</a>
+中列举了支持类 vim 键位绑定的软件。</p>
+<h1 id="references">References</h1>
+<ul>
+<li><p><a
+href="https://blog.csdn.net/weixin_42514042/article/details/124169302">VSCode
+vim 使用vimrc配置 vim使用系统剪切板配置_vscode
+vimrc_未知褶皱的博客-CSDN博客</a></p></li>
+<li><p><a
+href="https://blog.csdn.net/m0_47670683/article/details/125160391?spm=1001.2101.3001.6661.1&amp;utm_medium=distribute.pc_relevant_t0.none-task-blog-2~default~CTRLIST~Rate-1-125160391-blog-121179927.235%5Ev38%5Epc_relevant_sort_base3&amp;depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-2~default~CTRLIST~Rate-1-125160391-blog-121179927.235%5Ev38%5Epc_relevant_sort_base3&amp;utm_relevant_index=1">VSCode使用Vim插件心得_vscode
+vim插件_皛心的博客-CSDN博客</a></p></li>
+<li><p><a
+href="https://zhuanlan.zhihu.com/p/113316942">Chrome插件Vimium使用教程 -
+知乎 (zhihu.com)</a></p></li>
+<li><p>【VS Code ×
+Vim：提高你的编码效率】https://www.bilibili.com/video/BV1MX4y1b7nM?vd_source=93bb338120537438ee9180881deab9c1</p></li>
+</ul>
+]]></content>
+      <categories>
+        <category>CS</category>
+      </categories>
+      <tags>
+        <tag>CS</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>YAML初探</title>
     <url>/2023/08/08/YAML%E5%88%9D%E6%8E%A2/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
@@ -2656,124 +3050,100 @@ vim插件_皛心的博客-CSDN博客](</p></li>
       </tags>
   </entry>
   <entry>
-    <title>Vim（3）</title>
-    <url>/2023/08/14/Vim%EF%BC%883%EF%BC%89/</url>
+    <title>Markdown_in_Typora</title>
+    <url>/2023/08/09/Markdown-in-Typora/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>Following missing semester of MIT to learn Vim.</p>
-<p>希望通过<a
-href="https://learnvimscriptthehardway.stevelosh.com/">Learn Vimscript
-the Hard Way (stevelosh.com)</a>+<a
-href="https://vim-adventures.com/">Vim Adventures</a>
-来进一步练习Vim的使用</p>
-<p>Vim（3）——Vim在其他应用上的应用</p>
-<blockquote>
-<p>双手离开鼠标！</p>
-</blockquote>
+<p>Typora写markdown是必修课，在此学习Typora常用的快捷键操作，以更方便地使用</p>
 <span id="more"></span>
-<h1 id="vim-in-other-programs">Vim in other programs</h1>
-<p>很多工具提供了 Vim 模式。这些 Vim
-模式的质量参差不齐；取决于具体工具，有的提供了很多酷炫的 Vim
-功能，但是大多数对基本功能支持的很好。</p>
-<h2 id="shell">Shell</h2>
-<p>如果你是一个 Bash 用户，用 <code>set -o vi</code>。如果你用
-Zsh：<code>bindkey -v</code>。Fish 用
-<code>fish_vi_key_bindings</code>。另外，不管利用什么 shell，你可以
-<code>export EDITOR=vim</code>。
-这是一个用来决定当一个程序需要启动编辑时启动哪个的环境变量。
-例如，<code>git</code> 会使用这个编辑器来编辑 commit 信息。</p>
-<h2 id="readline">Readline</h2>
-<p>很多程序使用 <a
-href="https://tiswww.case.edu/php/chet/readline/rltop.html">GNU
-Readline</a> 库来作为 它们的命令控制行界面。Readline 也支持基本的 Vim
-模式， 可以通过在 <code>~/.inputrc</code> 添加如下行开启：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">set editing-mode vi</span><br></pre></td></tr></table></figure>
-<p>比如，在这个设置下，Python REPL 会支持 Vim 快捷键。</p>
-<h2 id="vscode">VSCode</h2>
-<p>add extention——vim,enable</p>
-<p>Vim有些功能在VSCode中不能用，例如宏录制</p>
-<h3 id="导入vimrc">导入vimrc</h3>
-<p>再vscode的setting中enable vimrc配置方式，并填写vimrc文件地址</p>
-<p>用 vscode 打开 my.vimrc 文件，输入
-<code>set clipboard=unnamedplusset</code>。或者，直接在设置中搜索
-<code>vim.useSystemClipboard</code> ，打钩。默认使用的 vim
-无名缓存器已经与系统剪切板连通了。</p>
-<h3 id="vscode常用快捷键">VSCode常用快捷键</h3>
+<h1 id="快捷键集合">快捷键集合</h1>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">Typora快捷键整合</span><br><span class="line">```</span><br><span class="line">Ctrl+1  一阶标题    Ctrl+B  字体加粗</span><br><span class="line">Ctrl+2  二阶标题    Ctrl+I  字体倾斜</span><br><span class="line">Ctrl+3  三阶标题    Ctrl+U  下划线</span><br><span class="line">Ctrl+4  四阶标题    Ctrl+Home   返回Typora顶部</span><br><span class="line">Ctrl+5  五阶标题    Ctrl+End    返回Typora底部</span><br><span class="line">Ctrl+6  六阶标题    Ctrl+T  创建表格</span><br><span class="line">Ctrl+L  选中某句话   Ctrl+K  创建超链接</span><br><span class="line">Ctrl+D  选中某个单词  Ctrl+F  搜索</span><br><span class="line">Ctrl+E  选中相同格式的文字   Ctrl+H  搜索并替换</span><br><span class="line">Alt+Shift+5 删除线 Ctrl+Shift+I    插入图片</span><br><span class="line">Ctrl+Shift+M    公式块 Ctrl+Shift+Q    引用</span><br><span class="line"></span><br><span class="line">注：一些实体符号需要在实体符号之前加”\”才能够显示</span><br></pre></td></tr></table></figure>
+<h1 id="换行符">换行符</h1>
+<p>在markdown中，段落由多个空格分隔。在Typora中，只需回车即可创建新段落。</p>
+<h1 id="标题级别">标题级别</h1>
+<p># 一级标题 快捷键为 Ctrl + 1 ## 二级标题 快捷键为 Ctrl + 2 ......
+###### 六级标题 快捷键为 Ctrl + 6</p>
+<h1 id="引用文字">引用文字</h1>
+<p>&gt; + 空格 + 引用文字</p>
+<h1 id="无序列表">无序列表</h1>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Ctrl+Shift+}</span><br></pre></td></tr></table></figure>
+<p>使用 * + - 都可以创建一个无序列表</p>
 <ul>
-<li><p>ctrl+B:侧边栏隐藏/显示</p></li>
-<li><p>ctrl+J:终端显示</p></li>
-<li><p>ctrl+Tab:切换tab</p></li>
-<li><p>ctrl+<number>：切换分屏，没有就创建</p></li>
-<li><p>ctrl+\:水平分屏</p></li>
-<li><p>ctrl+k+ctrl+\:竖直分屏;我改为:ctrl+&lt;]+\&gt;</p></li>
-<li><p>ctrl+w:删除当前屏幕（当当前屏幕无tab时）or tab</p></li>
-<li><p>ctrl+P:搜索文件,加上&gt;等价于ctrl+shift+P</p></li>
-<li><p>ctrl+shift+P:VSCode中的，命令:open folder</p></li>
-<li><p>ctrl+,:打开settings:配置一些json文件+vim</p></li>
+<li><p>AAA</p></li>
+<li><p>BBB</p></li>
+<li><p>CCC</p></li>
 </ul>
-<p>函数定义之类：</p>
+<h1 id="有序列表">有序列表</h1>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Ctrl+Shift+{</span><br></pre></td></tr></table></figure>
+<p>使用 1. 2. 3. 创建有序列表</p>
+<ol type="1">
+<li>AAA</li>
+<li>BBB</li>
+<li>CCC</li>
+</ol>
+<h1 id="任务列表">任务列表</h1>
+<p> -[ ] 不勾选  -[x] 勾选</p>
+<h1 id="代码块">代码块</h1>
+<p>在Typora中插入程序代码的方式有两种：使用反引号 `（~
+键）、使用缩进（Tab）。</p>
 <ul>
-<li><code>gd</code> : 进入函数定义</li>
-<li><code>Ctrl+o</code> : 从函数定义中返回</li>
-<li><code>gh</code> : 查看函数参数等信息</li>
+<li>插入行内代码，即插入一个单词或者一句代码的情况，使用
+<code>code</code> 这样的形式插入。</li>
+<li>插入多行代码输入3个反引号（`） +
+回车，并在后面选择一个语言名称即可实现语法高亮。</li>
 </ul>
-<h2 id="vimium">Vimium</h2>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">def helloworld():</span><br><span class="line">    print("hello, world!")</span><br></pre></td></tr></table></figure>
+<h1 id="数学表达式">数学表达式</h1>
+<p><a href="https://blog.csdn.net/mingzhuo_126/article/details/82722455">(15条消息)
+使用Typora添加数学公式_typora数学公式_姚明明的博客-CSDN博客</a></p>
+<p><a href="https://blog.csdn.net/qq_43444349/article/details/105400052">(15条消息)
+全面整理Typora的Latex数学公式语法_M010K的博客-CSDN博客</a></p>
+<p>当你需要在编辑器中插入数学公式时，可以使用两个美元符 $$ 包裹 TeX 或
+LaTeX 格式的数学公式来实现。根据需要加载 Mathjax
+对数学公式进行渲染。</p>
+<p>按下 <code>$$</code>，然后按下回车键，即可进行数学公式的编辑。</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">$$</span><br><span class="line">\mathbf{V}_1\times\mathbf{V}_2 = \mathbf{X}_3</span><br><span class="line">$$</span><br></pre></td></tr></table></figure>
+<h1 id="插入表格">插入表格</h1>
+<p>输入
+<code>| 表头1 | 表头2 |</code>并回车。即可创建一个包含2列表。快捷键
+<code>Ctrl + T</code>弹出对话框。</p>
+<div class="line-block">id | number | | ---- | ------ | | | |</div>
 <ul>
-<li><p>基础移动hjkl,gg,G</p></li>
-<li><p>J，K跳转标签页，H(Shift+h):打开上一个网页，L(Shift+l):打开下一个网页</p></li>
-<li><p>g0，g$跳转到第一个，最后一个标签页</p></li>
-<li><p>t:打开新的标签页</p></li>
-<li><p>x:关闭当前标签页；X重新打开最后关闭的标签页</p></li>
-<li><p>d向下翻半页，u向上翻半页</p></li>
-<li><p>yy:复制当前页面地址到剪切板。如下图所示,按下yy后在按下Win+V可以看到已经将当前页面的链接复制到剪切板了</p></li>
-<li><p>p（P）:如果剪切板第一个是URL，则打开链接，是记录则搜索该内容</p></li>
-<li><p>建议直接Tab or shift+Tab（
-gi:定位到页面中的第一个输入框,前面也可以加数字）</p></li>
-<li><p>r:刷新界面</p></li>
-<li><p><strong>f（F）</strong>:在当前（新）标签页打开指定的链接。如下图所示,按下f后就会在链接上出现字母或者字母组合,只要按下相应的字母或者字母组合就可以打开对应的链接</p></li>
+<li>不管是哪种方式，第一行为表头，第二行为分割表头和主体部分，第三行开始每一行为一个表格行</li>
+<li>列与列之间用管道符号<code>|</code> 隔开</li>
+<li>还可设置对齐方式(表头与内容之间)，如果不使用对齐标记，内容默认左对齐，表头居中对齐</li>
+<li>左对齐 ：|</li>
+<li>右对齐 |：</li>
+<li>中对齐 ：|：</li>
+<li>为了美观，可以使用空格对齐不同行的单元格，并在左右两侧都使用 |
+来标记单元格边界</li>
+<li>为了使 Markdown 更清晰，| 和 -
+两侧需要至少有一个空格（最左侧和最右侧的 | 外就不需要了）。</li>
 </ul>
-<blockquote>
-<p>Tips:好用！</p>
-</blockquote>
+<h1 id="脚注">脚注</h1>
+<p>这个例子的脚注为[<a href="https://link.zhihu.com/?target=https%3A//www.cnblogs.com/hider/p/11614688.html%23fn1">1]</a>。</p>
+<p>注意：该例子脚注标识是1，脚注标识可以为字母数字下划线，但是暂不支持中文。脚注内容可为任意字符，包括中文。</p>
+<h1 id="分割线">分割线</h1>
+<p>输入 <code>***</code> 或者 <code>---</code>
+再按回车即可绘制一条水平线，如下：</p>
+<hr>
+<h1 id="目录toc">目录（TOC）</h1>
+<p>输入 <code>[ toc ]</code>
+然后回车，即可创建一个“目录”。TOC从文档中提取所有标题，其内容将自动更新。</p>
+<h1 id="图片">图片</h1>
+<p>以我的github库作为image
+host，利用PicGo作为上传工具，再连接Typora，实现一条龙服务</p>
+<h1 id="plugins-in-vs-code">plugins in VS Code</h1>
 <ul>
-<li><strong>o（O）</strong>:在当前（新）标签页打开链接、书签（b是打开书签）、历史记录。如下图所示,按下o输入关键字后可以看到有符合条件的历史记录、书签等结果,可以通过上下箭头选择项目后按下Enter键即可在当前（新）标签页打开所选的项目。</li>
-<li>T:是在所有打开的标签页中搜索/</li>
-<li>m:添加标记,当你看一篇长文章时,如果你需要看前面的内容,或者想先看后面某部分内容再回来看当前的内容,则可以通过标记实现这需求。通过按下m之后再按一个字母就可以在当前位置标记,如果你在页面的其他地方想回到标记的地方,则可以通过`+之前标记的字母快速返回。</li>
-</ul>
-<h3 id="复制东西">复制东西</h3>
-<p>一般先/{}匹配到位置，再v进入可视化y复制</p>
-<h2 id="其他">其他</h2>
-<p>甚至有 Vim 的网页浏览快捷键 <a
-href="http://vim.wikia.com/wiki/Vim_key_bindings_for_web_browsers">browsers</a>,
-受欢迎的有用于 Google Chrome 的 <a
-href="https://chrome.google.com/webstore/detail/vimium/dbepggeogbaibhgnhhndojpepiihcmeb?hl=en">Vimium</a>
-和用于 Firefox 的 <a
-href="https://github.com/tridactyl/tridactyl">Tridactyl</a>。
-你甚至可以在 <a
-href="https://github.com/lambdalisue/jupyter-vim-binding">Jupyter
-notebooks</a> 中用 Vim 快捷键。 <a
-href="https://reversed.top/2016-08-13/big-list-of-vim-like-software">这个列表</a>
-中列举了支持类 vim 键位绑定的软件。</p>
-<h1 id="references">References</h1>
-<ul>
-<li><p><a
-href="https://blog.csdn.net/weixin_42514042/article/details/124169302">VSCode
-vim 使用vimrc配置 vim使用系统剪切板配置_vscode
-vimrc_未知褶皱的博客-CSDN博客</a></p></li>
-<li><p><a
-href="https://blog.csdn.net/m0_47670683/article/details/125160391?spm=1001.2101.3001.6661.1&amp;utm_medium=distribute.pc_relevant_t0.none-task-blog-2~default~CTRLIST~Rate-1-125160391-blog-121179927.235%5Ev38%5Epc_relevant_sort_base3&amp;depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-2~default~CTRLIST~Rate-1-125160391-blog-121179927.235%5Ev38%5Epc_relevant_sort_base3&amp;utm_relevant_index=1">VSCode使用Vim插件心得_vscode
-vim插件_皛心的博客-CSDN博客</a></p></li>
-<li><p><a
-href="https://zhuanlan.zhihu.com/p/113316942">Chrome插件Vimium使用教程 -
-知乎 (zhihu.com)</a></p></li>
-<li><p>【VS Code ×
-Vim：提高你的编码效率】https://www.bilibili.com/video/BV1MX4y1b7nM?vd_source=93bb338120537438ee9180881deab9c1</p></li>
+<li><p>Markdown All in One：支持markdown语法</p></li>
+<li><p>Markdown Preview Github：预览</p></li>
+<li><p>Markmap：markdown自动生成思维导图</p></li>
 </ul>
 ]]></content>
       <categories>
-        <category>CS</category>
+        <category>奇技淫巧</category>
       </categories>
       <tags>
-        <tag>CS</tag>
+        <tag>奇技淫巧</tag>
       </tags>
   </entry>
   <entry>
@@ -2871,91 +3241,6 @@ href="https://www.cnblogs.com/cscshi/p/15196114.html#:~:text=1%201.%20设置背�
       </tags>
   </entry>
   <entry>
-    <title>cubeMX和keil的安装+卸载</title>
-    <url>/2023/08/17/cubeMX%E5%92%8Ckeil%E7%9A%84%E5%AE%89%E8%A3%85%E4%B8%8E%E5%8D%B8%E8%BD%BD/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>cubeMX和keil的安装+卸载及集成到VSCode</p>
-<p>被两个软件安装和卸载折磨了！！！,终获成功！！！</p>
-<p>多次卸载+安装始终无法正确使用，反而把两个软件的安装+卸载搞熟悉了</p>
-<span id="more"></span>
-<h1 id="改用户名">改用户名</h1>
-<p>主要的错误应该是我的用户名用的中文吧，所以决定壮士断腕改为英文名，看了很多失败的案例，还是选择在淘宝上请一个师傅远程操作（这种事情还是安全为上！）</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/_-721152154__465acad98c72f8e17ea03c287d76d4af_207603416_IMG_20230815_173354_0_xg_0.jpg"
-alt="error1" />
-<figcaption aria-hidden="true">error1</figcaption>
-</figure>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/_-639538789__b14d87141ec83c2e90a4fa2c3b7ca94e_210373979_IMG_20230815_173357_0_xg_0.jpg"
-alt="error2" />
-<figcaption aria-hidden="true">error2</figcaption>
-</figure>
-<p>但改了用户名后就会有很多软件不能用，必要的还是重新下载为好</p>
-<h1 id="stm32cubemx">STM32CubeMX</h1>
-<h2 id="下载">下载</h2>
-<p>在官网直接下载即可</p>
-<p>但是使用时必须下载相应的库才行：在首页HELP-&gt;Manage embedded
-software packages中可以直接install/update</p>
-<blockquote>
-<p>Tips:旧版可以直接下，最新版必须要ST公司的账号（注册是免费的）</p>
-</blockquote>
-<h2 id="firmware-packages">Firmware packages</h2>
-<p>我的路径仍然有问题，且无法修改，所以还是选择从官网上下载.zip文件，然后在固件管理中选择from
-local</p>
-<h2 id="卸载">卸载</h2>
-<p>现在控制面板的程序和功能中删除STM32CubeMX,然后清除C盘的一些残留数据文件夹</p>
-<ul>
-<li>C:Files32Cube32CubeMX</li>
-<li>C:<username>32CubeMX</li>
-<li>C:<username>32CubeMX</li>
-</ul>
-<p>最后删除注册表中的相关项：在Win+R中输入regedit进入注册表编辑器，进入以下路径：HKEY_CURRENT_USER32CubeMX，右键单击“STM32CubeMX”文件夹，选择“删除”。</p>
-<h1 id="keil5">keil5</h1>
-<h2 id="下载-1">下载</h2>
-<p>找好心人（知乎，B站，贴吧。。。）的网盘资源下载，按指令要求安装完后进行注册</p>
-<p>然后使用注册机，之前的注册机2020年失效，寻找最新的可以到2032年</p>
-<blockquote>
-<p>Tips:注册时，注册机和keil的打开都必须以管理员的方式打开</p>
-</blockquote>
-<h2 id="pack-install">Pack install</h2>
-<p>进入keil后点击pack install(一个绿绿的选项)下载必要的pack</p>
-<blockquote>
-<p>Tips:可以直接在官网上下载（最新），然后双击会自动下载到keil里面</p>
-</blockquote>
-<h2 id="卸载-1">卸载</h2>
-<p>有unstall固然挺好，否则把文件夹卸载后，要在Win+R中输入regedit进入注册表编辑器在里面将HKEY_CLASSES_ROOT目录下的
-所有UV开头的文件删除，然后将HKEY_CURRENT_USER</p>
-<h1 id="vscode">VSCode</h1>
-<p>在keil中配置好后在VSCode中打开：</p>
-<p>先在VSCode中下载<code>Keil Assistance</code>,然后在管理扩展中给出<code>MDK UV4.exe path</code>即可</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230817224831344.png"
-alt="image-20230817224831344" />
-<figcaption aria-hidden="true">image-20230817224831344</figcaption>
-</figure>
-<blockquote>
-<p>看到这一幕好激动！！！</p>
-</blockquote>
-<h1 id="references">References</h1>
-<ul>
-<li><a
-href="https://wenku.csdn.net/answer/564b100e9b124f08943a2fe894a8c7c4#:~:text=stm32cubemx卸载干净教程%201%20关闭STM32CubeMX软件及其相关的进程。%202%20打开控制面板，选择“程序和功能”。%203%20在已安装的程序列表中，找到并选择“STMicroelectronics%20STM32CubeMX”。,7%20删除Java%20Runtime%20Environment（JRE）中的缓存：%20打开控制面板，选择“Java”。%20...%208%20最后，重新启动计算机。">stm32cubemx卸载干净教程
-- CSDN文库</a></li>
-<li><a
-href="https://blog.csdn.net/Damon_Sandy/article/details/130314186">如何彻底删除keil5_keil卸载_胜折宇的博客-CSDN博客</a></li>
-</ul>
-]]></content>
-      <categories>
-        <category>嵌入式</category>
-      </categories>
-      <tags>
-        <tag>嵌入式</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>各种通信方式</title>
     <url>/2023/07/29/%E5%90%84%E7%A7%8D%E9%80%9A%E4%BF%A1%E6%96%B9%E5%BC%8F/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
@@ -3048,6 +3333,465 @@ id="三种数据通路单工半双工全双工">三种数据通路：单工，�
       </tags>
   </entry>
   <entry>
+    <title>用户名更改and下载cubeMX和keil的一些问题</title>
+    <url>/2023/08/17/cubeMX%E5%92%8Ckeil%E7%9A%84%E5%AE%89%E8%A3%85%E4%B8%8E%E5%8D%B8%E8%BD%BD/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>cubeMX和keil的安装+卸载及集成到VSCode</p>
+<p>被两个软件安装和卸载折磨了！！！,终获成功！！！</p>
+<p>多次卸载+安装始终无法正确使用，反而把两个软件的安装+卸载搞熟悉了</p>
+<span id="more"></span>
+<h1 id="改用户名">改用户名</h1>
+<p>主要的错误应该是我的用户名用的中文吧，所以决定壮士断腕改为英文名，看了很多失败的案例，还是选择在淘宝上请一个师傅远程操作（这种事情还是安全为上！）</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/_-721152154__465acad98c72f8e17ea03c287d76d4af_207603416_IMG_20230815_173354_0_xg_0.jpg"
+alt="error1" />
+<figcaption aria-hidden="true">error1</figcaption>
+</figure>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/_-639538789__b14d87141ec83c2e90a4fa2c3b7ca94e_210373979_IMG_20230815_173357_0_xg_0.jpg"
+alt="error2" />
+<figcaption aria-hidden="true">error2</figcaption>
+</figure>
+<p>但改了用户名后就会有很多软件不能用，必要的还是重新下载为好</p>
+<h1 id="stm32cubemx">STM32CubeMX</h1>
+<h2 id="下载">下载</h2>
+<p>在官网直接下载即可</p>
+<p>但是使用时必须下载相应的库才行：在首页HELP-&gt;Manage embedded
+software packages中可以直接install/update</p>
+<blockquote>
+<p>Tips:旧版可以直接下，最新版必须要ST公司的账号（注册是免费的）</p>
+</blockquote>
+<h2 id="firmware-packages">Firmware packages</h2>
+<p>我的路径仍然有问题，且无法修改，所以还是选择从官网上下载.zip文件，然后在固件管理中选择from
+local</p>
+<h2 id="卸载">卸载</h2>
+<p>现在控制面板的程序和功能中删除STM32CubeMX,然后清除C盘的一些残留数据文件夹</p>
+<ul>
+<li>C:Files32Cube32CubeMX</li>
+<li>C:<username>32CubeMX</li>
+<li>C:<username>32CubeMX</li>
+</ul>
+<p>最后删除注册表中的相关项：在Win+R中输入regedit进入注册表编辑器，进入以下路径：HKEY_CURRENT_USER32CubeMX，右键单击“STM32CubeMX”文件夹，选择“删除”。</p>
+<h1 id="keil5">keil5</h1>
+<h2 id="下载-1">下载</h2>
+<p>找好心人（知乎，B站，贴吧。。。）的网盘资源下载，按指令要求安装完后进行注册</p>
+<p>然后使用注册机，之前的注册机2020年失效，寻找最新的可以到2032年</p>
+<blockquote>
+<p>Tips:注册时，注册机和keil的打开都必须以管理员的方式打开</p>
+</blockquote>
+<h2 id="pack-install">Pack install</h2>
+<p>进入keil后点击pack install(一个绿绿的选项)下载必要的pack</p>
+<blockquote>
+<p>Tips:可以直接在官网上下载（最新），然后双击会自动下载到keil里面</p>
+</blockquote>
+<h2 id="卸载-1">卸载</h2>
+<p>有unstall固然挺好，否则把文件夹卸载后，要在Win+R中输入regedit进入注册表编辑器在里面将HKEY_CLASSES_ROOT目录下的
+所有UV开头的文件删除，然后将HKEY_CURRENT_USER</p>
+<h1 id="vscode">VSCode</h1>
+<p>在keil中配置好后在VSCode中打开：</p>
+<p>先在VSCode中下载<code>Keil Assistance</code>,然后在管理扩展中给出<code>MDK UV4.exe path</code>即可</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230817224831344.png"
+alt="image-20230817224831344" />
+<figcaption aria-hidden="true">image-20230817224831344</figcaption>
+</figure>
+<blockquote>
+<p>看到这一幕好激动！！！</p>
+</blockquote>
+<h1 id="references">References</h1>
+<ul>
+<li><a
+href="https://wenku.csdn.net/answer/564b100e9b124f08943a2fe894a8c7c4#:~:text=stm32cubemx卸载干净教程%201%20关闭STM32CubeMX软件及其相关的进程。%202%20打开控制面板，选择“程序和功能”。%203%20在已安装的程序列表中，找到并选择“STMicroelectronics%20STM32CubeMX”。,7%20删除Java%20Runtime%20Environment（JRE）中的缓存：%20打开控制面板，选择“Java”。%20...%208%20最后，重新启动计算机。">stm32cubemx卸载干净教程
+- CSDN文库</a></li>
+<li><a
+href="https://blog.csdn.net/Damon_Sandy/article/details/130314186">如何彻底删除keil5_keil卸载_胜折宇的博客-CSDN博客</a></li>
+</ul>
+]]></content>
+      <categories>
+        <category>嵌入式</category>
+      </categories>
+      <tags>
+        <tag>嵌入式</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>基于CubeMX创建的第一个stm32工程</title>
+    <url>/2023/08/04/%E5%9F%BA%E4%BA%8EcubeMX%E5%88%9B%E5%BB%BA%E7%9A%84%E7%AC%AC%E4%B8%80%E4%B8%AAstm32%E5%B7%A5%E7%A8%8B/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>记录我的基于STM32Cube框架的第一个stm32程序从新建到编译上传全流程，感谢机协学长学姐的帮助！</p>
+<span id="more"></span>
+<h1 id="流程梳理">流程梳理</h1>
+<ul>
+<li>通过STM32CubeMX选择芯片、配置外设，并生成代码</li>
+<li>在选用的编辑器中编辑代码，编写程序</li>
+<li>编译代码，生成二进制文件并上传</li>
+<li>调试代码的运行效果</li>
+</ul>
+<h1 id="芯片配置">芯片配置</h1>
+<h2 id="选择芯片开发板">选择芯片/开发板</h2>
+<p>但是需要注意，若选择官方开发板作为硬件，则会提供“按照开发板上的电路及布局默认配置硬件”的选项</p>
+<h2 id="配置内核与外设硬件">配置内核与外设硬件</h2>
+<p><strong>系统配置</strong>：时钟配置+调试配置</p>
+<p><strong>时钟配置</strong>（必要）：STM32有四个时钟源：LSI（低速内部时钟）、LSE（低速外部时钟）、HIS（高速内部时钟）和HSE（高速外部时钟）；有的型号仅有其中某几个。默认的配置是采用芯片内部自带的振荡器、主频配置为8MHz。Nucleo
+F103RB中芯片外接了8MHz的晶振，故将“HSE”项配置为“Crystal/Ceramic
+Resonator”，这就是说使用高速外部时钟，且时钟源为晶振。具体频率则在时钟树界面中配置（在使用内部振荡器时F1系列芯片最高主频是64MHz，在使用8MHz外部晶振时最高主频是72MHz。）</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230605232417189.png"
+alt="image-20230605232417189" />
+<figcaption aria-hidden="true">image-20230605232417189</figcaption>
+</figure>
+<p><strong>调试配置</strong>：用于配置调试的类型（如果芯片未被配置为调试模式就强行对其进行调试，则会造成芯片内部启动程序错误而导致之后无法正常烧录程序，此时需擦除其Flash以修复）</p>
+<p>主流的调试方式有SWD和JTAG两种，而SWD是更方便的方法。若要使用SWD进行调试，则必须将芯片配置为“Serial
+Wire”调试。</p>
+<p><strong>外设硬件</strong>：芯片中的所有外设都可以在软件中配置，包括DMA、ADC、定时器等</p>
+<h2 id="配置工程生成代码">配置工程，生成代码</h2>
+<h4 id="工程名称路径">工程名称，路径</h4>
+<h4 id="应用结构"><strong>应用结构</strong>：</h4>
+<p>应用结构有“Basic”和“Advanced”两个选项。如果观察仔细的话，会发现STM32CubeIDE工程中的CubeMX项目默认的是“Advanced”结构，而单独使用CubeMX默认的是“Basic”结构</p>
+<h6 id="image-20230605232417189"><img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230605232417189.png"
+alt="image-20230605232417189" /></h6>
+<h4 id="工具链ide">工具链/IDE：</h4>
+<p>STM32CubeMX除了配置硬件外，还提供了直接生成工程
+的功能，即由该“工具链/IDE”选项确定。STM32CubeMX预先包含了7种
+开发方式，分别是：EWARM、MDK-ARM、SW4STM32、TrueStudio、
+STM32CubeIDE、Makefile和Other Toolchains(GPDSC)</p>
+<p><strong><em>*MDK-ARM*</em></strong>：Keil
+uVision采用的开发环境，使用此选项可以直接生成Keil完整工程。</p>
+<p><strong><em>*TrueStudio、STM32CubeIDE*</em></strong>：TrueStudio是STM32CubeIDE的前身。TrueStudio本身是以Eclipse为基础配置而成的STM32开发工具，在被ST收购被ST与STM32CubeMX合并，形成了STM32CubeIDE。故该两种选项生成的项目并无较大区别。对于使用Eclipse自行配置来为STM32开发的同学，也可以选择该选项。</p>
+<p><strong><em>*Makefile*</em></strong>：Makefile实际上是“make”这个程序为了实现自动化构建工程而读取的一种文件。make从Makefile文件中读取生成的对象、编译的顺序、文件的依赖等信息，然后使用gcc或者g++来编译。Makefile不仅适用于系统下的标准C/C++工程，也适用于嵌入式开发。为Arm架构芯片开发的gcc叫做“arm-none-eabi-gcc”，可以在GNU的官网上下载。PlatformIO使用gcc来编译STM32的程序，故采用Makefile选项更搭配。</p>
+<p>但实际上PlatformIO自带一套使用Python来构建工程的方法，因此用不到Makefile；真正需要的只是“Inc”和“Src”两个文件夹中的代码而已。如果有同学有兴趣的话，可以尝试使用gcc搭配make自行搭建一套工具链，这个时候STM32CubeMX生成的Makefile文件就会派上用场。</p>
+<h4 id="包管理">包管理：</h4>
+<p>包管理有三种选项，翻译过来就是：仅复制用到的库文件、复制所有库文件、仅添加引用。</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230605232846792.png"
+alt="image-20230605232846792" />
+<figcaption aria-hidden="true">image-20230605232846792</figcaption>
+</figure>
+<ul>
+<li>仅复制用到的库文件</li>
+<li>复制所有库文件</li>
+<li>仅添加引用：最简洁但不能移植</li>
+</ul>
+<p>当选择了复制库文件到工程时，除了Inc和Src两个文件夹（或Advanced模式下的Core文件夹）外，还会额外生成一个Driver文件夹，其中放置的便是STM32的库文件。当启用了USB或者FreeRTOS等中间件后，也还会额外生成一个Middleware文件夹，其中放置的便是中间件的库文件。文件结构如下所示：</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230605233921565.png"
+alt="image-20230605233921565" />
+<figcaption aria-hidden="true">image-20230605233921565</figcaption>
+</figure>
+<h4 id="生成选项">生成选项：</h4>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230605233713820.png"
+alt="image-20230605233713820" />
+<figcaption aria-hidden="true">image-20230605233713820</figcaption>
+</figure>
+<blockquote>
+<p>Tips:点击.ioc文件可以打开CubeMX重新配置</p>
+</blockquote>
+<h1 id="程序编写">程序编写</h1>
+<p>/* USER CODE BEGIN x <em>/ </em></p>
+<p>/* USER CODE END x */</p>
+<p>其中的x可以是数字，也可以是别的一些标识符。STM32CubeMX希望用户将自己的代码插入到“BEGIN”和“END”当中，</p>
+<p><strong>reason:</strong></p>
+<p>之所以要这样做是因为STM32CubeMX在更新代码时不会修改这两句注释之间的内容。比如当用户的需求发生了变动，需要修改硬件配置时，就需要使用STM32CubeMX来修改并重新生成代码。如果将用户代码放在这两句注释之间，STM32CubeMX就不会在重新生成代码的时候覆盖掉这部分。这使得硬件配置的更改变得更加方便</p>
+<h1 id="编译上传">编译上传</h1>
+<p>单片机、乃至目前一切电脑都不能直接运行代码文件，必须通过编译器将代码文件编译成CPU能够处理的机器语言——即二进制机器指令——才能烧录到芯片执行。STM32主流的编译器——也即arm芯片所用的编译器——有两种：arm-gcc和Arm
+Compiler。Keil默认采用Arm
+Compiler，而STM32CubeIDE和PlatformIO则采用arm-gcc。二者在编译原理上有差别，但是在代码层面很难体现出来</p>
+<h1 id="调试程序">调试程序</h1>
+<p>ST-Link不只是程序下载器，还是调试器，能够通过JTAG接口或者SWD接口控制芯片的运行、读取芯片的寄存器、内存等。我们可以观察到芯片中每个寄存器的值、每个变量的值及其变化，可以通过断点让程序运行到指定的位置、检测中断的执行；从而能够方便地调试代码。</p>
+<h1 id="代码结构">代码结构</h1>
+<h2 id="结构概述">结构概述</h2>
+<p>STM32CubeMX软件生成出来的代码具有高度的结构性。按文件予以区分，各个文件的功能如下：</p>
+<table>
+<thead>
+<tr class="header">
+<th>文件</th>
+<th>简介</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>stm32f1xx_it.h/stm32f1xx_it.c</td>
+<td>实现stm32的所有中断程序</td>
+</tr>
+<tr class="even">
+<td>stm32f1xx_hal_conf.h</td>
+<td>HAL库配置文件</td>
+</tr>
+<tr class="odd">
+<td>system_stm32f1xx.c</td>
+<td>在内核层面上设置系统时钟</td>
+</tr>
+<tr class="even">
+<td>stm32f1xx_hal_msp.c</td>
+<td>特定单片机具体配置</td>
+</tr>
+<tr class="odd">
+<td>main.h</td>
+<td>包含了应用程序全局的定义</td>
+</tr>
+<tr class="even">
+<td>main.c</td>
+<td>实现主程序</td>
+</tr>
+<tr class="odd">
+<td>gpio.h/gpio.c（以及类似的tim、usart等）</td>
+<td>专门配置某个外设硬件</td>
+</tr>
+</tbody>
+</table>
+<p>接下来将逐个讲解这些文件的功能。</p>
+<h2 id="文件与程序功能">文件与程序功能</h2>
+<h3 id="stm32f1xx_hal_conf.h">stm32f1xx_hal_conf.h：</h3>
+<p>该文件定义了<strong>启用的HAL模块</strong>，并设置了一些宏参数——比如晶振频率等。</p>
+<p>C/C++中的宏常用于<strong>选择性编译</strong>的程序，此处即使用了此原理。通过一系列宏来确定需要引用哪些头文件</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/* Includes ----------------------------------------------------------*/</span><br><span class="line"> /**</span><br><span class="line">  \* @brief Include module&#x27;s header file</span><br><span class="line">  */</span><br><span class="line"></span><br><span class="line"> #ifdef HAL_RCC_MODULE_ENABLED</span><br><span class="line"> #include &quot;stm32f1xx_hal_rcc.h&quot;</span><br><span class="line"> #endif /* HAL_RCC_MODULE_ENABLED */</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>Tips:只有定义了对应的宏，才会引用对应的头文件，对应的模块才能够在应用中使用。这些宏不需要使用者手动定义，STM32CubeMX会自动根据在软件中选择的配置来定义这些宏、启用对应的模块。</p>
+</blockquote>
+<h3 id="system_stm32f1xx.c">system_stm32f1xx.c</h3>
+<p>该文件不涉及任何HAL库中的内容，仅仅从内核上使用寄存器的方式来初始化时钟，并提供了时钟频率值更新的函数。该文件中包含两个函数，如下所示：</p>
+<table>
+<thead>
+<tr class="header">
+<th>SystemInit()</th>
+<th>按照默认配置设置系统时钟、嵌入式Flash等</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>SystemCoreClockUpdate()</td>
+<td>根据当前的配置计算芯片主频</td>
+</tr>
+</tbody>
+</table>
+<p>这两个函数在代码中都没有显式调用。实际上SystemInit()的调用是写在启动文件中的：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/* Call the clock system intitialization function.*/  </span><br><span class="line">bl  SystemInit</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>Notes:其调用发生在复位后、进入主函数前。其实本来可以通过修改该函数的参数就能实现时钟树的配置，但是HAL库选择了以自己的方法实现时钟配置，因此SystemInit()函数仅仅实现了默认的时钟配置，也就是采用内部时钟、主频为8MHz。<strong>真正的时钟配置是在主函数中进行的。</strong></p>
+</blockquote>
+<h3 id="stm32f1xx_it.hstm32f1xx_it.c">stm32f1xx_it.h/stm32f1xx_it.c</h3>
+<p>这两个文件包含了单片机用到的所有中断服务程序，主要分为两个部分：内核中断和外设中断。</p>
+<h4 id="内核中断">内核中断</h4>
+<p>在代码中内核中断以以下注释作为开始：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**********************************************************************/ /*    Cortex-M3 Processor Interruption and Exception Handlers     */  /**********************************************************************/</span><br></pre></td></tr></table></figure>
+<p>内核中断指的是那些由STM32芯片中内核部分——包括F1系列采用的Cortex-M3内核、F4系列采用的Cortex-M4内核等——产生的中断。这些中断多是一些通用的、系统性的中断，如SysTick_Handler（系统滴答定时器中断）、HardFault_Handler（硬件错误中断）等。STM32CubeMX将其自动列出来，方便使用者修改。比如HardFault_Handler，当系统出现硬件错误的时候便会跳转到这里，可以利用这一中断函数很快定位bug的来源。</p>
+<p>注意，内核中断中的SysTick_Handler默认被HAL库用于计时。如果没有实现该中断函数则会使HAL库失去计时功能。当然这也是已经由STM32CubeMX软件自动完成了，可以在SysTick_Handler函数中看见被调用的库函数HAL_IncTick。</p>
+<p>系统滴答定时器中断：由系统滴答定时器产生</p>
+<p>硬件错误中断：当发生内存溢出、访问越界、堆栈溢出时进入</p>
+<p>HAL库计时功能默认采用系统滴答定时器来进行计时，但也可以换用TIM1、TIM2等外设计时器：可在STM32CubeMX的SYS部分配置</p>
+<h4 id="外设中断">外设中断</h4>
+<p>在代码中外设中断以以下注释作为开始：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**********************************************************************/ /* STM32F1xx Peripheral Interrupt Handlers                 */ /* Add here the Interrupt Handlers for the used peripherals.      */ /* For the available peripheral interrupt handler names,         */ /* please refer to the startup file (startup_stm32f1xx.s).        */ /**********************************************************************/</span><br></pre></td></tr></table></figure>
+<p>外设中断指的是由单片机内非内核部分的外设硬件产生的中断，如定时器中断、外部中断、串口中断等。当在STM32CubeMX中选择了相应的中断时便会自动在此处添加中断服务函数。</p>
+<h3 id="stm32f1xx_hal_msp.c">stm32f1xx_hal_msp.c</h3>
+<p>MSP指的是MCU Specific
+Package，即单片机具体方案。HAL库体系下，初始化分为两个步骤：抽象层初始化+MSP初始化。</p>
+<p>以串口为例。串口的属性包括波特率、数据位、校验位等；但是这些属性属于抽象属性，无论这个串口是STM32单片机的串口1还是串口2，或者是Arduino上的甚至51单片机上的串口，都拥有这些属性。抽象属性的初始化即为抽象层的初始化。但是要让串口真正工作起来，仅仅告诉它波特率多少、数据位多少、有无校验位是不够的，还要配置串口的时钟、串口的DMA、串口的复用引脚等，而这些属性在不同单片机上是不一样的。这些初始化即为MSP初始化。只有经过了这两层初始化，开发者才能按照需求使用抽象硬件。</p>
+<p>该文件实现的即是单片机全局的MSP初始化函数：HAL_MspInit()。如下所示，实现了复用引脚和电源的时钟使能，并且关闭了JTAG调试而改用SWD调试：</p>
+<blockquote>
+<p>Tips:因为在CubeMX中的配置是SWD</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**</span><br><span class="line"> \* Initializes the Global MSP.</span><br><span class="line"> */</span><br><span class="line">void HAL_MspInit(void)</span><br><span class="line">&#123;</span><br><span class="line"> __HAL_RCC_AFIO_CLK_ENABLE();</span><br><span class="line"> __HAL_RCC_PWR_CLK_ENABLE();</span><br><span class="line"></span><br><span class="line"> /* System interrupt init*/</span><br><span class="line"></span><br><span class="line"> /** NOJTAG: JTAG-DP Disabled and SW-DP Enabled</span><br><span class="line"> */</span><br><span class="line"> __HAL_AFIO_REMAP_SWJ_NOJTAG();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>该函数并非在源文件中进行调用，而是在库文件中进行调用。HAL库的初始化函数在进行完毕抽象层的初始化后便会调用相应的MSP初始化函数。</p>
+<h3 id="main.h">main.h</h3>
+<p>该文件包含了全局的宏定义，并且包含了单片机的库文件。从STM32Cube的设计上来看，官方希望开发者将全局的定义、包含、常量等都写在该文件中，并在各个源文件中都包含该main.h</p>
+<p>文件中为开发者预留了填写包含（Private includes）、类型（Exported
+types）、常量（Exported constants）、宏函数（Exported
+macro）、函数原型（Exported functions prototypes）和宏定义（Private
+defines）。</p>
+<h3 id="main.c">main.c</h3>
+<ul>
+<li>在main函数中，首先初始化了HAL库：</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/* Reset of all peripherals, Initializes the Flash interface and the Systick. */</span><br><span class="line">HAL_Init();</span><br></pre></td></tr></table></figure>
+<ul>
+<li>然后配置了系统时钟。此处的时钟配置和之前的SystemInit函数不一样，SystemInit函数中直接修改寄存器配置时钟，而此处则使用HAL库的库函数来配置；该函数也在main.c文件中实现，将单片机的时钟配置成软件中时钟树所配置成的样子。</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/* Configure the system clock */ SystemClock_Config();</span><br></pre></td></tr></table></figure>
+<ul>
+<li>其次初始化了所有外设。本例中仅有GPIO进行了初始化，因此此处也仅有GPIO的初始化函数。以后若有其他外设需要初始化，CubeMX也会将其放在该位置。</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/* Initialize all configured peripherals */ MX_GPIO_Init();</span><br></pre></td></tr></table></figure>
+<ul>
+<li>接下来便进入死循环。单片机上的程序不像我们电脑上的程序；电脑上的程序运行结束后就由操作系统回收资源了，单片机上的程序则会一直运行，从主函数返回后就回到了汇编启动文件中，接下来单片机的行为就不是我们在C语言代码中可以控制的了。因此在main函数中写入一个死循环，程序就不会从main函数退出。而实际的应用场景中，我们需要实现的功能很多时候也正是需要写在死循环中不断去执行。（callback
+function）</li>
+</ul>
+<h2 id="代码组织">代码组织</h2>
+<p>stm32的工程为C语言工程，编译时不会产生元数据，全靠头文件的包含和源文件的编译链接来实现工程组成，因此尤其需要开发者设计好合适的工程结构。</p>
+<p>关于C语言工程的结构，网上有许多的文章都提供了如何组织代码的方法。实际上代码的组织并没有一个非常统一的方案，大多都是按照开发者自己的喜好来设计。此处也不会要求同学们使用某种代码组织方法，仅仅提供笔者使用的代码结构供参考。</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230606131555059.png"
+alt="image-20230606131555059" />
+<figcaption aria-hidden="true">image-20230606131555059</figcaption>
+</figure>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230606131609394.png"
+alt="image-20230606131609394" />
+<figcaption aria-hidden="true">image-20230606131609394</figcaption>
+</figure>
+<p>当程序的逻辑逐渐复杂的时候，也可以不仅仅使用一对App.h/c文件来实现全部逻辑，而可以使用多个文件分别实现一部分，此处不详述。</p>
+<h4 id="一些别的原则">一些别的原则</h4>
+<ul>
+<li><p>不要包含源文件，而是包含头文件；头文件中也不要包含函数或者全局变量的定义，而仅仅包含其声明。将函数的定义放在源文件里，函数的声明放在头文件中；变量的定义放在源文件里，再在头文件中将其extern</p></li>
+<li><figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230606131804276.png"
+alt="image-20230606131804276" />
+<figcaption aria-hidden="true">image-20230606131804276</figcaption>
+</figure></li>
+<li><p>使用易理解函数、类型、变量名称。杜绝使用意义不明的命名，如a、b、l、m等，而要使用意义明确的名字，如使用单词或者易于理解的缩写来描述。此处不推荐使用拼音进行命名。如下展示的是STM32的HAL库中的一个函数命名作为示例</p>
+<table>
+<colgroup>
+<col style="width: 46%" />
+<col style="width: 21%" />
+<col style="width: 32%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th><strong><em>*函数名：HAL_GPIO_WritePin*</em></strong></th>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong><em>*HAL*</em></strong></td>
+<td><strong><em>*GPIO*</em></strong></td>
+<td><strong><em>*WritePin*</em></strong></td>
+</tr>
+<tr class="even">
+<td>该函数隶属于HAL库</td>
+<td>该函数与GPIO相关</td>
+<td>该函数的功能是写引脚的值</td>
+</tr>
+</tbody>
+</table></li>
+<li><p>使用规律的命名规则。常见的几种基础的命名规则如下：</p></li>
+</ul>
+<table>
+<colgroup>
+<col style="width: 14%" />
+<col style="width: 85%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>驼峰命名</th>
+<th>组成变量名的第一个单词的首字母小写，其余的首字母大写。Arduino采用的便是驼峰命名规则，如analogWrite，attachInterrupt等。</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>帕斯卡命名</td>
+<td>组成变量名的各个单词的首字母均大写。C#就常用帕斯卡命名规则，如Console.WriteLine，XmlSerializer等。</td>
+</tr>
+<tr class="even">
+<td>下划线命名</td>
+<td>组成变量名的单词均为小写，其间使用下划线连接。树莓派Pico的SDK采用的便是下划线命名，如hw_set_bits、sleep_ms</td>
+</tr>
+</tbody>
+</table>
+<p>这些命名规则仅仅作为参考，实际上可以使用混合的命名规则，比如公共成员使用帕斯卡命名、私有成员使用驼峰命名，或者在一个变量中使用组合式的命名规则。但是在整个工程中对象的命名规则务必有迹可循。</p>
+]]></content>
+      <categories>
+        <category>嵌入式</category>
+      </categories>
+      <tags>
+        <tag>robomaster</tag>
+        <tag>嵌入式</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>旅游日记——丽水、温州</title>
+    <url>/2023/08/16/%E6%97%85%E6%B8%B8%E6%97%A5%E8%AE%B0%EF%BC%881%EF%BC%89/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>记录本人赴丽江与亮哥携行之游，结果美景没看（在丽江是一点没出门，温州至少出了门），纯在恰饭。</p>
+<p>与其说是旅游日记，不如说是美食日记！</p>
+<span id="more"></span>
+<h1 id="启程">启程</h1>
+<p>白天赶忙订了杭州到丽江的火车票，可惜只有无座票9：15——10.27，虽然车程只有1H，但站在两车厢之间也确实折磨。。。（不想再买无座票了）</p>
+<blockquote>
+<p>Tips:<无座票>无固定座位，如果有空位是可以坐的，还可以看每个座位上的指示灯看该位置是否有人or下一站是否有人，但价格和二等座是一样的。</p>
+</blockquote>
+<h1 id="在丽江">在丽江</h1>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/ac81ee0fed88a2f3e4b56b8b5cf4402.jpg"
+alt="在丽江的第一晚夜宵" />
+<figcaption aria-hidden="true">在丽江的第一晚夜宵</figcaption>
+</figure>
+<p>u1s1这个镇上的烧烤肉质一般，但奈不住啤酒配烧烤</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/2aa5d4c64ea9a591e08db87223d8d9c.jpg"
+alt="第二日中午的烤鱼" />
+<figcaption aria-hidden="true">第二日中午的烤鱼</figcaption>
+</figure>
+<p>听说是海鲈鱼，肉确实要嫩一点，不过感觉没太入味。</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/a387a1249b6ed1ba586188999aa4907.jpg"
+alt="第二日晚餐" />
+<figcaption aria-hidden="true">第二日晚餐</figcaption>
+</figure>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/034763f0401551e174052ff5f96fe9a.jpg"
+alt="第三日午餐" />
+<figcaption aria-hidden="true">第三日午餐</figcaption>
+</figure>
+<p>家常川菜赛高！</p>
+<h1 id="在温州">在温州</h1>
+<p>下午驱车两小时到达温州，下车即食。</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/83af4592116791dc0e8c1d53b684fa0.jpg"
+alt="83af4592116791dc0e8c1d53b684fa0" />
+<figcaption
+aria-hidden="true">83af4592116791dc0e8c1d53b684fa0</figcaption>
+</figure>
+<p>温州餐厅选菜原来是这样选的：一个人跟着你做记录，你只管看需要什么（海鲜选，其他菜也是有样品的）</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/5a5a55fd4ad0d5949844b7e4a78d3ee.jpg"
+alt="5a5a55fd4ad0d5949844b7e4a78d3ee" />
+<figcaption
+aria-hidden="true">5a5a55fd4ad0d5949844b7e4a78d3ee</figcaption>
+</figure>
+<p>虽然菜还没上齐。。。</p>
+<blockquote>
+<p>Tips:温州有条瓯江，于是诞生了一种饮品叫瓯萌瓯柑饮料，味道还行</p>
+</blockquote>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/42f5fb709dec2a8ffd1f7d5a99935a1.jpg"
+alt="温州猪脏粉" />
+<figcaption aria-hidden="true">温州猪脏粉</figcaption>
+</figure>
+<p>温州猪脏粉，味道一般，可惜。</p>
+<h1 id="ending">Ending</h1>
+<p>虽然有几顿忘拍照，但总算是吃了一路！</p>
+<p>记得来尝尝三鲜面/粉：小黄鱼、虾、蛏(cheng)子。虽然味道有点淡，但是还是很鲜的。</p>
+]]></content>
+      <categories>
+        <category>life</category>
+      </categories>
+      <tags>
+        <tag>life</tag>
+        <tag>journey</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>桌面美化</title>
     <url>/2023/08/10/%E6%A1%8C%E9%9D%A2%E7%BE%8E%E5%8C%96/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
@@ -3125,280 +3869,6 @@ href="https://zhuanlan.zhihu.com/p/563088705">程序员教你十分钟做出炫�
       </categories>
       <tags>
         <tag>奇技淫巧</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>基于cubeMX创建的第一个stm32工程</title>
-    <url>/2023/08/04/%E5%9F%BA%E4%BA%8EcubeMX%E5%88%9B%E5%BB%BA%E7%9A%84%E7%AC%AC%E4%B8%80%E4%B8%AAstm32%E5%B7%A5%E7%A8%8B/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>记录我的基于STM32Cube框架的第一个stm32程序从新建到编译上传全流程，感谢机协学长学姐的帮助！</p>
-<span id="more"></span>
-<h1 id="流程梳理">流程梳理</h1>
-<ul>
-<li>通过STM32CubeMX选择芯片、配置外设，并生成代码</li>
-<li>在选用的编辑器中编辑代码，编写程序</li>
-<li>编译代码，生成二进制文件并上传</li>
-<li>调试代码的运行效果</li>
-</ul>
-<h1 id="芯片配置">芯片配置</h1>
-<h3 id="选择芯片开发板">选择芯片/开发板</h3>
-<p>但是需要注意，若选择官方开发板作为硬件，则会提供“按照开发板上的电路及布局默认配置硬件”的选项</p>
-<h3 id="配置内核与外设硬件">配置内核与外设硬件</h3>
-<p><strong>系统配置</strong>：时钟配置+调试配置</p>
-<p><strong>时钟配置</strong>（必要）：STM32有四个时钟源：LSI（低速内部时钟）、LSE（低速外部时钟）、HIS（高速内部时钟）和HSE（高速外部时钟）；有的型号仅有其中某几个。默认的配置是采用芯片内部自带的振荡器、主频配置为8MHz。Nucleo
-F103RB中芯片外接了8MHz的晶振，故将“HSE”项配置为“Crystal/Ceramic
-Resonator”，这就是说使用高速外部时钟，且时钟源为晶振。具体频率则在时钟树界面中配置（在使用内部振荡器时F1系列芯片最高主频是64MHz，在使用8MHz外部晶振时最高主频是72MHz。）</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230605232417189.png"
-alt="image-20230605232417189" />
-<figcaption aria-hidden="true">image-20230605232417189</figcaption>
-</figure>
-<p><strong>调试配置</strong>：用于配置调试的类型（如果芯片未被配置为调试模式就强行对其进行调试，则会造成芯片内部启动程序错误而导致之后无法正常烧录程序，此时需擦除其Flash以修复）</p>
-<p>主流的调试方式有SWD和JTAG两种，而SWD是更方便的方法。若要使用SWD进行调试，则必须将芯片配置为“Serial
-Wire”调试。</p>
-<p><strong>外设硬件</strong>：芯片中的所有外设都可以在软件中配置，包括DMA、ADC、定时器等</p>
-<h3 id="配置工程生成代码">配置工程，生成代码</h3>
-<h4 id="工程名称路径">工程名称，路径</h4>
-<h4 id="应用结构"><strong>应用结构</strong>：</h4>
-<p>应用结构有“Basic”和“Advanced”两个选项。如果观察仔细的话，会发现STM32CubeIDE工程中的CubeMX项目默认的是“Advanced”结构，而单独使用CubeMX默认的是“Basic”结构</p>
-<h6 id="image-20230605232417189"><img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230605232417189.png"
-alt="image-20230605232417189" /></h6>
-<h4 id="工具链ide">工具链/IDE：</h4>
-<p>STM32CubeMX除了配置硬件外，还提供了直接生成工程
-的功能，即由该“工具链/IDE”选项确定。STM32CubeMX预先包含了7种
-开发方式，分别是：EWARM、MDK-ARM、SW4STM32、TrueStudio、
-STM32CubeIDE、Makefile和Other Toolchains(GPDSC)</p>
-<p><strong><em>*MDK-ARM*</em></strong>：Keil
-uVision采用的开发环境，使用此选项可以直接生成Keil完整工程。</p>
-<p><strong><em>*TrueStudio、STM32CubeIDE*</em></strong>：TrueStudio是STM32CubeIDE的前身。TrueStudio本身是以Eclipse为基础配置而成的STM32开发工具，在被ST收购被ST与STM32CubeMX合并，形成了STM32CubeIDE。故该两种选项生成的项目并无较大区别。对于使用Eclipse自行配置来为STM32开发的同学，也可以选择该选项。</p>
-<p><strong><em>*Makefile*</em></strong>：Makefile实际上是“make”这个程序为了实现自动化构建工程而读取的一种文件。make从Makefile文件中读取生成的对象、编译的顺序、文件的依赖等信息，然后使用gcc或者g++来编译。Makefile不仅适用于系统下的标准C/C++工程，也适用于嵌入式开发。为Arm架构芯片开发的gcc叫做“arm-none-eabi-gcc”，可以在GNU的官网上下载。PlatformIO使用gcc来编译STM32的程序，故采用Makefile选项更搭配。</p>
-<p>但实际上PlatformIO自带一套使用Python来构建工程的方法，因此用不到Makefile；真正需要的只是“Inc”和“Src”两个文件夹中的代码而已。如果有同学有兴趣的话，可以尝试使用gcc搭配make自行搭建一套工具链，这个时候STM32CubeMX生成的Makefile文件就会派上用场。</p>
-<h4 id="包管理">包管理：</h4>
-<p>包管理有三种选项，翻译过来就是：仅复制用到的库文件、复制所有库文件、仅添加引用。</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230605232846792.png"
-alt="image-20230605232846792" />
-<figcaption aria-hidden="true">image-20230605232846792</figcaption>
-</figure>
-<p>当选择了复制库文件到工程时，除了Inc和Src两个文件夹（或Advanced模式下的Core文件夹）外，还会额外生成一个Driver文件夹，其中放置的便是STM32的库文件。当启用了USB或者FreeRTOS等中间件后，也还会额外生成一个Middleware文件夹，其中放置的便是中间件的库文件。文件结构如下所示：</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230605233921565.png"
-alt="image-20230605233921565" />
-<figcaption aria-hidden="true">image-20230605233921565</figcaption>
-</figure>
-<h4 id="生成选项">生成选项：</h4>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230605233713820.png"
-alt="image-20230605233713820" />
-<figcaption aria-hidden="true">image-20230605233713820</figcaption>
-</figure>
-<h1 id="程序编写">程序编写</h1>
-<p>/* USER CODE BEGIN x <em>/ </em></p>
-<p>/* USER CODE END x */</p>
-<p>其中的x可以是数字，也可以是别的一些标识符。STM32CubeMX希望用户将自己的代码插入到“BEGIN”和“END”当中，</p>
-<p><strong>reason:</strong></p>
-<p>之所以要这样做是因为STM32CubeMX在更新代码时不会修改这两句注释之间的内容。比如当用户的需求发生了变动，需要修改硬件配置时，就需要使用STM32CubeMX来修改并重新生成代码。如果将用户代码放在这两句注释之间，STM32CubeMX就不会在重新生成代码的时候覆盖掉这部分。这使得硬件配置的更改变得更加方便</p>
-<h1 id="编译上传">编译上传</h1>
-<p>单片机、乃至目前一切电脑都不能直接运行代码文件，必须通过编译器将代码文件编译成CPU能够处理的机器语言——即二进制机器指令——才能烧录到芯片执行。STM32主流的编译器——也即arm芯片所用的编译器——有两种：arm-gcc和Arm
-Compiler。Keil默认采用Arm
-Compiler，而STM32CubeIDE和PlatformIO则采用arm-gcc。二者在编译原理上有差别，但是在代码层面很难体现出来</p>
-<h1 id="调试程序">调试程序</h1>
-<p>ST-Link不只是程序下载器，还是调试器，能够通过JTAG接口或者SWD接口控制芯片的运行、读取芯片的寄存器、内存等。我们可以观察到芯片中每个寄存器的值、每个变量的值及其变化，可以通过断点让程序运行到指定的位置、检测中断的执行；从而能够方便地调试代码。</p>
-<h1 id="代码结构">代码结构</h1>
-<h3 id="结构概述">结构概述</h3>
-<p>STM32CubeMX软件生成出来的代码具有高度的结构性。按文件予以区分，各个文件的功能如下：</p>
-<table>
-<thead>
-<tr class="header">
-<th>文件</th>
-<th>简介</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>stm32f1xx_it.h/stm32f1xx_it.c</td>
-<td>实现stm32的所有中断程序</td>
-</tr>
-<tr class="even">
-<td>stm32f1xx_hal_conf.h</td>
-<td>HAL库配置文件</td>
-</tr>
-<tr class="odd">
-<td>system_stm32f1xx.c</td>
-<td>在内核层面上设置系统时钟</td>
-</tr>
-<tr class="even">
-<td>stm32f1xx_hal_msp.c</td>
-<td>特定单片机具体配置</td>
-</tr>
-<tr class="odd">
-<td>main.h</td>
-<td>包含了应用程序全局的定义</td>
-</tr>
-<tr class="even">
-<td>main.c</td>
-<td>实现主程序</td>
-</tr>
-<tr class="odd">
-<td>gpio.h/gpio.c（以及类似的tim、usart等）</td>
-<td>专门配置某个外设硬件</td>
-</tr>
-</tbody>
-</table>
-<p>接下来将逐个讲解这些文件的功能。</p>
-<h3 id="文件与程序功能">文件与程序功能</h3>
-<h4 id="stm32f1xx_hal_conf.h">stm32f1xx_hal_conf.h：</h4>
-<p>该文件定义了启用的HAL模块，并设置了一些宏参数——比如晶振频率等。此处仅仅介绍模块启用的相关代码。</p>
-<p>C/C++中的宏常用于选择性编译的程序，此处即使用了此原理。通过一系列宏来确定需要引用哪些头文件</p>
-<p>只有定义了对应的宏，才会引用对应的头文件，对应的模块才能够在应用中使用。这些宏不需要使用者手动定义，STM32CubeMX会自动根据在软件中选择的配置来定义这些宏、启用对应的模块。</p>
-<h4 id="system_stm32f1xx.c">system_stm32f1xx.c</h4>
-<p>该文件不涉及任何HAL库中的内容，仅仅从内核上使用寄存器的方式来初始化时钟，并提供了时钟频率值更新的函数。该文件中包含两个函数，如下所示：</p>
-<table>
-<thead>
-<tr class="header">
-<th>SystemInit()</th>
-<th>按照默认配置设置系统时钟、嵌入式Flash等</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>SystemCoreClockUpdate()</td>
-<td>根据当前的配置计算芯片主频</td>
-</tr>
-</tbody>
-</table>
-<p>这两个函数在代码中都没有显式调用。实际上SystemInit()的调用是写在启动文件中的：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/* Call the clock system intitialization function.*/  </span><br><span class="line">bl  SystemInit</span><br></pre></td></tr></table></figure>
-<p>其调用发生在复位后、进入主函数前。其实本来可以通过修改该函数的参数就能实现时钟树的配置，但是HAL库选择了以自己的方法实现时钟配置，因此SystemInit()函数仅仅实现了默认的时钟配置，也就是采用内部时钟、主频为8MHz。真正的时钟配置是在主函数中进行的。</p>
-<h4 id="stm32f1xx_it.hstm32f1xx_it.c">stm32f1xx_it.h/stm32f1xx_it.c</h4>
-<p>这两个文件包含了单片机用到的所有中断服务程序，主要分为两个部分：内核中断和外设中断。</p>
-<h5 id="内核中断">内核中断</h5>
-<p>在代码中内核中断以以下注释作为开始：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**********************************************************************/ /*    Cortex-M3 Processor Interruption and Exception Handlers     */  /**********************************************************************/</span><br></pre></td></tr></table></figure>
-<p>内核中断指的是那些由STM32芯片中内核部分——包括F1系列采用的Cortex-M3内核、F4系列采用的Cortex-M4内核等——产生的中断。这些中断多是一些通用的、系统性的中断，如SysTick_Handler（系统滴答定时器中断）、HardFault_Handler（硬件错误中断）等。STM32CubeMX将其自动列出来，方便使用者修改。比如HardFault_Handler，当系统出现硬件错误的时候便会跳转到这里，可以利用这一中断函数很快定位bug的来源。</p>
-<p>注意，内核中断中的SysTick_Handler默认被HAL库用于计时。如果没有实现该中断函数则会使HAL库失去计时功能。当然这也是已经由STM32CubeMX软件自动完成了，可以在SysTick_Handler函数中看见被调用的库函数HAL_IncTick。</p>
-<p>系统滴答定时器中断：由系统滴答定时器产生</p>
-<p>硬件错误中断：当发生内存溢出、访问越界、堆栈溢出时进入</p>
-<p>HAL库计时功能默认采用系统滴答定时器来进行计时，但也可以换用TIM1、TIM2等外设计时器：可在STM32CubeMX的SYS部分配置</p>
-<h5 id="外设中断">外设中断</h5>
-<p>在代码中外设中断以以下注释作为开始：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**********************************************************************/ /* STM32F1xx Peripheral Interrupt Handlers                 */ /* Add here the Interrupt Handlers for the used peripherals.      */ /* For the available peripheral interrupt handler names,         */ /* please refer to the startup file (startup_stm32f1xx.s).        */ /**********************************************************************/</span><br></pre></td></tr></table></figure>
-<p>外设中断指的是由单片机内非内核部分的外设硬件产生的中断，如定时器中断、外部中断、串口中断等。当在STM32CubeMX中选择了相应的中断时便会自动在此处添加中断服务函数。</p>
-<h4 id="stm32f1xx_hal_msp.c">stm32f1xx_hal_msp.c</h4>
-<p>MSP指的是MCU Specific
-Package，即单片机具体方案。HAL库体系下，初始化分为两个步骤：抽象层初始化和MSP初始化。</p>
-<p>以串口为例。串口的属性包括波特率、数据位、校验位等；但是这些属性属于抽象属性，无论这个串口是STM32单片机的串口1还是串口2，或者是Arduino上的甚至51单片机上的串口，都拥有这些属性。抽象属性的初始化即为抽象层的初始化。但是要让串口真正工作起来，仅仅告诉它波特率多少、数据位多少、有无校验位是不够的，还要配置串口的时钟、串口的DMA、串口的复用引脚等，而这些属性在不同单片机上是不一样的。这些初始化即为MSP初始化。只有经过了这两层初始化，开发者才能按照需求使用抽象硬件。</p>
-<p>该文件实现的即是单片机全局的MSP初始化函数：HAL_MspInit()。如下所示，实现了复用引脚和电源的时钟使能，并且关闭了JTAG调试而改用SWD调试：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**</span><br><span class="line"> \* Initializes the Global MSP.</span><br><span class="line"> */</span><br><span class="line">void HAL_MspInit(void)</span><br><span class="line">&#123;</span><br><span class="line"> __HAL_RCC_AFIO_CLK_ENABLE();</span><br><span class="line"> __HAL_RCC_PWR_CLK_ENABLE();</span><br><span class="line"></span><br><span class="line"> /* System interrupt init*/</span><br><span class="line"></span><br><span class="line"> /** NOJTAG: JTAG-DP Disabled and SW-DP Enabled</span><br><span class="line"> */</span><br><span class="line"> __HAL_AFIO_REMAP_SWJ_NOJTAG();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>该函数并非在源文件中进行调用，而是在库文件中进行调用。HAL库的初始化函数在进行完毕抽象层的初始化后便会调用相应的MSP初始化函数。</p>
-<h4 id="main.h">main.h</h4>
-<p>该文件包含了全局的宏定义，并且包含了单片机的库文件。从STM32Cube的设计上来看，官方希望开发者将全局的定义、包含、常量等都写在该文件中，并在各个源文件中都包含该main.h</p>
-<p>文件中为开发者预留了填写包含（Private includes）、类型（Exported
-types）、常量（Exported constants）、宏函数（Exported
-macro）、函数原型（Exported functions prototypes）和宏定义（Private
-defines）。用户可将自己的代码填写在“USER CODE BEGIN”和“USER CODE
-END”之间。</p>
-<p>Tips:</p>
-<p>由于用户可能多次使用STM32CubeMX进行代码生成，故代码文件中的内容会被多次重写。如果要修改生成的源文件，请务必将代码填写在“USER
-CODE BEGIN”和“USER CODE
-END”之间，因为STM32CubeMX在重新生成代码时会识别该标志并保留其中的用户代码。</p>
-<h4 id="main.c">main.c</h4>
-<p>在main函数中，首先初始化了HAL库：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/* Reset of all peripherals, Initializes the Flash interface and the Systick. */</span><br><span class="line">HAL_Init();</span><br></pre></td></tr></table></figure>
-<p>然后配置了系统时钟。此处的时钟配置和之前的SystemInit函数不一样，SystemInit函数中直接修改寄存器配置时钟，而此处则使用HAL库的库函数来配置；该函数也在main.c文件中实现，将单片机的时钟配置成软件中时钟树所配置成的样子。</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/* Configure the system clock */ SystemClock_Config();</span><br></pre></td></tr></table></figure>
-<p>其次初始化了所有外设。本例中仅有GPIO进行了初始化，因此此处也仅有GPIO的初始化函数。以后若有其他外设需要初始化，CubeMX也会将其放在该位置。</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/* Initialize all configured peripherals */ MX_GPIO_Init();</span><br></pre></td></tr></table></figure>
-<p>接下来便进入死循环。单片机上的程序不像我们电脑上的程序；电脑上的程序运行结束后就由操作系统回收资源了，单片机上的程序则会一直运行，从主函数返回后就回到了汇编启动文件中，接下来单片机的行为就不是我们在C语言代码中可以控制的了。因此在main函数中写入一个死循环，程序就不会从main函数退出。而实际的应用场景中，我们需要实现的功能很多时候也正是需要写在死循环中不断去执行，本例中的LED灯闪烁。</p>
-<h3 id="代码组织">代码组织</h3>
-<p>stm32的工程为C语言工程，编译时不会产生元数据，全靠头文件的包含和源文件的编译链接来实现工程组成，因此尤其需要开发者设计好合适的工程结构。</p>
-<p>关于C语言工程的结构，网上有许多的文章都提供了如何组织代码的方法。实际上代码的组织并没有一个非常统一的方案，大多都是按照开发者自己的喜好来设计。此处也不会要求同学们使用某种代码组织方法，仅仅提供笔者使用的代码结构供参考。</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230606131555059.png"
-alt="image-20230606131555059" />
-<figcaption aria-hidden="true">image-20230606131555059</figcaption>
-</figure>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230606131609394.png"
-alt="image-20230606131609394" />
-<figcaption aria-hidden="true">image-20230606131609394</figcaption>
-</figure>
-<p>当程序的逻辑逐渐复杂的时候，也可以不仅仅使用一对App.h/c文件来实现全部逻辑，而可以使用多个文件分别实现一部分，此处不详述。</p>
-<h4 id="一些别的原则">一些别的原则</h4>
-<ul>
-<li><p>不要包含源文件，而是包含头文件；头文件中也不要包含函数或者全局变量的定义，而仅仅包含其声明。将函数的定义放在源文件里，函数的声明放在头文件中；变量的定义放在源文件里，再在头文件中将其extern</p></li>
-<li><figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230606131804276.png"
-alt="image-20230606131804276" />
-<figcaption aria-hidden="true">image-20230606131804276</figcaption>
-</figure></li>
-<li><p>使用易理解函数、类型、变量名称。杜绝使用意义不明的命名，如a、b、l、m等，而要使用意义明确的名字，如使用单词或者易于理解的缩写来描述。此处不推荐使用拼音进行命名。如下展示的是STM32的HAL库中的一个函数命名作为示例</p>
-<table>
-<colgroup>
-<col style="width: 46%" />
-<col style="width: 21%" />
-<col style="width: 32%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th><strong><em>*函数名：HAL_GPIO_WritePin*</em></strong></th>
-<th></th>
-<th></th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><strong><em>*HAL*</em></strong></td>
-<td><strong><em>*GPIO*</em></strong></td>
-<td><strong><em>*WritePin*</em></strong></td>
-</tr>
-<tr class="even">
-<td>该函数隶属于HAL库</td>
-<td>该函数与GPIO相关</td>
-<td>该函数的功能是写引脚的值</td>
-</tr>
-</tbody>
-</table></li>
-<li><p>使用规律的命名规则。常见的几种基础的命名规则如下：</p></li>
-</ul>
-<table>
-<colgroup>
-<col style="width: 14%" />
-<col style="width: 85%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th>驼峰命名</th>
-<th>组成变量名的第一个单词的首字母小写，其余的首字母大写。Arduino采用的便是驼峰命名规则，如analogWrite，attachInterrupt等。</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>帕斯卡命名</td>
-<td>组成变量名的各个单词的首字母均大写。C#就常用帕斯卡命名规则，如Console.WriteLine，XmlSerializer等。</td>
-</tr>
-<tr class="even">
-<td>下划线命名</td>
-<td>组成变量名的单词均为小写，其间使用下划线连接。树莓派Pico的SDK采用的便是下划线命名，如hw_set_bits、sleep_ms</td>
-</tr>
-</tbody>
-</table>
-<p>这些命名规则仅仅作为参考，实际上可以使用混合的命名规则，比如公共成员使用帕斯卡命名、私有成员使用驼峰命名，或者在一个变量中使用组合式的命名规则。但是在整个工程中对象的命名规则务必有迹可循。</p>
-]]></content>
-      <categories>
-        <category>嵌入式</category>
-      </categories>
-      <tags>
-        <tag>robomaster</tag>
-        <tag>嵌入式</tag>
       </tags>
   </entry>
 </search>
