@@ -1,6 +1,276 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>CAN总线学习——过滤器及API</title>
+    <url>/2023/08/27/CAN%E6%80%BB%E7%BA%BF%E5%AD%A6%E4%B9%A0%E2%80%94%E2%80%94%E8%BF%87%E6%BB%A4%E5%99%A8%E5%8F%8AAPI/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>记录学习CAN的历程，主要是谈谈对CAN（bxCAN）过滤器及CAN的API。</p>
+<p>来填上次的坑！</p>
+<blockquote>
+<p>Tips:我对CAN的API应用并不是很了解，因为CAN至少需要在两块单片机上运用，所以我并未做实验，没有亲手敲过，以后实践后再补充</p>
+</blockquote>
+<span id="more"></span>
+<h1 id="两种过滤模式">两种过滤模式</h1>
+<h2 id="列表模式">列表模式</h2>
+<p>将ID输入列表，进行对照即可</p>
+<blockquote>
+<p>Tips:资源有限，受数量限制</p>
+</blockquote>
+<h2 id="掩码模式">掩码模式</h2>
+<p><strong>验证码与屏蔽码</strong></p>
+<p>ID通过哪几位由屏蔽码决定，再将通过的那几位与验证码进行比较</p>
+<figure>
+<img src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230827233906861.png" alt="掩码模式的计算过程">
+<figcaption aria-hidden="true">掩码模式的计算过程</figcaption>
+</figure>
+<p>在bxCAN中，分别采用了两个寄存器(CAN_FiR1,CAN_FiR2)来存储屏蔽码与验证码，从而实现掩码模式的工作流程的</p>
+<blockquote>
+<p>Tips:采用掩码模式的方式并不能精确的对每一个ID进行过滤eg:我想要1150——1158，然后我验证115满足即可，那么1159也会通过，不精确</p>
+</blockquote>
+<table>
+<colgroup>
+<col style="width: 8%">
+<col style="width: 62%">
+<col style="width: 29%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>模式</th>
+<th>优点</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>列表模式</td>
+<td>能精确地过滤每个指定的CAN ID</td>
+<td>有数量限制</td>
+</tr>
+<tr class="even">
+<td>掩码模式</td>
+<td>取决于屏蔽码，有时无法完全精确到每一个CAN ID，部分不期望的CAN
+ID有时也会收到</td>
+<td>数量取决于屏蔽码，最多无上限</td>
+</tr>
+</tbody>
+</table>
+<h1 id="bxcan的过滤器的解决方案">bxCAN的过滤器的解决方案</h1>
+<ul>
+<li><p>过滤模式的位就定义在<strong>CAN_FM1R</strong>寄存器中的FBMx位：”0”表示掩码模式，”1”表示列表模式。</p></li>
+<li><p>一个标志用告诉过滤器是否需要处理32位的CAN ID：标准CAN
+ID位11位，而扩展CAN ID有29位，对于标准的CAN
+ID来说，我们有一个16位的寄存器来处理他足够了，相应地，扩展CAN
+ID，我们就必须使用32位的寄存器来处理它。设置了这么一个寄存器<strong>CAN_FS1R</strong>来表示CAN
+ID的位宽</p></li>
+</ul>
+<h1 id="api">API</h1>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**</span><br><span class="line">* @brief CAN filter configuration structure definition</span><br><span class="line">*/</span><br><span class="line">CAN_FilterTypeDef;</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**</span><br><span class="line">    * @brief Configures the CAN reception filter according to the specified</span><br><span class="line">    * parameters in the CAN_FilterInitStruct.</span><br><span class="line">    * @param hcan pointer to a CAN_HandleTypeDef structure that contains</span><br><span class="line">    * the configuration information for the specified CAN.</span><br><span class="line">    * @param sFilterConfig pointer to a CAN_FilterTypeDef structure that</span><br><span class="line">    * contains the filter configuration information.</span><br><span class="line">    * @retval None</span><br><span class="line">*/</span><br><span class="line">HAL_StatusTypeDef HAL_CAN_ConfigFilter(CAN_HandleTypeDef *hcan,CAN_FilterTypeDef *sFilterConfig)</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**</span><br><span class="line">    * @brief Start the CAN module.</span><br><span class="line">    * @param hcan pointer to an CAN_HandleTypeDef structure that contains</span><br><span class="line">    * the configuration information for the specified CAN.</span><br><span class="line">    * @retval HAL status</span><br><span class="line">*/</span><br><span class="line">HAL_StatusTypeDef HAL_CAN_Start(CAN_HandleTypeDef *hcan)</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**</span><br><span class="line">    * @brief Enable interrupts.</span><br><span class="line">    * @param hcan pointer to an CAN_HandleTypeDef structure that contains</span><br><span class="line">    * the configuration information for the specified CAN.</span><br><span class="line">    * @param ActiveITs indicates which interrupts will be enabled.</span><br><span class="line">    * This parameter can be any combination of @arg CAN_Interrupts.</span><br><span class="line">    * @retval HAL status</span><br><span class="line">*/</span><br><span class="line">HAL_StatusTypeDef HAL_CAN_ActivateNotification(CAN_HandleTypeDef *hcan, uint32_t</span><br><span class="line">ActiveITs)</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**</span><br><span class="line">    * @brief Add a message to the first free Tx mailbox and activate the</span><br><span class="line">    * corresponding transmission request.</span><br><span class="line">    * @param hcan pointer to a CAN_HandleTypeDef structure that contains</span><br><span class="line">    * the configuration information for the specified CAN.</span><br><span class="line">    * @param pHeader pointer to a CAN_TxHeaderTypeDef structure.</span><br><span class="line">    * @param aData array containing the payload of the Tx frame.</span><br><span class="line">    * @param pTxMailbox pointer to a variable where the function will return</span><br><span class="line">    * the TxMailbox used to store the Tx message.</span><br><span class="line">    * This parameter can be a value of @arg CAN_Tx_Mailboxes.</span><br><span class="line">    * @retval HAL status</span><br><span class="line">*/</span><br><span class="line">HAL_StatusTypeDef HAL_CAN_AddTxMessage(CAN_HandleTypeDef *hcan,CAN_TxHeaderTypeDef *pHeader, uint8_t aData[], uint32_t *pTxMailbox)</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**</span><br><span class="line">    * @brief Get an CAN frame from the Rx FIFO zone into the message RAM.</span><br><span class="line">    * @param hcan pointer to an CAN_HandleTypeDef structure that contains</span><br><span class="line">    * the configuration information for the specified CAN.</span><br><span class="line">    * @param RxFifo Fifo number of the received message to be read.</span><br><span class="line">    * This parameter can be a value of @arg CAN_receive_FIFO_number.</span><br><span class="line">    * @param pHeader pointer to a CAN_RxHeaderTypeDef structure where the header</span><br><span class="line">    * of the Rx frame will be stored.</span><br><span class="line">    * @param aData array where the payload of the Rx frame will be stored.</span><br><span class="line">    * @retval HAL status</span><br><span class="line">*/</span><br><span class="line">HAL_StatusTypeDef HAL_CAN_GetRxMessage(CAN_HandleTypeDef *hcan, uint32_t RxFifo,CAN_RxHeaderTypeDef *pHeader, uint8_t aData[])</span><br></pre></td></tr></table></figure>
+<h1 id="references">References</h1>
+<ul>
+<li>B站哈工深电控组内训视频</li>
+<li><a href="https://zhuanlan.zhihu.com/p/38299092">CAN总线波特率的设定——以STM32F103为例
+- 知乎 (zhihu.com)</a></li>
+<li><a href="https://blog.csdn.net/flydream0/article/details/52317532">再谈STM32的CAN过滤器-bxCAN的过滤器的4种工作模式以及使用方法总结_f407
+can id过滤_flydream0的博客-CSDN博客</a></li>
+</ul>
+]]></content>
+      <categories>
+        <category>嵌入式</category>
+      </categories>
+      <tags>
+        <tag>robomaster</tag>
+        <tag>嵌入式</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Environment_variables</title>
+    <url>/2023/08/14/Environment-variables/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>最近调整自己的workflow，遇到很多配置环境变量（environment
+variable）的问题，借此机会了解一下</p>
+<span id="more"></span>
+<h1 id="introduction">Introduction</h1>
+<p>环境变量是一种<strong>在操作系统中</strong>用来指定操作系统运行环境的参数，例如临时文件夹的位置，系统文件夹的位置，可执行文件的搜索路径等。</p>
+<p>环境变量的作用是<strong>让操作系统或者应用程序能够找到所需要的资源或者设置</strong>。</p>
+<h1 id="diffenent-systems">diffenent systems</h1>
+<h2 id="在windows中">在Windows中</h2>
+<p>可以通过“控制面板”-“系统”-“高级系统设置”-“环境变量”来查看和编辑环境变量。通过可视化的窗口模式展现出来的.</p>
+<h2 id="在linux中">在Linux中</h2>
+<p>可以通过命令行工具或者编辑配置文件来查看和编辑环境变量。</p>
+<h3 id="设置">设置：</h3>
+<p>在
+/etc/profile文件中设置，export的意思就是将局部变量设置为环境变量。现有的变量是被这样一行代码设置的：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">export PATH USER LOGNAME MAIL HOSTNAME HISTSIZE HISTCONTROL</span><br></pre></td></tr></table></figure>
+<p>这几个环境变量已经有一些默认值了，不过我们可以追加内容，比如修改PATH：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line"># : 的意思是并列</span><br><span class="line">PATH = /abc/def:$PATH</span><br></pre></td></tr></table></figure>
+<h3 id="查看">查看：</h3>
+<p>查看全部，使用<code>env</code>命令即可。</p>
+<p>查看单个，可以使用<code>echo：如echo $JAVA_HOME。</code></p>
+<h1 id="一些常见的环境变量有">一些常见的环境变量有</h1>
+<ul>
+<li><p>PATH：指定可执行文件的搜索路径，当你在命令行中输入一个程序名而没有指定完整路径时，系统会在PATH中指定的目录下寻找该程序。（一般为bin文件姐）</p></li>
+<li><p>JAVA_HOME：指定JDK（Java开发工具包）的安装目录，一些Java开发工具或者应用程序会使用这个变量来找到JDK。</p></li>
+<li><p>TEMP或TMP：指定临时文件夹的位置，一些应用程序会在这个目录下存储临时数据或者缓存文件。</p></li>
+<li><p>USERPROFILE：指定当前用户的配置文件的位置，一些应用程序会在这个目录下存储用户相关的数据或者设置。</p></li>
+</ul>
+<h1 id="references">References</h1>
+<ul>
+<li><a href="https://zhuanlan.zhihu.com/p/82011100">看懂什么是环境变量!
+- 知乎 (zhihu.com)</a></li>
+</ul>
+]]></content>
+      <categories>
+        <category>CS</category>
+      </categories>
+      <tags>
+        <tag>CS</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>EXTI入门</title>
+    <url>/2023/08/21/EXTI%E5%85%A5%E9%97%A8/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>Following
+哈工深上传到B站的电控组培训来入门robomaster电控组，我购买了普中科技玄武套餐开发板作为硬件。</p>
+<p>本篇介绍我学习EXIT的见闻</p>
+<span id="more"></span>
+<h1 id="exti">EXTI</h1>
+<h2 id="中断简介">中断简介</h2>
+<p>中断指计算机运行过程中，出现某些意外情况需要主机干预时，机器能自动停止正在运行的程序并转入处理新情况的程序，处理完毕后又返回原被暂停的程序继续运行。<strong>中断是实现多线程设计的必要条件</strong>。</p>
+<p>EXTI：（External interrupt/event controller）外部中断/事件控制器</p>
+<h2 id="nvic">NVIC</h2>
+<p>NVIC的全称是Nested vectoredinterrupt
+controller，即嵌套向量中断控制器</p>
+<p>能够打断当前代码执行流程的事件分为<strong>异常(exception)</strong>和<strong>中断(interrupt)</strong>，他们都被编排在中断向量表（在stm32中文参考手册中可查找，在stm32的启动文件中也能找到eg:startup_stm32f103xe.s）里面。</p>
+<ul>
+<li>编号为负的内核异常不能被设置优先级，如复位(Reset)、不可屏蔽中断
+(NMI)、硬错误(Hardfault)。从编号 7
+开始的为外部中断，这些中断的优先级都是可以自行设置的。</li>
+<li>NVIC的核心功能是中断优先级分组、中断优先级的配置、读中断请求标志、清除中断请求标志、使能中断、清除中断等.</li>
+<li>外部中断信号从核外发出，信号最终要传递到NVIC(嵌套向量中断控制器)。</li>
+<li>NVIC跟内核紧密耦合，它控制着整个芯片中断的相关功能。</li>
+</ul>
+<h2 id="中断优先级分组">中断优先级分组</h2>
+<p>STM32 的中断向量具有两个属性：抢占，响应</p>
+<ul>
+<li><p>抢占（编号越小，优先级越高），是指打断其它中断的属性，即因为具有这个属性，会出现嵌套中断(在执行中断服务函数
+A 的过程中被中断 B 打断，执行完中断服务函数 B 再继续执行中断服务函数
+A)。</p></li>
+<li><p>响应（编号越小，优先级越高）属性则应用在抢占属性相同的情况下，当两个中断向量的抢占优先级相同时，如果两个中断同时到达，则先处理响应优先级高的中断。（不能打断其他中断）</p></li>
+<li><p>在STM32中，抢占优先级和响应优先级的数量由一个 4
+位的数字来决定，把这个 4
+位数字的位数分配成抢占优先级部分和响应优先级部分。（都写在寄存器内）</p></li>
+</ul>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230607154202250.png"
+alt="image-20230607154202250" />
+<figcaption aria-hidden="true">image-20230607154202250</figcaption>
+</figure>
+<blockquote>
+<p>Tips:两个中断不可能同时来，所以响应优先级主要给出了一种响应的优先队列，当多个中断向量的抢占优先级相同时，它们不会互相打断，后续的排队会按照响应优先级排队。</p>
+</blockquote>
+<h2 id="exti介绍">EXTI介绍</h2>
+<p>中断引脚的序号需要不一样才能配置不停的中断（F1系列的硬件实现）</p>
+<blockquote>
+<p>Tips:F1系列中断是共用的eg:中断/事件线EXTI0，输入源PX0（X可为A,B,...I）PA0用了则PB0就用不了。</p>
+</blockquote>
+<p>EXTI有两大模式;中断模式和事件模式</p>
+<ul>
+<li>中断模式产生中断：把输入信号输入到NVIC中，进一步执行中断服务函数，实现功能，这是软件级别的。</li>
+<li>事件模式产生事件：传输一个脉冲信号给其他外设使用，并且这是电路级别的信号传输，不需要软件处理，硬件直接触发</li>
+</ul>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230821013658350.png"
+alt="image-20230821013658350" />
+<figcaption aria-hidden="true">image-20230821013658350</figcaption>
+</figure>
+<ul>
+<li>23：并行传输数据，和这个寄存器一样的有23个</li>
+<li>边沿检测电路：一个符合则输出1</li>
+</ul>
+<p>每一种模式都可配置为上升沿触发、下降沿触发，以及上升下降沿触发三种触发方式</p>
+<h2 id="中断函数的实现">中断函数的实现</h2>
+<p>要产生中断，必须先配置好并使能中断线。根据需要的边沿检测设置2个触发寄存器，同时在中断屏蔽寄存器的相应位写’1’允许中断请求。当外部中断线上发生了期待的边沿时，将产生一个中断请求，对应的挂起位也随之被置’1’。在挂起寄存器的对应位写’1’，将清除该中断请求。</p>
+<p>如果需要产生事件，必须先配置好并使能事件线。根据需要的边沿检测通过设置2个触发寄存器，同时在事件屏蔽寄存器的相应位写’1’允许事件请求。当事件线上发生了需要的边沿时，将产生一个事件请求脉冲，对应的挂起位不被置’1’。</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230607154902377.png"
+alt="image-20230607154902377" />
+<figcaption aria-hidden="true">image-20230607154902377</figcaption>
+</figure>
+<p>通过在软件中断/事件寄存器写’1’，也可以通过软件产生中断/事件请求。</p>
+<ul>
+<li><p>一般来说单片机的中断发生有两个条件，一是<strong>中断标志位置位</strong>，二是<strong>中断允许</strong>（中断屏蔽寄存器），如果这两个条件都满足则进入中断，因为正常情况下中断一直是允许的，那么只能通过标志位来区分是否有中断挂起</p></li>
+<li><p>中断标志位：挂起请求寄存器设置。</p>
+<p>PRx:挂起为（pending bit）：</p>
+<p>0没有发生触发请求，1发生了选择触发请求</p>
+<p>当在外部中断线上发生了选择的边沿事件，该位被置1。在该位写入1可以清楚它，也可以通过改变边沿检测的极性清除。</p></li>
+<li><p>如果进入中断不清除标志位，那么这一中断服务程序结束后由于标志位还是置位的并且中断是允许的，那么还会再次进入该中断，就会发生一直在执行中断程序的情况</p></li>
+<li><p>周期性中断是由定时器辅助完成的，只要定时时间到，硬件就会自动置位标志位，这时中断发生，定时器还在运行，<strong>与中断处理是并行的没有冲突</strong>，因此周期性的中断不是从中断标志位清零开始的。</p>
+<blockquote>
+<p>Tips:MCU和定时器是并行的，互不影响</p>
+</blockquote></li>
+<li><p>如果中断程序没有执行完并且一下个中断又来了，那么硬件还是会自动置位标志位的，如果在这之前已经清零标志位那么中断结束后会再进入一次该中断，如果这时还没有清除中断标志位，则第二个中断无效。</p>
+<blockquote>
+<p>Tips:有中断，中断标志位变为1,不清0，则不能响应新的中断。</p>
+</blockquote></li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**</span><br><span class="line"> * @brief EXTI line detection callbacks.</span><br><span class="line"> * @param GPIO_Pin: Specifies the pins connected EXTI line</span><br><span class="line"> * @retval None</span><br><span class="line"> *外部中断的回调函数,hal库</span><br><span class="line"> */ </span><br><span class="line">__weak void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) </span><br><span class="line">&#123;</span><br><span class="line"> /* Prevent unused argument(s) compilation warning */</span><br><span class="line"> UNUSED(GPIO_Pin);</span><br><span class="line"> /* NOTE: This function Should not be modified, when the callback is needed, the HAL_GPIO_EXTI_Callback could be implemented in the user file */ </span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>Tips:
+<code>_weak</code>在其他地方重新定义该函数此_weak定义的函数会被覆盖,即我们要重写void
+HAL_GPIO_EXTI_Callback(uin16_t,GPIO_Pin);函数</p>
+</blockquote>
+<h2 id="实验">实验</h2>
+<h3 id="按键扫描">按键扫描</h3>
+<p>根据需要确定GPIO模式：选择下拉输入还是上拉输入or浮空输入，通过反复读取按键状态是否为高电平判断按键是否被触发</p>
+<p><strong>按键扫描的原理</strong>：
+按键的两个引脚的一端通过下拉电阻拉倒低电平，另一端接着电源。当按下开关时，输入引脚为高电平。通过反复读取按键状态是否为高电平判断按键是否被触发。</p>
+<p><strong>notes:</strong></p>
+<ul>
+<li><p>记得在cubeMX的GPIO把NVIC设置为enable</p></li>
+<li><p>在keil
+5中添加新文件：先将文件放在同一目录下，右键add添加.c文件/双击add即可，.h文件用#include包含即可</p></li>
+<li><p>机械按键的抖动，毛刺，延时再判断，hal_delay是用systick实现的</p>
+<blockquote>
+<p>Tips:设置中断优先级（比时钟低，不然不能HAL_Delay(),会陷入死循环）</p>
+</blockquote></li>
+</ul>
+<p>如下图：数码管8位一般定义为：DP G F E D C B A</p>
+<p>B C亮表示1，即00000110=0x06;</p>
+<p>A B G E D亮表示2 即01011011=0x5b；</p>
+<p>依次类推</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/a1ec08fa513d26975dfc13c055fbb2fb4316d87b.jpg"
+alt="a1ec08fa513d26975dfc13c055fbb2fb4316d87b" />
+<figcaption
+aria-hidden="true">a1ec08fa513d26975dfc13c055fbb2fb4316d87b</figcaption>
+</figure>
+<h1 id="references">References</h1>
+<ul>
+<li>哈工深电控内训</li>
+<li><a
+href="https://zhidao.baidu.com/question/1959763145635584700.html">单片机的中断标志位是有什么作用？_百度知道
+(baidu.com)</a></li>
+</ul>
+]]></content>
+      <categories>
+        <category>嵌入式</category>
+      </categories>
+      <tags>
+        <tag>robomaster</tag>
+        <tag>嵌入式</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>ADC入门</title>
     <url>/2023/08/23/ADC%E5%85%A5%E9%97%A8/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
@@ -208,8 +478,8 @@ alt="image-20230823100750466" />
         <category>嵌入式</category>
       </categories>
       <tags>
-        <tag>嵌入式</tag>
         <tag>robomaster</tag>
+        <tag>嵌入式</tag>
       </tags>
   </entry>
   <entry>
@@ -727,278 +997,8 @@ CAN通信的位定时与同步_weixin_40528417的博客-CSDN博客</a></li>
         <category>嵌入式</category>
       </categories>
       <tags>
-        <tag>嵌入式</tag>
         <tag>robomaster</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>EXTI入门</title>
-    <url>/2023/08/21/EXTI%E5%85%A5%E9%97%A8/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>Following
-哈工深上传到B站的电控组培训来入门robomaster电控组，我购买了普中科技玄武套餐开发板作为硬件。</p>
-<p>本篇介绍我学习EXIT的见闻</p>
-<span id="more"></span>
-<h1 id="exti">EXTI</h1>
-<h2 id="中断简介">中断简介</h2>
-<p>中断指计算机运行过程中，出现某些意外情况需要主机干预时，机器能自动停止正在运行的程序并转入处理新情况的程序，处理完毕后又返回原被暂停的程序继续运行。<strong>中断是实现多线程设计的必要条件</strong>。</p>
-<p>EXTI：（External interrupt/event controller）外部中断/事件控制器</p>
-<h2 id="nvic">NVIC</h2>
-<p>NVIC的全称是Nested vectoredinterrupt
-controller，即嵌套向量中断控制器</p>
-<p>能够打断当前代码执行流程的事件分为<strong>异常(exception)</strong>和<strong>中断(interrupt)</strong>，他们都被编排在中断向量表（在stm32中文参考手册中可查找，在stm32的启动文件中也能找到eg:startup_stm32f103xe.s）里面。</p>
-<ul>
-<li>编号为负的内核异常不能被设置优先级，如复位(Reset)、不可屏蔽中断
-(NMI)、硬错误(Hardfault)。从编号 7
-开始的为外部中断，这些中断的优先级都是可以自行设置的。</li>
-<li>NVIC的核心功能是中断优先级分组、中断优先级的配置、读中断请求标志、清除中断请求标志、使能中断、清除中断等.</li>
-<li>外部中断信号从核外发出，信号最终要传递到NVIC(嵌套向量中断控制器)。</li>
-<li>NVIC跟内核紧密耦合，它控制着整个芯片中断的相关功能。</li>
-</ul>
-<h2 id="中断优先级分组">中断优先级分组</h2>
-<p>STM32 的中断向量具有两个属性：抢占，响应</p>
-<ul>
-<li><p>抢占（编号越小，优先级越高），是指打断其它中断的属性，即因为具有这个属性，会出现嵌套中断(在执行中断服务函数
-A 的过程中被中断 B 打断，执行完中断服务函数 B 再继续执行中断服务函数
-A)。</p></li>
-<li><p>响应（编号越小，优先级越高）属性则应用在抢占属性相同的情况下，当两个中断向量的抢占优先级相同时，如果两个中断同时到达，则先处理响应优先级高的中断。（不能打断其他中断）</p></li>
-<li><p>在STM32中，抢占优先级和响应优先级的数量由一个 4
-位的数字来决定，把这个 4
-位数字的位数分配成抢占优先级部分和响应优先级部分。（都写在寄存器内）</p></li>
-</ul>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230607154202250.png"
-alt="image-20230607154202250" />
-<figcaption aria-hidden="true">image-20230607154202250</figcaption>
-</figure>
-<blockquote>
-<p>Tips:两个中断不可能同时来，所以响应优先级主要给出了一种响应的优先队列，当多个中断向量的抢占优先级相同时，它们不会互相打断，后续的排队会按照响应优先级排队。</p>
-</blockquote>
-<h2 id="exti介绍">EXTI介绍</h2>
-<p>中断引脚的序号需要不一样才能配置不停的中断（F1系列的硬件实现）</p>
-<blockquote>
-<p>Tips:F1系列中断是共用的eg:中断/事件线EXTI0，输入源PX0（X可为A,B,...I）PA0用了则PB0就用不了。</p>
-</blockquote>
-<p>EXTI有两大模式;中断模式和事件模式</p>
-<ul>
-<li>中断模式产生中断：把输入信号输入到NVIC中，进一步执行中断服务函数，实现功能，这是软件级别的。</li>
-<li>事件模式产生事件：传输一个脉冲信号给其他外设使用，并且这是电路级别的信号传输，不需要软件处理，硬件直接触发</li>
-</ul>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230821013658350.png"
-alt="image-20230821013658350" />
-<figcaption aria-hidden="true">image-20230821013658350</figcaption>
-</figure>
-<ul>
-<li>23：并行传输数据，和这个寄存器一样的有23个</li>
-<li>边沿检测电路：一个符合则输出1</li>
-</ul>
-<p>每一种模式都可配置为上升沿触发、下降沿触发，以及上升下降沿触发三种触发方式</p>
-<h2 id="中断函数的实现">中断函数的实现</h2>
-<p>要产生中断，必须先配置好并使能中断线。根据需要的边沿检测设置2个触发寄存器，同时在中断屏蔽寄存器的相应位写’1’允许中断请求。当外部中断线上发生了期待的边沿时，将产生一个中断请求，对应的挂起位也随之被置’1’。在挂起寄存器的对应位写’1’，将清除该中断请求。</p>
-<p>如果需要产生事件，必须先配置好并使能事件线。根据需要的边沿检测通过设置2个触发寄存器，同时在事件屏蔽寄存器的相应位写’1’允许事件请求。当事件线上发生了需要的边沿时，将产生一个事件请求脉冲，对应的挂起位不被置’1’。</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230607154902377.png"
-alt="image-20230607154902377" />
-<figcaption aria-hidden="true">image-20230607154902377</figcaption>
-</figure>
-<p>通过在软件中断/事件寄存器写’1’，也可以通过软件产生中断/事件请求。</p>
-<ul>
-<li><p>一般来说单片机的中断发生有两个条件，一是<strong>中断标志位置位</strong>，二是<strong>中断允许</strong>（中断屏蔽寄存器），如果这两个条件都满足则进入中断，因为正常情况下中断一直是允许的，那么只能通过标志位来区分是否有中断挂起</p></li>
-<li><p>中断标志位：挂起请求寄存器设置。</p>
-<p>PRx:挂起为（pending bit）：</p>
-<p>0没有发生触发请求，1发生了选择触发请求</p>
-<p>当在外部中断线上发生了选择的边沿事件，该位被置1。在该位写入1可以清楚它，也可以通过改变边沿检测的极性清除。</p></li>
-<li><p>如果进入中断不清除标志位，那么这一中断服务程序结束后由于标志位还是置位的并且中断是允许的，那么还会再次进入该中断，就会发生一直在执行中断程序的情况</p></li>
-<li><p>周期性中断是由定时器辅助完成的，只要定时时间到，硬件就会自动置位标志位，这时中断发生，定时器还在运行，<strong>与中断处理是并行的没有冲突</strong>，因此周期性的中断不是从中断标志位清零开始的。</p>
-<blockquote>
-<p>Tips:MCU和定时器是并行的，互不影响</p>
-</blockquote></li>
-<li><p>如果中断程序没有执行完并且一下个中断又来了，那么硬件还是会自动置位标志位的，如果在这之前已经清零标志位那么中断结束后会再进入一次该中断，如果这时还没有清除中断标志位，则第二个中断无效。</p>
-<blockquote>
-<p>Tips:有中断，中断标志位变为1,不清0，则不能响应新的中断。</p>
-</blockquote></li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**</span><br><span class="line"> * @brief EXTI line detection callbacks.</span><br><span class="line"> * @param GPIO_Pin: Specifies the pins connected EXTI line</span><br><span class="line"> * @retval None</span><br><span class="line"> *外部中断的回调函数,hal库</span><br><span class="line"> */ </span><br><span class="line">__weak void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) </span><br><span class="line">&#123;</span><br><span class="line"> /* Prevent unused argument(s) compilation warning */</span><br><span class="line"> UNUSED(GPIO_Pin);</span><br><span class="line"> /* NOTE: This function Should not be modified, when the callback is needed, the HAL_GPIO_EXTI_Callback could be implemented in the user file */ </span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>Tips:
-<code>_weak</code>在其他地方重新定义该函数此_weak定义的函数会被覆盖,即我们要重写void
-HAL_GPIO_EXTI_Callback(uin16_t,GPIO_Pin);函数</p>
-</blockquote>
-<h2 id="实验">实验</h2>
-<h3 id="按键扫描">按键扫描</h3>
-<p>根据需要确定GPIO模式：选择下拉输入还是上拉输入or浮空输入，通过反复读取按键状态是否为高电平判断按键是否被触发</p>
-<p><strong>按键扫描的原理</strong>：
-按键的两个引脚的一端通过下拉电阻拉倒低电平，另一端接着电源。当按下开关时，输入引脚为高电平。通过反复读取按键状态是否为高电平判断按键是否被触发。</p>
-<p><strong>notes:</strong></p>
-<ul>
-<li><p>记得在cubeMX的GPIO把NVIC设置为enable</p></li>
-<li><p>在keil
-5中添加新文件：先将文件放在同一目录下，右键add添加.c文件/双击add即可，.h文件用#include包含即可</p></li>
-<li><p>机械按键的抖动，毛刺，延时再判断，hal_delay是用systick实现的</p>
-<blockquote>
-<p>Tips:设置中断优先级（比时钟低，不然不能HAL_Delay(),会陷入死循环）</p>
-</blockquote></li>
-</ul>
-<p>如下图：数码管8位一般定义为：DP G F E D C B A</p>
-<p>B C亮表示1，即00000110=0x06;</p>
-<p>A B G E D亮表示2 即01011011=0x5b；</p>
-<p>依次类推</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/a1ec08fa513d26975dfc13c055fbb2fb4316d87b.jpg"
-alt="a1ec08fa513d26975dfc13c055fbb2fb4316d87b" />
-<figcaption
-aria-hidden="true">a1ec08fa513d26975dfc13c055fbb2fb4316d87b</figcaption>
-</figure>
-<h1 id="references">References</h1>
-<ul>
-<li>哈工深电控内训</li>
-<li><a
-href="https://zhidao.baidu.com/question/1959763145635584700.html">单片机的中断标志位是有什么作用？_百度知道
-(baidu.com)</a></li>
-</ul>
-]]></content>
-      <categories>
-        <category>嵌入式</category>
-      </categories>
-      <tags>
         <tag>嵌入式</tag>
-        <tag>robomaster</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>CAN总线学习——过滤器及API</title>
-    <url>/2023/08/27/CAN%E6%80%BB%E7%BA%BF%E5%AD%A6%E4%B9%A0%E2%80%94%E2%80%94%E8%BF%87%E6%BB%A4%E5%99%A8%E5%8F%8AAPI/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>记录学习CAN的历程，主要是谈谈对CAN（bxCAN）过滤器及CAN的API。</p>
-<p>来填上次的坑！</p>
-<blockquote>
-<p>Tips:我对CAN的API应用并不是很了解，因为CAN至少需要在两块单片机上运用，所以我并未做实验，没有亲手敲过，以后实践后再补充</p>
-</blockquote>
-<span id="more"></span>
-<h1 id="两种过滤模式">两种过滤模式</h1>
-<h2 id="列表模式">列表模式</h2>
-<p>将ID输入列表，进行对照即可</p>
-<blockquote>
-<p>Tips:资源有限，受数量限制</p>
-</blockquote>
-<h2 id="掩码模式">掩码模式</h2>
-<p><strong>验证码与屏蔽码</strong></p>
-<p>ID通过哪几位由屏蔽码决定，再将通过的那几位与验证码进行比较</p>
-<figure>
-<img src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230827233906861.png" alt="掩码模式的计算过程">
-<figcaption aria-hidden="true">掩码模式的计算过程</figcaption>
-</figure>
-<p>在bxCAN中，分别采用了两个寄存器(CAN_FiR1,CAN_FiR2)来存储屏蔽码与验证码，从而实现掩码模式的工作流程的</p>
-<blockquote>
-<p>Tips:采用掩码模式的方式并不能精确的对每一个ID进行过滤eg:我想要1150——1158，然后我验证115满足即可，那么1159也会通过，不精确</p>
-</blockquote>
-<table>
-<colgroup>
-<col style="width: 8%">
-<col style="width: 62%">
-<col style="width: 29%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>模式</th>
-<th>优点</th>
-<th>缺点</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>列表模式</td>
-<td>能精确地过滤每个指定的CAN ID</td>
-<td>有数量限制</td>
-</tr>
-<tr class="even">
-<td>掩码模式</td>
-<td>取决于屏蔽码，有时无法完全精确到每一个CAN ID，部分不期望的CAN
-ID有时也会收到</td>
-<td>数量取决于屏蔽码，最多无上限</td>
-</tr>
-</tbody>
-</table>
-<h1 id="bxcan的过滤器的解决方案">bxCAN的过滤器的解决方案</h1>
-<ul>
-<li><p>过滤模式的位就定义在<strong>CAN_FM1R</strong>寄存器中的FBMx位：”0”表示掩码模式，”1”表示列表模式。</p></li>
-<li><p>一个标志用告诉过滤器是否需要处理32位的CAN ID：标准CAN
-ID位11位，而扩展CAN ID有29位，对于标准的CAN
-ID来说，我们有一个16位的寄存器来处理他足够了，相应地，扩展CAN
-ID，我们就必须使用32位的寄存器来处理它。设置了这么一个寄存器<strong>CAN_FS1R</strong>来表示CAN
-ID的位宽</p></li>
-</ul>
-<h1 id="api">API</h1>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**</span><br><span class="line">* @brief CAN filter configuration structure definition</span><br><span class="line">*/</span><br><span class="line">CAN_FilterTypeDef;</span><br></pre></td></tr></table></figure>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**</span><br><span class="line">    * @brief Configures the CAN reception filter according to the specified</span><br><span class="line">    * parameters in the CAN_FilterInitStruct.</span><br><span class="line">    * @param hcan pointer to a CAN_HandleTypeDef structure that contains</span><br><span class="line">    * the configuration information for the specified CAN.</span><br><span class="line">    * @param sFilterConfig pointer to a CAN_FilterTypeDef structure that</span><br><span class="line">    * contains the filter configuration information.</span><br><span class="line">    * @retval None</span><br><span class="line">*/</span><br><span class="line">HAL_StatusTypeDef HAL_CAN_ConfigFilter(CAN_HandleTypeDef *hcan,CAN_FilterTypeDef *sFilterConfig)</span><br></pre></td></tr></table></figure>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**</span><br><span class="line">    * @brief Start the CAN module.</span><br><span class="line">    * @param hcan pointer to an CAN_HandleTypeDef structure that contains</span><br><span class="line">    * the configuration information for the specified CAN.</span><br><span class="line">    * @retval HAL status</span><br><span class="line">*/</span><br><span class="line">HAL_StatusTypeDef HAL_CAN_Start(CAN_HandleTypeDef *hcan)</span><br></pre></td></tr></table></figure>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**</span><br><span class="line">    * @brief Enable interrupts.</span><br><span class="line">    * @param hcan pointer to an CAN_HandleTypeDef structure that contains</span><br><span class="line">    * the configuration information for the specified CAN.</span><br><span class="line">    * @param ActiveITs indicates which interrupts will be enabled.</span><br><span class="line">    * This parameter can be any combination of @arg CAN_Interrupts.</span><br><span class="line">    * @retval HAL status</span><br><span class="line">*/</span><br><span class="line">HAL_StatusTypeDef HAL_CAN_ActivateNotification(CAN_HandleTypeDef *hcan, uint32_t</span><br><span class="line">ActiveITs)</span><br></pre></td></tr></table></figure>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**</span><br><span class="line">    * @brief Add a message to the first free Tx mailbox and activate the</span><br><span class="line">    * corresponding transmission request.</span><br><span class="line">    * @param hcan pointer to a CAN_HandleTypeDef structure that contains</span><br><span class="line">    * the configuration information for the specified CAN.</span><br><span class="line">    * @param pHeader pointer to a CAN_TxHeaderTypeDef structure.</span><br><span class="line">    * @param aData array containing the payload of the Tx frame.</span><br><span class="line">    * @param pTxMailbox pointer to a variable where the function will return</span><br><span class="line">    * the TxMailbox used to store the Tx message.</span><br><span class="line">    * This parameter can be a value of @arg CAN_Tx_Mailboxes.</span><br><span class="line">    * @retval HAL status</span><br><span class="line">*/</span><br><span class="line">HAL_StatusTypeDef HAL_CAN_AddTxMessage(CAN_HandleTypeDef *hcan,CAN_TxHeaderTypeDef *pHeader, uint8_t aData[], uint32_t *pTxMailbox)</span><br></pre></td></tr></table></figure>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**</span><br><span class="line">    * @brief Get an CAN frame from the Rx FIFO zone into the message RAM.</span><br><span class="line">    * @param hcan pointer to an CAN_HandleTypeDef structure that contains</span><br><span class="line">    * the configuration information for the specified CAN.</span><br><span class="line">    * @param RxFifo Fifo number of the received message to be read.</span><br><span class="line">    * This parameter can be a value of @arg CAN_receive_FIFO_number.</span><br><span class="line">    * @param pHeader pointer to a CAN_RxHeaderTypeDef structure where the header</span><br><span class="line">    * of the Rx frame will be stored.</span><br><span class="line">    * @param aData array where the payload of the Rx frame will be stored.</span><br><span class="line">    * @retval HAL status</span><br><span class="line">*/</span><br><span class="line">HAL_StatusTypeDef HAL_CAN_GetRxMessage(CAN_HandleTypeDef *hcan, uint32_t RxFifo,CAN_RxHeaderTypeDef *pHeader, uint8_t aData[])</span><br></pre></td></tr></table></figure>
-<h1 id="references">References</h1>
-<ul>
-<li>B站哈工深电控组内训视频</li>
-<li><a href="https://zhuanlan.zhihu.com/p/38299092">CAN总线波特率的设定——以STM32F103为例
-- 知乎 (zhihu.com)</a></li>
-<li><a href="https://blog.csdn.net/flydream0/article/details/52317532">再谈STM32的CAN过滤器-bxCAN的过滤器的4种工作模式以及使用方法总结_f407
-can id过滤_flydream0的博客-CSDN博客</a></li>
-</ul>
-]]></content>
-      <categories>
-        <category>嵌入式</category>
-      </categories>
-      <tags>
-        <tag>嵌入式</tag>
-        <tag>robomaster</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Environment_variables</title>
-    <url>/2023/08/14/Environment-variables/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>最近调整自己的workflow，遇到很多配置环境变量（environment
-variable）的问题，借此机会了解一下</p>
-<span id="more"></span>
-<h1 id="introduction">Introduction</h1>
-<p>环境变量是一种<strong>在操作系统中</strong>用来指定操作系统运行环境的参数，例如临时文件夹的位置，系统文件夹的位置，可执行文件的搜索路径等。</p>
-<p>环境变量的作用是<strong>让操作系统或者应用程序能够找到所需要的资源或者设置</strong>。</p>
-<h1 id="diffenent-systems">diffenent systems</h1>
-<h2 id="在windows中">在Windows中</h2>
-<p>可以通过“控制面板”-“系统”-“高级系统设置”-“环境变量”来查看和编辑环境变量。通过可视化的窗口模式展现出来的.</p>
-<h2 id="在linux中">在Linux中</h2>
-<p>可以通过命令行工具或者编辑配置文件来查看和编辑环境变量。</p>
-<h3 id="设置">设置：</h3>
-<p>在
-/etc/profile文件中设置，export的意思就是将局部变量设置为环境变量。现有的变量是被这样一行代码设置的：</p>
-<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">export PATH USER LOGNAME MAIL HOSTNAME HISTSIZE HISTCONTROL</span><br></pre></td></tr></table></figure>
-<p>这几个环境变量已经有一些默认值了，不过我们可以追加内容，比如修改PATH：</p>
-<figure class="highlight text"><table><tr><td class="code"><pre><span class="line"># : 的意思是并列</span><br><span class="line">PATH = /abc/def:$PATH</span><br></pre></td></tr></table></figure>
-<h3 id="查看">查看：</h3>
-<p>查看全部，使用<code>env</code>命令即可。</p>
-<p>查看单个，可以使用<code>echo：如echo $JAVA_HOME。</code></p>
-<h1 id="一些常见的环境变量有">一些常见的环境变量有</h1>
-<ul>
-<li><p>PATH：指定可执行文件的搜索路径，当你在命令行中输入一个程序名而没有指定完整路径时，系统会在PATH中指定的目录下寻找该程序。（一般为bin文件姐）</p></li>
-<li><p>JAVA_HOME：指定JDK（Java开发工具包）的安装目录，一些Java开发工具或者应用程序会使用这个变量来找到JDK。</p></li>
-<li><p>TEMP或TMP：指定临时文件夹的位置，一些应用程序会在这个目录下存储临时数据或者缓存文件。</p></li>
-<li><p>USERPROFILE：指定当前用户的配置文件的位置，一些应用程序会在这个目录下存储用户相关的数据或者设置。</p></li>
-</ul>
-<h1 id="references">References</h1>
-<ul>
-<li><a href="https://zhuanlan.zhihu.com/p/82011100">看懂什么是环境变量!
-- 知乎 (zhihu.com)</a></li>
-</ul>
-]]></content>
-      <categories>
-        <category>CS</category>
-      </categories>
-      <tags>
-        <tag>CS</tag>
       </tags>
   </entry>
   <entry>
@@ -1198,8 +1198,8 @@ alt="image-20230824233303404" />
         <category>嵌入式</category>
       </categories>
       <tags>
-        <tag>嵌入式</tag>
         <tag>robomaster</tag>
+        <tag>嵌入式</tag>
       </tags>
   </entry>
   <entry>
@@ -1408,8 +1408,8 @@ taskYIELD()时，才会进行上下文切换。任务永远不会被抢占，而
         <category>嵌入式</category>
       </categories>
       <tags>
-        <tag>嵌入式</tag>
         <tag>robomaster</tag>
+        <tag>嵌入式</tag>
       </tags>
   </entry>
   <entry>
@@ -1639,8 +1639,8 @@ href="https://blog.csdn.net/qq_35157382/article/details/119653413">嵌入式-STM
         <category>嵌入式</category>
       </categories>
       <tags>
-        <tag>嵌入式</tag>
         <tag>robomaster</tag>
+        <tag>嵌入式</tag>
       </tags>
   </entry>
   <entry>
@@ -1907,388 +1907,6 @@ href="https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html">tba
 - A Note About Git Commit Messages</a></li>
 <li><a href="https://cbea.ms/git-commit/">How to Write a Git Commit
 Message (cbea.ms)</a></li>
-<li><a href="https://learngitbranching.js.org/?locale=zh_CN">Learn Git
-Branching</a></li>
-</ul>
-]]></content>
-      <categories>
-        <category>CS</category>
-      </categories>
-      <tags>
-        <tag>CS</tag>
-        <tag>Git</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Git进阶（2）</title>
-    <url>/2023/08/10/Git%E8%BF%9B%E9%98%B6%EF%BC%882%EF%BC%89/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>Git进阶（2）——了解Git Branching—”killer feature“</p>
-<p>希望通过<a href="https://git-scm.com/book/zh/v2">Git - Book
-(git-scm.com)</a>+<a
-href="https://learngitbranching.js.org/?locale=zh_CN">Learn Git
-Branching</a>来进一步掌握Git</p>
-<p><strong>Learn to love the command line. Leave the IDE
-behind.</strong></p>
-<span id="more"></span>
-<h1 id="git-branching">Git Branching</h1>
-<h2 id="branches-in-a-nutshell">Branches in a Nutshell</h2>
-<p>Git保存一系列不同时刻的snapshots,When you make a commit, Git stores a
-commit object that contains a pointer to the snapshot of the content you
-staged. 暂存操作会为每一个文件计算校验和。当使用 <code>git commit</code>
-进行提交操作时，Git
-会先计算每一个子目录（本例中只有项目根目录）的校验和， 然后在 Git
-仓库中这些校验和保存为树对象。随后，Git 便会创建一个提交对象，
-它除了包含上面提到的那些信息外，还包含指向这个树对象（项目根目录）的指针。
-如此一来，Git 就可以在需要的时候重现此次保存的快照。</p>
-<p>现在，Git 仓库中有五个对象：三个 <em>blob</em>
-对象（保存着文件快照）、一个 <strong>树</strong> 对象 （记录着目录结构和
-blob 对象索引）以及一个 <strong>提交</strong>
-对象（包含着指向前述树对象的指针和所有提交信息）。</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/commit-and-tree.png"
-alt="commit-and-tree" />
-<figcaption aria-hidden="true">commit-and-tree</figcaption>
-</figure>
-<p>Git 的分支，其实本质上仅仅是指向提交对象的可变指针</p>
-<p>Git有一个名为 <code>HEAD</code>
-的特殊指针，指向当前所在的本地分支（HEAD即当前你所在的位置）</p>
-<blockquote>
-<p>Tips:Git 的分支实质上仅是包含所指对象校验和（长度为 40 的 SHA-1
-值字符串）的文件，所以它的创建和销毁都异常高效。</p>
-</blockquote>
-<h2 id="分支创建">分支创建</h2>
-<p>使用 <code>git branch</code> 命令：只是为我创建了一个新的指针</p>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git branch testing</span></span><br></pre></td></tr></table></figure>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/head-to-master.png"
-alt="head-to-master" />
-<figcaption aria-hidden="true">head-to-master</figcaption>
-</figure>
-<p><strong>创建新分支的同时切换过去</strong></p>
-<p>通常我们会在创建一个新分支后立即切换过去，这可以用
-<code>git checkout -b &lt;newbranchname&gt;</code> 一条命令搞定</p>
-<h2 id="分支删除">分支删除</h2>
-<p>使用带 <code>-d</code> 选项的 <code>git branch</code>
-命令来删除分支：</p>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git branch -d &lt;branch-name&gt;</span></span><br></pre></td></tr></table></figure>
-<h2 id="分支检查">分支检查</h2>
-<p><code>git log</code> 命令查看各个分支当前所指的对象。
-提供这一功能的参数是 <code>--decorate</code>。（仅检查当前分支）</p>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git <span class="built_in">log</span> --oneline --decorate</span></span><br></pre></td></tr></table></figure>
-<p>查看<strong>分叉历史</strong>。 运行
-<code>git log --oneline --decorate --graph --all</code>
-会输出你的提交历史、各个分支的指向以及项目的分支分叉情况。</p>
-<h2 id="分支切换">分支切换</h2>
-<p>在 Git 2.23 版本中，引入了一个名为 <code>git switch</code>
-的新命令，最终会取代 <code>git checkout</code>，因为
-<code>checkout</code> 作为单个命令有点超载（它承载了很多独立的功能）</p>
-<p>使用 <code>git checkout</code> 命令</p>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout testing</span></span><br></pre></td></tr></table></figure>
-<p>HEAD会随当前指针移动</p>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout master</span></span><br></pre></td></tr></table></figure>
-<ul>
-<li><p>HEAD 指回 <code>master</code> 分支</p></li>
-<li><p>将工作目录恢复成 <code>master</code>
-分支所指向的快照内容</p></li>
-</ul>
-<blockquote>
-<p>Tips:切换前保持干净（留意未提交的修改）</p>
-</blockquote>
-<h2 id="分支合并">分支合并</h2>
-<p><code>git merge</code> 命令来达到上述目的：先切换到主分支，然后
-<code>git merge &lt;想要合并的branch&gt;</code></p>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout master</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git merge hotfix</span></span><br></pre></td></tr></table></figure>
-<h3 id="一脉相承的分支合并">一脉相承的分支合并</h3>
-<p>当你试图合并两个分支时，
-如果顺着一个分支走下去能够到达另一个分支，那么 Git 在合并两者的时候，
-只会简单的将指针向前推进（指针右移），因为这种情况下的合并操作没有需要解决的分歧——这就叫做
-“快进（fast-forward）</p>
-<h3 id="diverged-branches">diverged branches:</h3>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/basic-merging-2.png"
-alt="basic-merging-2" />
-<figcaption aria-hidden="true">basic-merging-2</figcaption>
-</figure>
-<p>Git 会使用两个分支的末端所指的快照（<code>C4</code> 和
-<code>C5</code>）以及这两个分支的公共祖先（<code>C2</code>），做一个简单的三方合并。</p>
-<blockquote>
-<p>Tips:多余的分支记得删除 <code>git branch -d ...</code></p>
-</blockquote>
-<h3 id="遇到冲突时的分支合并">遇到冲突时的分支合并</h3>
-<p>如果你在两个不同的分支中，对同一个文件的同一个部分进行了不同的修改，Git
-就没法干净的合并它们。</p>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git merge iss53</span></span><br></pre></td></tr></table></figure>
-<p>此时 Git 做了合并，但是没有自动地创建一个新的合并提交。 Git
-会暂停下来，等待你去解决合并产生的冲突。
-你可以在合并冲突后的任意时刻使用 <code>git status</code>
-命令来查看那些因包含合并冲突而处于未合并（unmerged）状态的文件：</p>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git status</span></span><br></pre></td></tr></table></figure>
-<p><code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code> , <code>=======</code> , 和
-<code>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code> 这些行被完全删除了。
-在你解决了所有文件里的冲突之后，对每个文件使用 <code>git add</code>
-命令来将其标记为冲突已解决。 一旦暂存这些原本有冲突的文件，Git
-就会将它们标记为冲突已解决。</p>
-<h2 id="rebasing">Rebasing</h2>
-<p>在 Git 中整合来自不同分支的修改主要有两种方法：<code>merge</code>
-(最容易)以及 <code>rebase</code>。</p>
-<p><strong>变基（rebase）</strong>：使用 <code>rebase</code>
-命令将提交到某一分支上的所有修改都移至另一分支上（先转到要rebase的分支上去，master是目标基底分支）</p>
-<p>变基是将一系列提交按照原有次序依次应用到另一分支上<code>git rebase &lt;basebranch&gt; &lt;topicbranch&gt;</code></p>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout experiment</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git rebase master</span>   </span><br></pre></td></tr></table></figure>
-<p>首先找到这两个分支（即当前分支
-<code>experiment</code>、变基操作的目标基底分支 <code>master</code>）
-的最近共同祖先
-<code>C2</code>然后对比当前分支相对于该祖先的历次提交，提取相应的修改并存为临时文件，
-然后将当前分支指向目标基底 <code>C3</code>,
-最后以此将之前另存为临时文件的修改依序应用。</p>
-<p>现在回到 <code>master</code> 分支，进行一次快进合并。</p>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout master</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git merge experiment</span></span><br></pre></td></tr></table></figure>
-<h3 id="rebasing-进阶">Rebasing 进阶</h3>
-<p>使用 <code>git rebase</code> 命令的 <code>--onto</code> 选项， 选中在
-<code>client</code> 分支里但不在 <code>server</code> 分支里的修改（即
-<code>C8</code> 和 <code>C9</code>），将它们在 <code>master</code>
-分支上重放：</p>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git rebase --onto master server client</span></span><br></pre></td></tr></table></figure>
-<p>理解：取出 <code>client</code> 分支，找出它从 <code>server</code>
-分支分歧之后的补丁， 然后把这些补丁在 <code>master</code>
-分支上重放一遍，让 <code>client</code> 看起来像直接基于
-<code>master</code> 修改一样<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/interesting-rebase-2.png"
-alt="interesting-rebase-2" /></p>
-<h3 id="变基的风险">变基的风险</h3>
-<p>总的原则是，只对尚未推送或分享给别人的本地修改执行变基操作清理历史，
-从不对已推送至别处的提交执行变基操作</p>
-<h2 id="分支管理">分支管理</h2>
-<p>git branch命令的使用</p>
-<ul>
-<li>查看所有分支</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">$ git branch</span><br><span class="line">* master</span><br></pre></td></tr></table></figure>
-<p>不加任何参数运行它，会得到当前所有分支的一个列表,<code>master</code>
-分支前的 <code>*</code> 字符：它代表现在检出的那一个分支（也就是说，当前
-<code>HEAD</code> 指针所指向的分支）</p>
-<ul>
-<li>查看每一个分支的最后一次提交</li>
-</ul>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git branch -v</span></span><br></pre></td></tr></table></figure>
-<ul>
-<li><p>--merged与 --no-merged
-这两个有用的选项可以过滤这个列表中已经合并或尚未合并到当前分支的分支。
-如果要查看哪些分支已经合并到当前分支，可以运行
-<code>git branch --merged</code></p>
-<blockquote>
-<p>Tips:你总是可以提供一个附加的参数来查看其它分支的合并状态而不必检出它们。
-例如，尚未合并到 <code>master</code> 分支的有哪些？</p>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout testing</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git branch --no-merged master</span></span><br><span class="line">  topicA</span><br><span class="line">  featureB</span><br></pre></td></tr></table></figure>
-</blockquote></li>
-</ul>
-<h2 id="在tree上移动">在tree上移动</h2>
-<p>分离<code>HEAD</code>:git checkout C1(一个snapshot的checksum)</p>
-<p>Git识别checksum比较智能，只需能唯一标识的前几个字符即可</p>
-<h3 id="相对引用">相对引用</h3>
-<p>通过哈希值指定提交记录很不方便，所以 Git
-引入了相对引用，这里我介绍两个简单的用法：</p>
-<ul>
-<li>使用 <code>^</code> 向上移动 1 个提交记录（寻找parent
-node，可以连续使用eg:<code>main^^</code>）,其后也可以跟数字，指明回到哪一个parent
-node</li>
-<li>使用 <code>~&lt;num&gt;</code> 向上移动多个提交记录，如
-<code>~3</code>（可选，不加数字时与 <code>^</code>
-相同，向上移动一次）</li>
-</ul>
-<blockquote>
-<p>Tips:modifiers可以复合使用：<code>git checkout HEAD\~2^2~3</code></p>
-</blockquote>
-<h3 id="强制修改分支位置">强制修改分支位置</h3>
-<p>使用相对引用最多的就是移动分支。可以直接使用 <code>-f</code>
-选项让分支指向另一个提交。例如:</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">git branch -f main HEAD~3</span><br></pre></td></tr></table></figure>
-<p>上面的命令会将 main 分支强制指向 HEAD 的第 3 级 parent 提交。</p>
-<h2 id="整理提交记录">整理提交记录</h2>
-<h3 id="cherry-pick">cherry-pick</h3>
-<p>“整理提交记录” —— 开发人员有时会说“我想要把这个提交放到这里,
-那个提交放到刚才那个提交的后面”</p>
-<ul>
-<li><code>git cherry-pick &lt;提交号&gt;...</code></li>
-</ul>
-<p>如果你想将一些提交复制到当前所在的位置（<code>HEAD</code>）下面的话，
-Cherry-pick 是最直接的方式了。（如果知道提交记录则very simple）</p>
-<h3 id="交互式的rebase">交互式的rebase</h3>
-<p>if 不清楚你想要的提交记录的哈希值</p>
-<blockquote>
-<p>Tips:COOL!!!</p>
-</blockquote>
-<p>交互式 rebase 指的是使用带参数 <code>--interactive</code> 的 rebase
-命令, 简写为 <code>-i</code>，Git 会打开一个 UI
-界面（vim）并列出将要被复制到目标分支的备选提交记录，它还会显示每个提交记录的哈希值和提交说明，提交说明有助于你理解这个提交进行了哪些更改。</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">git rebase -i HEAD~4</span><br></pre></td></tr></table></figure>
-<p>当 rebase UI界面打开时, 你能做3件事:</p>
-<ul>
-<li>调整提交记录的顺序（通过鼠标拖放来完成）</li>
-<li>删除你不想要的提交（通过切换 <code>pick</code>
-的状态来完成，关闭就意味着你不想要这个提交记录）</li>
-<li>合并提交。</li>
-</ul>
-<h3 id="如何整理">如何整理</h3>
-<p>来看一个在开发中经常会遇到的情况：我正在解决某个特别棘手的
-Bug，为了便于调试而在代码中添加了一些调试命令并向控制台打印了一些信息。解决后并不想在commit中包含这些信息，实际我们只要让
-Git 复制解决问题的那一个提交记录就可以了。我们可以使用</p>
-<ul>
-<li><code>git rebase -i</code></li>
-<li><code>git cherry-pick</code></li>
-</ul>
-<p>来达到目的。</p>
-<ul>
-<li><p>我们可以使用 <code>rebase -i</code>
-对提交记录进行重新排序。只要把我们想要的提交记录挪到最前端，我们就可以很轻松的用
-<code>--amend</code> 修改它，然后把它们重新排成我们想要的顺序</p></li>
-<li><p>or只是把C2单独提出来，修改后，再用cherry-pick添加进去</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230815110958607.png"
-alt="image-20230815110958607" />
-<figcaption aria-hidden="true">image-20230815110958607</figcaption>
-</figure></li>
-</ul>
-<h2 id="分支开发工作流">分支开发工作流</h2>
-<h3 id="长期分支">长期分支</h3>
-<p>非必要，但常很有帮助</p>
-<p>许多使用 Git 的开发者都喜欢使用这种方式来工作，比如只在
-<code>master</code>
-分支上保留完全稳定的代码——有可能仅仅是已经发布或即将发布的代码。
-他们还有一些名为 <code>develop</code> 或者 <code>next</code>
-的平行分支，被用来做后续开发或者测试稳定性——这些分支不必保持绝对稳定，但是一旦达到稳定状态，它们就可以被合并入
-<code>master</code> 分支了。</p>
-<p>趋于稳定分支的流水线（“silo”）视图：</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/lr-branches-2.png"
-alt="lr-branches-2" />
-<figcaption aria-hidden="true">lr-branches-2</figcaption>
-</figure>
-<h3 id="主题分支">主题分支</h3>
-<p>主题分支对任何规模的项目都适用。
-主题分支是一种短期分支，它被用来实现单一特性或其相关工作。 在 Git
-中一天之内多次创建、使用、合并、删除分支都很常见。</p>
-<h2 id="远程分支">远程分支</h2>
-<p>远程引用是对远程仓库的引用（指针），包括分支、标签等等。 你可以通过
-<code>git ls-remote &lt;remote&gt;</code>
-来显式地获得远程引用的完整列表， 或者通过
-<code>git remote show &lt;remote&gt;</code> 获得远程分支的更多信息。</p>
-<h3 id="远程跟踪分支">远程跟踪分支</h3>
-<p>远程跟踪分支是远程分支状态的引用。它们是你无法移动的本地引用。一旦你进行了网络通信，
-Git
-就会为你移动它们以精确反映远程仓库的状态。提醒你该分支在远程仓库中的位置就是你最后一次连接到它们的位置。</p>
-<p>命名形式：<remote>/<branch></p>
-<p>Git 的 <code>clone</code> 命令会为你自动将其命名为
-<code>origin</code>，拉取它的所有数据， 创建一个指向它的
-<code>master</code> 分支的指针，并且在本地将其命名为
-<code>origin/master</code>。 Git 也会给你一个与 origin 的
-<code>master</code> 分支在指向同一个地方的本地 <code>master</code>
-分支，这样你就有工作的基础。</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/remote-branches-1.png"
-alt="remote-branches-1" />
-<figcaption aria-hidden="true">remote-branches-1</figcaption>
-</figure>
-<blockquote>
-<p>Tips:运行
-<code>git clone -o booyah</code>，那么你默认的远程分支名字将会是
-<code>booyah/master</code>。-o远程库的命名。</p>
-<p><code>git remote add name remote(url)</code></p>
-</blockquote>
-<h3 id="同步远程仓库">同步远程仓库</h3>
-<p>程仓库同步数据，运行 <code>git fetch &lt;remote&gt;</code></p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/remote-branches-3.png"
-alt="remote-branches-3" />
-<figcaption aria-hidden="true">remote-branches-3</figcaption>
-</figure>
-<blockquote>
-<p>Tips:本地与远程的工作可以分叉</p>
-</blockquote>
-<p>多个远程仓库可以：<code>git remote add name remote(url)</code></p>
-<h3 id="推送">推送</h3>
-<p><code>git push &lt;remote&gt; &lt;branch&gt;</code> Git 自动将
-<code>serverfix</code> 分支名字展开为
-<code>refs/heads/serverfix:refs/heads/serverfix</code>，
-那意味着，“推送本地的 <code>serverfix</code> 分支来更新远程仓库上的
-<code>serverfix</code> 分支。”</p>
-<p>运行 <code>git push origin serverfix:awesomebranch</code> 来将本地的
-<code>serverfix</code> 分支推送到远程仓库上的 <code>awesomebranch</code>
-分支</p>
-<blockquote>
-<p>Tips:<避免每次输入密码>使用 HTTPS URL 来推送，Git
-服务器会询问用户名与密码。</p>
-<p>如果不想在每一次推送时都输入用户名与密码，你可以设置一个 “credential
-cache”。 最简单的方式就是将其保存在内存中几分钟，可以简单地运行
-<code>git config --global credential.helper cache</code> 来设置它。</p>
-</blockquote>
-<p>当重新抓取到新的远程跟踪分支时，不会有一个新的 <code>serverfix</code>
-分支——只有一个不可以修改的 <code>origin/serverfix</code> 指针。</p>
-<p>可以运行 <code>git merge origin/serverfix</code>
-将这些工作合并到当前所在的分支。 如果想要在自己的 <code>serverfix</code>
-分支上工作，可以将其建立在远程跟踪分支之上：</p>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout -b serverfix origin/serverfix</span></span><br><span class="line">Branch serverfix set up to track remote branch serverfix from origin.</span><br><span class="line">Switched to a new branch &#x27;serverfix&#x27;</span><br></pre></td></tr></table></figure>
-<p>这会给你一个用于工作的本地分支，并且起点位于
-<code>origin/serverfix</code>。</p>
-<h3 id="跟踪分支">跟踪分支</h3>
-<p>从一个远程跟踪分支检出一个本地分支会自动创建所谓的“跟踪分支”（它跟踪的分支叫做“上游分支”）。
-跟踪分支是与远程分支有直接关系的本地分支。 如果在一个跟踪分支上输入
-<code>git pull</code>，Git
-能自动地识别去哪个服务器上抓取、合并到哪个分支。</p>
-<p><code>git checkout -b &lt;branch&gt; &lt;remote&gt;/&lt;branch&gt;</code>。可以自己命名</p>
-<p>这是一个十分常用的操作所以 Git 提供了 <code>--track</code>
-快捷方式：</p>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout --track origin/serverfix</span></span><br></pre></td></tr></table></figure>
-<p>该捷径本身还有一个捷径。 如果你尝试检出的分支 (a) 不存在且 (b)
-刚好只有一个名字与之匹配的远程分支，那么 Git
-就会为你创建一个跟踪分支：</p>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout serverfix</span></span><br></pre></td></tr></table></figure>
-<p><strong>设置已有的本地分支</strong>跟踪一个刚刚拉取下来的远程分支，或者想要修改正在跟踪的上游分支，
-你可以在任意时间使用 <code>-u</code> 或 <code>--set-upstream-to</code>
-选项运行 <code>git branch</code> 来显式地设置。</p>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git branch -u origin/serverfix</span></span><br><span class="line">Branch serverfix set up to track remote branch serverfix from origin.</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>Tips:<上游快捷方式>当设置好跟踪分支后，可以通过简写
-<code>@&#123;upstream&#125;</code> 或 <code>@&#123;u&#125;</code> 来引用它的上游分支。
-所以在 <code>master</code> 分支时并且它正在跟踪
-<code>origin/master</code> 时，如果愿意的话可以使用
-<code>git merge @&#123;u&#125;</code> 来取代
-<code>git merge origin/master</code>。</p>
-</blockquote>
-<p>查看设置的所有跟踪分支，可以使用 <code>git branch</code> 的
-<code>-vv</code> 选项。 这会将所有的本地分支列出来并且包含更多的信息</p>
-<h3 id="拉取">拉取</h3>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git fetch --all; git branch -vv</span></span><br></pre></td></tr></table></figure>
-<p><code>git fetch</code>
-命令从服务器上抓取本地没有的数据时，它并不会修改工作目录中的内容。
-它只会获取数据然后让你自己合并。</p>
-<blockquote>
-<p>Tips:<code>git pull</code> 在大多数情况下它的含义是一个
-<code>git fetch</code> 紧接着一个 <code>git merge</code> 命令。</p>
-<p>由于 <code>git pull</code> 的魔法经常令人困惑所以通常单独显式地使用
-<code>fetch</code> 与 <code>merge</code> 命令会更好一些。</p>
-</blockquote>
-<h3 id="删除远程分支">删除远程分支</h3>
-<p>可以运行带有 <code>--delete</code> 选项的 <code>git push</code>
-命令来删除一个远程分支。 如果想要从服务器上删除 <code>serverfix</code>
-分支，运行下面的命令：</p>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git push origin --delete serverfix</span></span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>Tips:基本上这个命令做的只是从服务器上移除这个指针。 Git
-服务器通常会保留数据一段时间直到垃圾回收运行，所以如果不小心删除掉了，通常是很容易恢复的。</p>
-</blockquote>
-<h1 id="references">References</h1>
-<ul>
-<li><a href="https://git-scm.com/book/zh/v2">Git - Book
-(git-scm.com)</a></li>
 <li><a href="https://learngitbranching.js.org/?locale=zh_CN">Learn Git
 Branching</a></li>
 </ul>
@@ -3012,6 +2630,388 @@ Branching</a></li>
       </tags>
   </entry>
   <entry>
+    <title>Git进阶（2）</title>
+    <url>/2023/08/10/Git%E8%BF%9B%E9%98%B6%EF%BC%882%EF%BC%89/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>Git进阶（2）——了解Git Branching—”killer feature“</p>
+<p>希望通过<a href="https://git-scm.com/book/zh/v2">Git - Book
+(git-scm.com)</a>+<a
+href="https://learngitbranching.js.org/?locale=zh_CN">Learn Git
+Branching</a>来进一步掌握Git</p>
+<p><strong>Learn to love the command line. Leave the IDE
+behind.</strong></p>
+<span id="more"></span>
+<h1 id="git-branching">Git Branching</h1>
+<h2 id="branches-in-a-nutshell">Branches in a Nutshell</h2>
+<p>Git保存一系列不同时刻的snapshots,When you make a commit, Git stores a
+commit object that contains a pointer to the snapshot of the content you
+staged. 暂存操作会为每一个文件计算校验和。当使用 <code>git commit</code>
+进行提交操作时，Git
+会先计算每一个子目录（本例中只有项目根目录）的校验和， 然后在 Git
+仓库中这些校验和保存为树对象。随后，Git 便会创建一个提交对象，
+它除了包含上面提到的那些信息外，还包含指向这个树对象（项目根目录）的指针。
+如此一来，Git 就可以在需要的时候重现此次保存的快照。</p>
+<p>现在，Git 仓库中有五个对象：三个 <em>blob</em>
+对象（保存着文件快照）、一个 <strong>树</strong> 对象 （记录着目录结构和
+blob 对象索引）以及一个 <strong>提交</strong>
+对象（包含着指向前述树对象的指针和所有提交信息）。</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/commit-and-tree.png"
+alt="commit-and-tree" />
+<figcaption aria-hidden="true">commit-and-tree</figcaption>
+</figure>
+<p>Git 的分支，其实本质上仅仅是指向提交对象的可变指针</p>
+<p>Git有一个名为 <code>HEAD</code>
+的特殊指针，指向当前所在的本地分支（HEAD即当前你所在的位置）</p>
+<blockquote>
+<p>Tips:Git 的分支实质上仅是包含所指对象校验和（长度为 40 的 SHA-1
+值字符串）的文件，所以它的创建和销毁都异常高效。</p>
+</blockquote>
+<h2 id="分支创建">分支创建</h2>
+<p>使用 <code>git branch</code> 命令：只是为我创建了一个新的指针</p>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git branch testing</span></span><br></pre></td></tr></table></figure>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/head-to-master.png"
+alt="head-to-master" />
+<figcaption aria-hidden="true">head-to-master</figcaption>
+</figure>
+<p><strong>创建新分支的同时切换过去</strong></p>
+<p>通常我们会在创建一个新分支后立即切换过去，这可以用
+<code>git checkout -b &lt;newbranchname&gt;</code> 一条命令搞定</p>
+<h2 id="分支删除">分支删除</h2>
+<p>使用带 <code>-d</code> 选项的 <code>git branch</code>
+命令来删除分支：</p>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git branch -d &lt;branch-name&gt;</span></span><br></pre></td></tr></table></figure>
+<h2 id="分支检查">分支检查</h2>
+<p><code>git log</code> 命令查看各个分支当前所指的对象。
+提供这一功能的参数是 <code>--decorate</code>。（仅检查当前分支）</p>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git <span class="built_in">log</span> --oneline --decorate</span></span><br></pre></td></tr></table></figure>
+<p>查看<strong>分叉历史</strong>。 运行
+<code>git log --oneline --decorate --graph --all</code>
+会输出你的提交历史、各个分支的指向以及项目的分支分叉情况。</p>
+<h2 id="分支切换">分支切换</h2>
+<p>在 Git 2.23 版本中，引入了一个名为 <code>git switch</code>
+的新命令，最终会取代 <code>git checkout</code>，因为
+<code>checkout</code> 作为单个命令有点超载（它承载了很多独立的功能）</p>
+<p>使用 <code>git checkout</code> 命令</p>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout testing</span></span><br></pre></td></tr></table></figure>
+<p>HEAD会随当前指针移动</p>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout master</span></span><br></pre></td></tr></table></figure>
+<ul>
+<li><p>HEAD 指回 <code>master</code> 分支</p></li>
+<li><p>将工作目录恢复成 <code>master</code>
+分支所指向的快照内容</p></li>
+</ul>
+<blockquote>
+<p>Tips:切换前保持干净（留意未提交的修改）</p>
+</blockquote>
+<h2 id="分支合并">分支合并</h2>
+<p><code>git merge</code> 命令来达到上述目的：先切换到主分支，然后
+<code>git merge &lt;想要合并的branch&gt;</code></p>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout master</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git merge hotfix</span></span><br></pre></td></tr></table></figure>
+<h3 id="一脉相承的分支合并">一脉相承的分支合并</h3>
+<p>当你试图合并两个分支时，
+如果顺着一个分支走下去能够到达另一个分支，那么 Git 在合并两者的时候，
+只会简单的将指针向前推进（指针右移），因为这种情况下的合并操作没有需要解决的分歧——这就叫做
+“快进（fast-forward）</p>
+<h3 id="diverged-branches">diverged branches:</h3>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/basic-merging-2.png"
+alt="basic-merging-2" />
+<figcaption aria-hidden="true">basic-merging-2</figcaption>
+</figure>
+<p>Git 会使用两个分支的末端所指的快照（<code>C4</code> 和
+<code>C5</code>）以及这两个分支的公共祖先（<code>C2</code>），做一个简单的三方合并。</p>
+<blockquote>
+<p>Tips:多余的分支记得删除 <code>git branch -d ...</code></p>
+</blockquote>
+<h3 id="遇到冲突时的分支合并">遇到冲突时的分支合并</h3>
+<p>如果你在两个不同的分支中，对同一个文件的同一个部分进行了不同的修改，Git
+就没法干净的合并它们。</p>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git merge iss53</span></span><br></pre></td></tr></table></figure>
+<p>此时 Git 做了合并，但是没有自动地创建一个新的合并提交。 Git
+会暂停下来，等待你去解决合并产生的冲突。
+你可以在合并冲突后的任意时刻使用 <code>git status</code>
+命令来查看那些因包含合并冲突而处于未合并（unmerged）状态的文件：</p>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git status</span></span><br></pre></td></tr></table></figure>
+<p><code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code> , <code>=======</code> , 和
+<code>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code> 这些行被完全删除了。
+在你解决了所有文件里的冲突之后，对每个文件使用 <code>git add</code>
+命令来将其标记为冲突已解决。 一旦暂存这些原本有冲突的文件，Git
+就会将它们标记为冲突已解决。</p>
+<h2 id="rebasing">Rebasing</h2>
+<p>在 Git 中整合来自不同分支的修改主要有两种方法：<code>merge</code>
+(最容易)以及 <code>rebase</code>。</p>
+<p><strong>变基（rebase）</strong>：使用 <code>rebase</code>
+命令将提交到某一分支上的所有修改都移至另一分支上（先转到要rebase的分支上去，master是目标基底分支）</p>
+<p>变基是将一系列提交按照原有次序依次应用到另一分支上<code>git rebase &lt;basebranch&gt; &lt;topicbranch&gt;</code></p>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout experiment</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git rebase master</span>   </span><br></pre></td></tr></table></figure>
+<p>首先找到这两个分支（即当前分支
+<code>experiment</code>、变基操作的目标基底分支 <code>master</code>）
+的最近共同祖先
+<code>C2</code>然后对比当前分支相对于该祖先的历次提交，提取相应的修改并存为临时文件，
+然后将当前分支指向目标基底 <code>C3</code>,
+最后以此将之前另存为临时文件的修改依序应用。</p>
+<p>现在回到 <code>master</code> 分支，进行一次快进合并。</p>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout master</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git merge experiment</span></span><br></pre></td></tr></table></figure>
+<h3 id="rebasing-进阶">Rebasing 进阶</h3>
+<p>使用 <code>git rebase</code> 命令的 <code>--onto</code> 选项， 选中在
+<code>client</code> 分支里但不在 <code>server</code> 分支里的修改（即
+<code>C8</code> 和 <code>C9</code>），将它们在 <code>master</code>
+分支上重放：</p>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git rebase --onto master server client</span></span><br></pre></td></tr></table></figure>
+<p>理解：取出 <code>client</code> 分支，找出它从 <code>server</code>
+分支分歧之后的补丁， 然后把这些补丁在 <code>master</code>
+分支上重放一遍，让 <code>client</code> 看起来像直接基于
+<code>master</code> 修改一样<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/interesting-rebase-2.png"
+alt="interesting-rebase-2" /></p>
+<h3 id="变基的风险">变基的风险</h3>
+<p>总的原则是，只对尚未推送或分享给别人的本地修改执行变基操作清理历史，
+从不对已推送至别处的提交执行变基操作</p>
+<h2 id="分支管理">分支管理</h2>
+<p>git branch命令的使用</p>
+<ul>
+<li>查看所有分支</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">$ git branch</span><br><span class="line">* master</span><br></pre></td></tr></table></figure>
+<p>不加任何参数运行它，会得到当前所有分支的一个列表,<code>master</code>
+分支前的 <code>*</code> 字符：它代表现在检出的那一个分支（也就是说，当前
+<code>HEAD</code> 指针所指向的分支）</p>
+<ul>
+<li>查看每一个分支的最后一次提交</li>
+</ul>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git branch -v</span></span><br></pre></td></tr></table></figure>
+<ul>
+<li><p>--merged与 --no-merged
+这两个有用的选项可以过滤这个列表中已经合并或尚未合并到当前分支的分支。
+如果要查看哪些分支已经合并到当前分支，可以运行
+<code>git branch --merged</code></p>
+<blockquote>
+<p>Tips:你总是可以提供一个附加的参数来查看其它分支的合并状态而不必检出它们。
+例如，尚未合并到 <code>master</code> 分支的有哪些？</p>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout testing</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git branch --no-merged master</span></span><br><span class="line">  topicA</span><br><span class="line">  featureB</span><br></pre></td></tr></table></figure>
+</blockquote></li>
+</ul>
+<h2 id="在tree上移动">在tree上移动</h2>
+<p>分离<code>HEAD</code>:git checkout C1(一个snapshot的checksum)</p>
+<p>Git识别checksum比较智能，只需能唯一标识的前几个字符即可</p>
+<h3 id="相对引用">相对引用</h3>
+<p>通过哈希值指定提交记录很不方便，所以 Git
+引入了相对引用，这里我介绍两个简单的用法：</p>
+<ul>
+<li>使用 <code>^</code> 向上移动 1 个提交记录（寻找parent
+node，可以连续使用eg:<code>main^^</code>）,其后也可以跟数字，指明回到哪一个parent
+node</li>
+<li>使用 <code>~&lt;num&gt;</code> 向上移动多个提交记录，如
+<code>~3</code>（可选，不加数字时与 <code>^</code>
+相同，向上移动一次）</li>
+</ul>
+<blockquote>
+<p>Tips:modifiers可以复合使用：<code>git checkout HEAD\~2^2~3</code></p>
+</blockquote>
+<h3 id="强制修改分支位置">强制修改分支位置</h3>
+<p>使用相对引用最多的就是移动分支。可以直接使用 <code>-f</code>
+选项让分支指向另一个提交。例如:</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">git branch -f main HEAD~3</span><br></pre></td></tr></table></figure>
+<p>上面的命令会将 main 分支强制指向 HEAD 的第 3 级 parent 提交。</p>
+<h2 id="整理提交记录">整理提交记录</h2>
+<h3 id="cherry-pick">cherry-pick</h3>
+<p>“整理提交记录” —— 开发人员有时会说“我想要把这个提交放到这里,
+那个提交放到刚才那个提交的后面”</p>
+<ul>
+<li><code>git cherry-pick &lt;提交号&gt;...</code></li>
+</ul>
+<p>如果你想将一些提交复制到当前所在的位置（<code>HEAD</code>）下面的话，
+Cherry-pick 是最直接的方式了。（如果知道提交记录则very simple）</p>
+<h3 id="交互式的rebase">交互式的rebase</h3>
+<p>if 不清楚你想要的提交记录的哈希值</p>
+<blockquote>
+<p>Tips:COOL!!!</p>
+</blockquote>
+<p>交互式 rebase 指的是使用带参数 <code>--interactive</code> 的 rebase
+命令, 简写为 <code>-i</code>，Git 会打开一个 UI
+界面（vim）并列出将要被复制到目标分支的备选提交记录，它还会显示每个提交记录的哈希值和提交说明，提交说明有助于你理解这个提交进行了哪些更改。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">git rebase -i HEAD~4</span><br></pre></td></tr></table></figure>
+<p>当 rebase UI界面打开时, 你能做3件事:</p>
+<ul>
+<li>调整提交记录的顺序（通过鼠标拖放来完成）</li>
+<li>删除你不想要的提交（通过切换 <code>pick</code>
+的状态来完成，关闭就意味着你不想要这个提交记录）</li>
+<li>合并提交。</li>
+</ul>
+<h3 id="如何整理">如何整理</h3>
+<p>来看一个在开发中经常会遇到的情况：我正在解决某个特别棘手的
+Bug，为了便于调试而在代码中添加了一些调试命令并向控制台打印了一些信息。解决后并不想在commit中包含这些信息，实际我们只要让
+Git 复制解决问题的那一个提交记录就可以了。我们可以使用</p>
+<ul>
+<li><code>git rebase -i</code></li>
+<li><code>git cherry-pick</code></li>
+</ul>
+<p>来达到目的。</p>
+<ul>
+<li><p>我们可以使用 <code>rebase -i</code>
+对提交记录进行重新排序。只要把我们想要的提交记录挪到最前端，我们就可以很轻松的用
+<code>--amend</code> 修改它，然后把它们重新排成我们想要的顺序</p></li>
+<li><p>or只是把C2单独提出来，修改后，再用cherry-pick添加进去</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230815110958607.png"
+alt="image-20230815110958607" />
+<figcaption aria-hidden="true">image-20230815110958607</figcaption>
+</figure></li>
+</ul>
+<h2 id="分支开发工作流">分支开发工作流</h2>
+<h3 id="长期分支">长期分支</h3>
+<p>非必要，但常很有帮助</p>
+<p>许多使用 Git 的开发者都喜欢使用这种方式来工作，比如只在
+<code>master</code>
+分支上保留完全稳定的代码——有可能仅仅是已经发布或即将发布的代码。
+他们还有一些名为 <code>develop</code> 或者 <code>next</code>
+的平行分支，被用来做后续开发或者测试稳定性——这些分支不必保持绝对稳定，但是一旦达到稳定状态，它们就可以被合并入
+<code>master</code> 分支了。</p>
+<p>趋于稳定分支的流水线（“silo”）视图：</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/lr-branches-2.png"
+alt="lr-branches-2" />
+<figcaption aria-hidden="true">lr-branches-2</figcaption>
+</figure>
+<h3 id="主题分支">主题分支</h3>
+<p>主题分支对任何规模的项目都适用。
+主题分支是一种短期分支，它被用来实现单一特性或其相关工作。 在 Git
+中一天之内多次创建、使用、合并、删除分支都很常见。</p>
+<h2 id="远程分支">远程分支</h2>
+<p>远程引用是对远程仓库的引用（指针），包括分支、标签等等。 你可以通过
+<code>git ls-remote &lt;remote&gt;</code>
+来显式地获得远程引用的完整列表， 或者通过
+<code>git remote show &lt;remote&gt;</code> 获得远程分支的更多信息。</p>
+<h3 id="远程跟踪分支">远程跟踪分支</h3>
+<p>远程跟踪分支是远程分支状态的引用。它们是你无法移动的本地引用。一旦你进行了网络通信，
+Git
+就会为你移动它们以精确反映远程仓库的状态。提醒你该分支在远程仓库中的位置就是你最后一次连接到它们的位置。</p>
+<p>命名形式：<remote>/<branch></p>
+<p>Git 的 <code>clone</code> 命令会为你自动将其命名为
+<code>origin</code>，拉取它的所有数据， 创建一个指向它的
+<code>master</code> 分支的指针，并且在本地将其命名为
+<code>origin/master</code>。 Git 也会给你一个与 origin 的
+<code>master</code> 分支在指向同一个地方的本地 <code>master</code>
+分支，这样你就有工作的基础。</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/remote-branches-1.png"
+alt="remote-branches-1" />
+<figcaption aria-hidden="true">remote-branches-1</figcaption>
+</figure>
+<blockquote>
+<p>Tips:运行
+<code>git clone -o booyah</code>，那么你默认的远程分支名字将会是
+<code>booyah/master</code>。-o远程库的命名。</p>
+<p><code>git remote add name remote(url)</code></p>
+</blockquote>
+<h3 id="同步远程仓库">同步远程仓库</h3>
+<p>程仓库同步数据，运行 <code>git fetch &lt;remote&gt;</code></p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/remote-branches-3.png"
+alt="remote-branches-3" />
+<figcaption aria-hidden="true">remote-branches-3</figcaption>
+</figure>
+<blockquote>
+<p>Tips:本地与远程的工作可以分叉</p>
+</blockquote>
+<p>多个远程仓库可以：<code>git remote add name remote(url)</code></p>
+<h3 id="推送">推送</h3>
+<p><code>git push &lt;remote&gt; &lt;branch&gt;</code> Git 自动将
+<code>serverfix</code> 分支名字展开为
+<code>refs/heads/serverfix:refs/heads/serverfix</code>，
+那意味着，“推送本地的 <code>serverfix</code> 分支来更新远程仓库上的
+<code>serverfix</code> 分支。”</p>
+<p>运行 <code>git push origin serverfix:awesomebranch</code> 来将本地的
+<code>serverfix</code> 分支推送到远程仓库上的 <code>awesomebranch</code>
+分支</p>
+<blockquote>
+<p>Tips:<避免每次输入密码>使用 HTTPS URL 来推送，Git
+服务器会询问用户名与密码。</p>
+<p>如果不想在每一次推送时都输入用户名与密码，你可以设置一个 “credential
+cache”。 最简单的方式就是将其保存在内存中几分钟，可以简单地运行
+<code>git config --global credential.helper cache</code> 来设置它。</p>
+</blockquote>
+<p>当重新抓取到新的远程跟踪分支时，不会有一个新的 <code>serverfix</code>
+分支——只有一个不可以修改的 <code>origin/serverfix</code> 指针。</p>
+<p>可以运行 <code>git merge origin/serverfix</code>
+将这些工作合并到当前所在的分支。 如果想要在自己的 <code>serverfix</code>
+分支上工作，可以将其建立在远程跟踪分支之上：</p>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout -b serverfix origin/serverfix</span></span><br><span class="line">Branch serverfix set up to track remote branch serverfix from origin.</span><br><span class="line">Switched to a new branch &#x27;serverfix&#x27;</span><br></pre></td></tr></table></figure>
+<p>这会给你一个用于工作的本地分支，并且起点位于
+<code>origin/serverfix</code>。</p>
+<h3 id="跟踪分支">跟踪分支</h3>
+<p>从一个远程跟踪分支检出一个本地分支会自动创建所谓的“跟踪分支”（它跟踪的分支叫做“上游分支”）。
+跟踪分支是与远程分支有直接关系的本地分支。 如果在一个跟踪分支上输入
+<code>git pull</code>，Git
+能自动地识别去哪个服务器上抓取、合并到哪个分支。</p>
+<p><code>git checkout -b &lt;branch&gt; &lt;remote&gt;/&lt;branch&gt;</code>。可以自己命名</p>
+<p>这是一个十分常用的操作所以 Git 提供了 <code>--track</code>
+快捷方式：</p>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout --track origin/serverfix</span></span><br></pre></td></tr></table></figure>
+<p>该捷径本身还有一个捷径。 如果你尝试检出的分支 (a) 不存在且 (b)
+刚好只有一个名字与之匹配的远程分支，那么 Git
+就会为你创建一个跟踪分支：</p>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout serverfix</span></span><br></pre></td></tr></table></figure>
+<p><strong>设置已有的本地分支</strong>跟踪一个刚刚拉取下来的远程分支，或者想要修改正在跟踪的上游分支，
+你可以在任意时间使用 <code>-u</code> 或 <code>--set-upstream-to</code>
+选项运行 <code>git branch</code> 来显式地设置。</p>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git branch -u origin/serverfix</span></span><br><span class="line">Branch serverfix set up to track remote branch serverfix from origin.</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>Tips:<上游快捷方式>当设置好跟踪分支后，可以通过简写
+<code>@&#123;upstream&#125;</code> 或 <code>@&#123;u&#125;</code> 来引用它的上游分支。
+所以在 <code>master</code> 分支时并且它正在跟踪
+<code>origin/master</code> 时，如果愿意的话可以使用
+<code>git merge @&#123;u&#125;</code> 来取代
+<code>git merge origin/master</code>。</p>
+</blockquote>
+<p>查看设置的所有跟踪分支，可以使用 <code>git branch</code> 的
+<code>-vv</code> 选项。 这会将所有的本地分支列出来并且包含更多的信息</p>
+<h3 id="拉取">拉取</h3>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git fetch --all; git branch -vv</span></span><br></pre></td></tr></table></figure>
+<p><code>git fetch</code>
+命令从服务器上抓取本地没有的数据时，它并不会修改工作目录中的内容。
+它只会获取数据然后让你自己合并。</p>
+<blockquote>
+<p>Tips:<code>git pull</code> 在大多数情况下它的含义是一个
+<code>git fetch</code> 紧接着一个 <code>git merge</code> 命令。</p>
+<p>由于 <code>git pull</code> 的魔法经常令人困惑所以通常单独显式地使用
+<code>fetch</code> 与 <code>merge</code> 命令会更好一些。</p>
+</blockquote>
+<h3 id="删除远程分支">删除远程分支</h3>
+<p>可以运行带有 <code>--delete</code> 选项的 <code>git push</code>
+命令来删除一个远程分支。 如果想要从服务器上删除 <code>serverfix</code>
+分支，运行下面的命令：</p>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git push origin --delete serverfix</span></span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>Tips:基本上这个命令做的只是从服务器上移除这个指针。 Git
+服务器通常会保留数据一段时间直到垃圾回收运行，所以如果不小心删除掉了，通常是很容易恢复的。</p>
+</blockquote>
+<h1 id="references">References</h1>
+<ul>
+<li><a href="https://git-scm.com/book/zh/v2">Git - Book
+(git-scm.com)</a></li>
+<li><a href="https://learngitbranching.js.org/?locale=zh_CN">Learn Git
+Branching</a></li>
+</ul>
+]]></content>
+      <categories>
+        <category>CS</category>
+      </categories>
+      <tags>
+        <tag>CS</tag>
+        <tag>Git</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Hollow Knight——空洞骑士通关！</title>
     <url>/2023/08/27/Hollow-Knight/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
@@ -3291,8 +3291,8 @@ href="https://zhuanlan.zhihu.com/p/413285767">Jlink之J-Scope虚拟示波器 -
         <category>嵌入式</category>
       </categories>
       <tags>
-        <tag>嵌入式</tag>
         <tag>robomaster</tag>
+        <tag>嵌入式</tag>
       </tags>
   </entry>
   <entry>
@@ -3548,8 +3548,8 @@ href="https://zhuanlan.zhihu.com/p/123295629">STM32第六章-TIM定时器详解
         <category>嵌入式</category>
       </categories>
       <tags>
-        <tag>嵌入式</tag>
         <tag>robomaster</tag>
+        <tag>嵌入式</tag>
       </tags>
   </entry>
   <entry>
@@ -3851,8 +3851,8 @@ href="https://blog.csdn.net/weixin_43281206/article/details/116279189">STM32串�
         <category>嵌入式</category>
       </categories>
       <tags>
-        <tag>嵌入式</tag>
         <tag>robomaster</tag>
+        <tag>嵌入式</tag>
       </tags>
   </entry>
   <entry>
@@ -4123,127 +4123,6 @@ vim插件_皛心的博客-CSDN博客</a></p></li>
       </tags>
   </entry>
   <entry>
-    <title>Vim（3）</title>
-    <url>/2023/08/14/Vim%EF%BC%883%EF%BC%89/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>Following missing semester of MIT to learn Vim.</p>
-<p>希望通过<a
-href="https://learnvimscriptthehardway.stevelosh.com/">Learn Vimscript
-the Hard Way (stevelosh.com)</a>+<a
-href="https://vim-adventures.com/">Vim Adventures</a>
-来进一步练习Vim的使用</p>
-<p>Vim（3）——Vim在其他应用上的应用</p>
-<blockquote>
-<p>双手离开鼠标！</p>
-</blockquote>
-<span id="more"></span>
-<h1 id="vim-in-other-programs">Vim in other programs</h1>
-<p>很多工具提供了 Vim 模式。这些 Vim
-模式的质量参差不齐；取决于具体工具，有的提供了很多酷炫的 Vim
-功能，但是大多数对基本功能支持的很好。</p>
-<h2 id="shell">Shell</h2>
-<p>如果你是一个 Bash 用户，用 <code>set -o vi</code>。如果你用
-Zsh：<code>bindkey -v</code>。Fish 用
-<code>fish_vi_key_bindings</code>。另外，不管利用什么 shell，你可以
-<code>export EDITOR=vim</code>。
-这是一个用来决定当一个程序需要启动编辑时启动哪个的环境变量。
-例如，<code>git</code> 会使用这个编辑器来编辑 commit 信息。</p>
-<h2 id="readline">Readline</h2>
-<p>很多程序使用 <a
-href="https://tiswww.case.edu/php/chet/readline/rltop.html">GNU
-Readline</a> 库来作为 它们的命令控制行界面。Readline 也支持基本的 Vim
-模式， 可以通过在 <code>~/.inputrc</code> 添加如下行开启：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">set editing-mode vi</span><br></pre></td></tr></table></figure>
-<p>比如，在这个设置下，Python REPL 会支持 Vim 快捷键。</p>
-<h2 id="vscode">VSCode</h2>
-<p>add extention——vim,enable</p>
-<p>Vim有些功能在VSCode中不能用，例如宏录制</p>
-<h3 id="导入vimrc">导入vimrc</h3>
-<p>再vscode的setting中enable vimrc配置方式，并填写vimrc文件地址</p>
-<p>用 vscode 打开 my.vimrc 文件，输入
-<code>set clipboard=unnamedplusset</code>。或者，直接在设置中搜索
-<code>vim.useSystemClipboard</code> ，打钩。默认使用的 vim
-无名缓存器已经与系统剪切板连通了。</p>
-<h3 id="vscode常用快捷键">VSCode常用快捷键</h3>
-<ul>
-<li><p>ctrl+B:侧边栏隐藏/显示</p></li>
-<li><p>ctrl+J:终端显示</p></li>
-<li><p>ctrl+Tab:切换tab</p></li>
-<li><p>ctrl+<number>：切换分屏，没有就创建</p></li>
-<li><p>ctrl+\:水平分屏</p></li>
-<li><p>ctrl+k+ctrl+\:竖直分屏;我改为:ctrl+&lt;]+\&gt;</p></li>
-<li><p>ctrl+w:删除当前屏幕（当当前屏幕无tab时）or tab</p></li>
-<li><p>ctrl+P:搜索文件,加上&gt;等价于ctrl+shift+P</p></li>
-<li><p>ctrl+shift+P:VSCode中的，命令:open folder</p></li>
-<li><p>ctrl+,:打开settings:配置一些json文件+vim</p></li>
-</ul>
-<p>函数定义之类：</p>
-<ul>
-<li><code>gd</code> : 进入函数定义</li>
-<li><code>Ctrl+o</code> : 从函数定义中返回</li>
-<li><code>gh</code> : 查看函数参数等信息</li>
-</ul>
-<h2 id="vimium">Vimium</h2>
-<ul>
-<li><p>基础移动hjkl,gg,G</p></li>
-<li><p>J，K跳转标签页，H(Shift+h):打开上一个网页，L(Shift+l):打开下一个网页</p></li>
-<li><p>g0，g$跳转到第一个，最后一个标签页</p></li>
-<li><p>t:打开新的标签页</p></li>
-<li><p>x:关闭当前标签页；X重新打开最后关闭的标签页</p></li>
-<li><p>d向下翻半页，u向上翻半页</p></li>
-<li><p>yy:复制当前页面地址到剪切板。如下图所示,按下yy后在按下Win+V可以看到已经将当前页面的链接复制到剪切板了</p></li>
-<li><p>p（P）:如果剪切板第一个是URL，则打开链接，是记录则搜索该内容</p></li>
-<li><p>建议直接Tab or shift+Tab（
-gi:定位到页面中的第一个输入框,前面也可以加数字）</p></li>
-<li><p>r:刷新界面</p></li>
-<li><p><strong>f（F）</strong>:在当前（新）标签页打开指定的链接。如下图所示,按下f后就会在链接上出现字母或者字母组合,只要按下相应的字母或者字母组合就可以打开对应的链接</p></li>
-</ul>
-<blockquote>
-<p>Tips:好用！</p>
-</blockquote>
-<ul>
-<li><strong>o（O）</strong>:在当前（新）标签页打开链接、书签（b是打开书签）、历史记录。如下图所示,按下o输入关键字后可以看到有符合条件的历史记录、书签等结果,可以通过上下箭头选择项目后按下Enter键即可在当前（新）标签页打开所选的项目。</li>
-<li>T:是在所有打开的标签页中搜索/</li>
-<li>m:添加标记,当你看一篇长文章时,如果你需要看前面的内容,或者想先看后面某部分内容再回来看当前的内容,则可以通过标记实现这需求。通过按下m之后再按一个字母就可以在当前位置标记,如果你在页面的其他地方想回到标记的地方,则可以通过`+之前标记的字母快速返回。</li>
-</ul>
-<h3 id="复制东西">复制东西</h3>
-<p>一般先/{}匹配到位置，再v进入可视化y复制</p>
-<h2 id="其他">其他</h2>
-<p>甚至有 Vim 的网页浏览快捷键 <a
-href="http://vim.wikia.com/wiki/Vim_key_bindings_for_web_browsers">browsers</a>,
-受欢迎的有用于 Google Chrome 的 <a
-href="https://chrome.google.com/webstore/detail/vimium/dbepggeogbaibhgnhhndojpepiihcmeb?hl=en">Vimium</a>
-和用于 Firefox 的 <a
-href="https://github.com/tridactyl/tridactyl">Tridactyl</a>。
-你甚至可以在 <a
-href="https://github.com/lambdalisue/jupyter-vim-binding">Jupyter
-notebooks</a> 中用 Vim 快捷键。 <a
-href="https://reversed.top/2016-08-13/big-list-of-vim-like-software">这个列表</a>
-中列举了支持类 vim 键位绑定的软件。</p>
-<h1 id="references">References</h1>
-<ul>
-<li><p><a
-href="https://blog.csdn.net/weixin_42514042/article/details/124169302">VSCode
-vim 使用vimrc配置 vim使用系统剪切板配置_vscode
-vimrc_未知褶皱的博客-CSDN博客</a></p></li>
-<li><p><a
-href="https://blog.csdn.net/m0_47670683/article/details/125160391?spm=1001.2101.3001.6661.1&amp;utm_medium=distribute.pc_relevant_t0.none-task-blog-2~default~CTRLIST~Rate-1-125160391-blog-121179927.235%5Ev38%5Epc_relevant_sort_base3&amp;depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-2~default~CTRLIST~Rate-1-125160391-blog-121179927.235%5Ev38%5Epc_relevant_sort_base3&amp;utm_relevant_index=1">VSCode使用Vim插件心得_vscode
-vim插件_皛心的博客-CSDN博客</a></p></li>
-<li><p><a
-href="https://zhuanlan.zhihu.com/p/113316942">Chrome插件Vimium使用教程 -
-知乎 (zhihu.com)</a></p></li>
-<li><p>【VS Code ×
-Vim：提高你的编码效率】https://www.bilibili.com/video/BV1MX4y1b7nM?vd_source=93bb338120537438ee9180881deab9c1</p></li>
-</ul>
-]]></content>
-      <categories>
-        <category>CS</category>
-      </categories>
-      <tags>
-        <tag>CS</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Vim（2）</title>
     <url>/2023/08/13/Vim%EF%BC%882%EF%BC%89/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
@@ -4411,97 +4290,124 @@ vim插件_皛心的博客-CSDN博客](</p></li>
       </tags>
   </entry>
   <entry>
-    <title>blog搭建及优化</title>
-    <url>/2023/07/27/blog%E6%90%AD%E5%BB%BA%E5%8F%8A%E4%BC%98%E5%8C%96/</url>
+    <title>Vim（3）</title>
+    <url>/2023/08/14/Vim%EF%BC%883%EF%BC%89/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>仅以此blog记录生活点滴</p>
-<p>遇到困难第一时间找官方手册解决问题!</p>
-<p>优化进行ing</p>
+<p>Following missing semester of MIT to learn Vim.</p>
+<p>希望通过<a
+href="https://learnvimscriptthehardway.stevelosh.com/">Learn Vimscript
+the Hard Way (stevelosh.com)</a>+<a
+href="https://vim-adventures.com/">Vim Adventures</a>
+来进一步练习Vim的使用</p>
+<p>Vim（3）——Vim在其他应用上的应用</p>
+<blockquote>
+<p>双手离开鼠标！</p>
+</blockquote>
 <span id="more"></span>
-<h1 id="优化">优化</h1>
+<h1 id="vim-in-other-programs">Vim in other programs</h1>
+<p>很多工具提供了 Vim 模式。这些 Vim
+模式的质量参差不齐；取决于具体工具，有的提供了很多酷炫的 Vim
+功能，但是大多数对基本功能支持的很好。</p>
+<h2 id="shell">Shell</h2>
+<p>如果你是一个 Bash 用户，用 <code>set -o vi</code>。如果你用
+Zsh：<code>bindkey -v</code>。Fish 用
+<code>fish_vi_key_bindings</code>。另外，不管利用什么 shell，你可以
+<code>export EDITOR=vim</code>。
+这是一个用来决定当一个程序需要启动编辑时启动哪个的环境变量。
+例如，<code>git</code> 会使用这个编辑器来编辑 commit 信息。</p>
+<h2 id="readline">Readline</h2>
+<p>很多程序使用 <a
+href="https://tiswww.case.edu/php/chet/readline/rltop.html">GNU
+Readline</a> 库来作为 它们的命令控制行界面。Readline 也支持基本的 Vim
+模式， 可以通过在 <code>~/.inputrc</code> 添加如下行开启：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">set editing-mode vi</span><br></pre></td></tr></table></figure>
+<p>比如，在这个设置下，Python REPL 会支持 Vim 快捷键。</p>
+<h2 id="vscode">VSCode</h2>
+<p>add extention——vim,enable</p>
+<p>Vim有些功能在VSCode中不能用，例如宏录制</p>
+<h3 id="导入vimrc">导入vimrc</h3>
+<p>再vscode的setting中enable vimrc配置方式，并填写vimrc文件地址</p>
+<p>用 vscode 打开 my.vimrc 文件，输入
+<code>set clipboard=unnamedplusset</code>。或者，直接在设置中搜索
+<code>vim.useSystemClipboard</code> ，打钩。默认使用的 vim
+无名缓存器已经与系统剪切板连通了。</p>
+<h3 id="vscode常用快捷键">VSCode常用快捷键</h3>
 <ul>
-<li><p>以PicGo作为图床上传工具，在github上创建figure
-bed并连接typora（一键式typora插入图片自动上传并转化为url）</p></li>
-<li><p>增加search function</p></li>
-<li><p>设置预览摘要</p></li>
-<li><p>主页文章添加阴影效果</p></li>
-<li><p>给一篇文章设置多标签</p></li>
-<li><p>让blog支持LaTex数学公式</p>
-<p>hexo并不支持LaTex数学公式<a
-href="https://theme-next.js.org/docs/third-party-services/math-equations.html">Math
-Equations | NexT (theme-next.js.org)</a></p>
-<p>卸载hexo-math，Render
-Engines替换渲染:下载pandoc，hexo-renderer-pandoc，修改config，使用hexo-filter-mathjax</p>
-<p><a
-href="https://github.com/next-theme/hexo-filter-mathjax">next-theme/hexo-filter-mathjax:
-💯 Server side MathJax renderer plugin for Hexo.
-(github.com)</a></p></li>
-<li><p>hexo-optimize优化页面加载速度</p></li>
-<li><p>修改背景</p></li>
+<li><p>ctrl+B:侧边栏隐藏/显示</p></li>
+<li><p>ctrl+J:终端显示</p></li>
+<li><p>ctrl+Tab:切换tab</p></li>
+<li><p>ctrl+<number>：切换分屏，没有就创建</p></li>
+<li><p>ctrl+\:水平分屏</p></li>
+<li><p>ctrl+k+ctrl+\:竖直分屏;我改为:ctrl+&lt;]+\&gt;</p></li>
+<li><p>ctrl+w:删除当前屏幕（当当前屏幕无tab时）or tab</p></li>
+<li><p>ctrl+P:搜索文件,加上&gt;等价于ctrl+shift+P</p></li>
+<li><p>ctrl+shift+P:VSCode中的，命令:open folder</p></li>
+<li><p>ctrl+,:打开settings:配置一些json文件+vim</p></li>
 </ul>
-<h1 id="bonus">Bonus</h1>
-<p>记录搭建blog过程中遇到的一些东西</p>
+<p>函数定义之类：</p>
 <ul>
-<li><p>github.io是静态网页每次修改都需要重新部署</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#在/blog/source/_posts 中添加文件，然后再bash中重新部署</span><br><span class="line">hexo clean</span><br><span class="line">hexo g</span><br><span class="line">hexo d</span><br><span class="line">###本地查看</span><br><span class="line">hexo s</span><br><span class="line">###新建文章</span><br><span class="line">hexo n &#x27;filename&#x27;</span><br></pre></td></tr></table></figure></li>
-<li><p>设置文章的tags and categories</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">---</span><br><span class="line">title:</span><br><span class="line">date:</span><br><span class="line">tags: [ &#x27;标签1&#x27; , &#x27;标签2&#x27; , &#x27;标签3&#x27; ]  #注意空格</span><br><span class="line">categories: life</span><br><span class="line">---</span><br><span class="line">### 以下是正文</span><br></pre></td></tr></table></figure>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">总结下有两种格式都适用：</span><br><span class="line"></span><br><span class="line">第一种：</span><br><span class="line"></span><br><span class="line">tags: [ &#x27;Ruby&#x27;, &#x27;Perl&#x27;, &#x27;Python&#x27; ]</span><br><span class="line"></span><br><span class="line">第二种：</span><br><span class="line"></span><br><span class="line">tags:</span><br><span class="line"></span><br><span class="line">- hexo</span><br><span class="line"></span><br><span class="line">- disqus</span><br></pre></td></tr></table></figure></li>
-<li><p>数学公式的使用需要添加：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">mathjax: true</span><br></pre></td></tr></table></figure></li>
-<li><pre><code>  background-size:contain/cover         //看你需求</code></pre></li>
-<li><p>CDN(Content Delivery
-Network，内容分发网络)是一项非常有效的<strong>缩短时延</strong>的技术，采用更多的缓存服务器（CDN边缘节点），布放在用户访问相对集中的地区或网络中。当用户访问网站时，利用全局负载技术，将用户的访问指向距离最近的缓存服务器上，由缓存服务器响应用户请求</p></li>
-<li><p>YAML(.yml文件)，一种数据序列化格式，方便传输和存储</p></li>
-<li><p>只要我们在文章中插入
-<!-- more -->，该标签之上的是摘要，之后的内容不可见，需点击全文阅读按钮。</p></li>
+<li><code>gd</code> : 进入函数定义</li>
+<li><code>Ctrl+o</code> : 从函数定义中返回</li>
+<li><code>gh</code> : 查看函数参数等信息</li>
 </ul>
+<h2 id="vimium">Vimium</h2>
+<ul>
+<li><p>基础移动hjkl,gg,G</p></li>
+<li><p>J，K跳转标签页，H(Shift+h):打开上一个网页，L(Shift+l):打开下一个网页</p></li>
+<li><p>g0，g$跳转到第一个，最后一个标签页</p></li>
+<li><p>t:打开新的标签页</p></li>
+<li><p>x:关闭当前标签页；X重新打开最后关闭的标签页</p></li>
+<li><p>d向下翻半页，u向上翻半页</p></li>
+<li><p>yy:复制当前页面地址到剪切板。如下图所示,按下yy后在按下Win+V可以看到已经将当前页面的链接复制到剪切板了</p></li>
+<li><p>p（P）:如果剪切板第一个是URL，则打开链接，是记录则搜索该内容</p></li>
+<li><p>建议直接Tab or shift+Tab（
+gi:定位到页面中的第一个输入框,前面也可以加数字）</p></li>
+<li><p>r:刷新界面</p></li>
+<li><p><strong>f（F）</strong>:在当前（新）标签页打开指定的链接。如下图所示,按下f后就会在链接上出现字母或者字母组合,只要按下相应的字母或者字母组合就可以打开对应的链接</p></li>
+</ul>
+<blockquote>
+<p>Tips:好用！</p>
+</blockquote>
+<ul>
+<li><strong>o（O）</strong>:在当前（新）标签页打开链接、书签（b是打开书签）、历史记录。如下图所示,按下o输入关键字后可以看到有符合条件的历史记录、书签等结果,可以通过上下箭头选择项目后按下Enter键即可在当前（新）标签页打开所选的项目。</li>
+<li>T:是在所有打开的标签页中搜索/</li>
+<li>m:添加标记,当你看一篇长文章时,如果你需要看前面的内容,或者想先看后面某部分内容再回来看当前的内容,则可以通过标记实现这需求。通过按下m之后再按一个字母就可以在当前位置标记,如果你在页面的其他地方想回到标记的地方,则可以通过`+之前标记的字母快速返回。</li>
+</ul>
+<h3 id="复制东西">复制东西</h3>
+<p>一般先/{}匹配到位置，再v进入可视化y复制</p>
+<h2 id="其他">其他</h2>
+<p>甚至有 Vim 的网页浏览快捷键 <a
+href="http://vim.wikia.com/wiki/Vim_key_bindings_for_web_browsers">browsers</a>,
+受欢迎的有用于 Google Chrome 的 <a
+href="https://chrome.google.com/webstore/detail/vimium/dbepggeogbaibhgnhhndojpepiihcmeb?hl=en">Vimium</a>
+和用于 Firefox 的 <a
+href="https://github.com/tridactyl/tridactyl">Tridactyl</a>。
+你甚至可以在 <a
+href="https://github.com/lambdalisue/jupyter-vim-binding">Jupyter
+notebooks</a> 中用 Vim 快捷键。 <a
+href="https://reversed.top/2016-08-13/big-list-of-vim-like-software">这个列表</a>
+中列举了支持类 vim 键位绑定的软件。</p>
 <h1 id="references">References</h1>
 <ul>
-<li><p><a href="https://theme-next.js.org/">NexT - Theme for Hexo
-(theme-next.js.org)</a>Next主题官方文档</p></li>
 <li><p><a
-href="https://github.com/next-theme/hexo-filter-mathjax">next-theme/hexo-filter-mathjax:
-💯 Server side MathJax renderer plugin for Hexo.
-(github.com)</a></p></li>
+href="https://blog.csdn.net/weixin_42514042/article/details/124169302">VSCode
+vim 使用vimrc配置 vim使用系统剪切板配置_vscode
+vimrc_未知褶皱的博客-CSDN博客</a></p></li>
 <li><p><a
-href="https://github.com/next-theme/hexo-optimize">next-theme/hexo-optimize:
-🚩 A Hexo plugin that optimize the pages loading speed.
-(github.com)</a></p></li>
-<li><p>跟随知乎枫叶大佬<a
-href="https://zhuanlan.zhihu.com/p/102592286">从零开始搭建个人博客（超详细）
-- 知乎 (zhihu.com)</a>搭建此blog</p></li>
+href="https://blog.csdn.net/m0_47670683/article/details/125160391?spm=1001.2101.3001.6661.1&amp;utm_medium=distribute.pc_relevant_t0.none-task-blog-2~default~CTRLIST~Rate-1-125160391-blog-121179927.235%5Ev38%5Epc_relevant_sort_base3&amp;depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-2~default~CTRLIST~Rate-1-125160391-blog-121179927.235%5Ev38%5Epc_relevant_sort_base3&amp;utm_relevant_index=1">VSCode使用Vim插件心得_vscode
+vim插件_皛心的博客-CSDN博客</a></p></li>
 <li><p><a
-href="https://github.com/jackfrued/Python-100-Days/blob/master/番外篇/使用Hexo搭建自己的博客.md">Python-100-Days/番外篇/使用Hexo搭建自己的博客.md
-at master · jackfrued/Python-100-Days (github.com)</a></p></li>
-<li><p>Next主题设置：<a
-href="https://github.com/theme-next/hexo-theme-next/blob/master/README.md">hexo-theme-next/README.md
-at master · theme-next/hexo-theme-next (github.com)</a></p></li>
-<li><p><a href="https://zhuanlan.zhihu.com/p/52362950">到底什么是CDN？ -
+href="https://zhuanlan.zhihu.com/p/113316942">Chrome插件Vimium使用教程 -
 知乎 (zhihu.com)</a></p></li>
-<li><p><a
-href="https://zhuanlan.zhihu.com/p/433176170">两分钟带你了解YAML（.yml后缀文件）
-- 知乎 (zhihu.com)</a></p></li>
-<li><p><a
-href="https://news.netshop168.com/article-85934.html">rss订阅是什么意思?为什么要使用RSS?RSS也称为RSS订阅或RSS提要
-(netshop168.com)</a></p></li>
-<li><p><a href="https://zhuanlan.zhihu.com/p/347342082">如何利用 Github
-搭建自己的免费图床？ - 知乎 (zhihu.com)</a></p></li>
-<li><p><a
-href="https://zhuanlan.zhihu.com/p/489236769">使用Github+picGo搭建图床，保姆级教程来了
-- 知乎 (zhihu.com)</a></p></li>
-<li><p><a href="https://www.ruanyifeng.com/blog/2016/07/yaml.html">YAML
-语言教程 - 阮一峰的网络日志 (ruanyifeng.com)</a></p></li>
-<li><p><a
-href="https://www.cnblogs.com/cscshi/p/15196114.html#:~:text=1%201.%20设置背景图片%20将想要的背景图片放入%20themes%2Fnext%2Fsource%2Fimages。%20打开%20themes%2Fnext%2Fsource%2Fcss%2F%20_custom%2Fcustom.styl,blog_root%2Fsource%2F_data%2Fstyles.style%20中添加以下内容：%20...%203%203.%20参考%20Hexo-NexT%20设置博客背景图片">Hexo-NexT
-设置博客背景图片 - 锦瑟，无端 - 博客园 (cnblogs.com)</a></p></li>
+<li><p>【VS Code ×
+Vim：提高你的编码效率】https://www.bilibili.com/video/BV1MX4y1b7nM?vd_source=93bb338120537438ee9180881deab9c1</p></li>
 </ul>
 ]]></content>
       <categories>
-        <category>奇技淫巧</category>
+        <category>CS</category>
       </categories>
       <tags>
-        <tag>奇技淫巧</tag>
+        <tag>CS</tag>
       </tags>
   </entry>
   <entry>
@@ -4695,6 +4601,100 @@ href="https://www.cnblogs.com/cscshi/p/15196114.html#:~:text=1%201.%20设置背�
       </categories>
       <tags>
         <tag>CS</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>blog搭建及优化</title>
+    <url>/2023/07/27/blog%E6%90%AD%E5%BB%BA%E5%8F%8A%E4%BC%98%E5%8C%96/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>仅以此blog记录生活点滴</p>
+<p>遇到困难第一时间找官方手册解决问题!</p>
+<p>优化进行ing</p>
+<span id="more"></span>
+<h1 id="优化">优化</h1>
+<ul>
+<li><p>以PicGo作为图床上传工具，在github上创建figure
+bed并连接typora（一键式typora插入图片自动上传并转化为url）</p></li>
+<li><p>增加search function</p></li>
+<li><p>设置预览摘要</p></li>
+<li><p>主页文章添加阴影效果</p></li>
+<li><p>给一篇文章设置多标签</p></li>
+<li><p>让blog支持LaTex数学公式</p>
+<p>hexo并不支持LaTex数学公式<a
+href="https://theme-next.js.org/docs/third-party-services/math-equations.html">Math
+Equations | NexT (theme-next.js.org)</a></p>
+<p>卸载hexo-math，Render
+Engines替换渲染:下载pandoc，hexo-renderer-pandoc，修改config，使用hexo-filter-mathjax</p>
+<p><a
+href="https://github.com/next-theme/hexo-filter-mathjax">next-theme/hexo-filter-mathjax:
+💯 Server side MathJax renderer plugin for Hexo.
+(github.com)</a></p></li>
+<li><p>hexo-optimize优化页面加载速度</p></li>
+<li><p>修改背景</p></li>
+</ul>
+<h1 id="bonus">Bonus</h1>
+<p>记录搭建blog过程中遇到的一些东西</p>
+<ul>
+<li><p>github.io是静态网页每次修改都需要重新部署</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#在/blog/source/_posts 中添加文件，然后再bash中重新部署</span><br><span class="line">hexo clean</span><br><span class="line">hexo g</span><br><span class="line">hexo d</span><br><span class="line">###本地查看</span><br><span class="line">hexo s</span><br><span class="line">###新建文章</span><br><span class="line">hexo n &#x27;filename&#x27;</span><br></pre></td></tr></table></figure></li>
+<li><p>设置文章的tags and categories</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">---</span><br><span class="line">title:</span><br><span class="line">date:</span><br><span class="line">tags: [ &#x27;标签1&#x27; , &#x27;标签2&#x27; , &#x27;标签3&#x27; ]  #注意空格</span><br><span class="line">categories: life</span><br><span class="line">---</span><br><span class="line">### 以下是正文</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">总结下有两种格式都适用：</span><br><span class="line"></span><br><span class="line">第一种：</span><br><span class="line"></span><br><span class="line">tags: [ &#x27;Ruby&#x27;, &#x27;Perl&#x27;, &#x27;Python&#x27; ]</span><br><span class="line"></span><br><span class="line">第二种：</span><br><span class="line"></span><br><span class="line">tags:</span><br><span class="line"></span><br><span class="line">- hexo</span><br><span class="line"></span><br><span class="line">- disqus</span><br></pre></td></tr></table></figure></li>
+<li><p>数学公式的使用需要添加：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">mathjax: true</span><br></pre></td></tr></table></figure></li>
+<li><pre><code>  background-size:contain/cover         //看你需求</code></pre></li>
+<li><p>CDN(Content Delivery
+Network，内容分发网络)是一项非常有效的<strong>缩短时延</strong>的技术，采用更多的缓存服务器（CDN边缘节点），布放在用户访问相对集中的地区或网络中。当用户访问网站时，利用全局负载技术，将用户的访问指向距离最近的缓存服务器上，由缓存服务器响应用户请求</p></li>
+<li><p>YAML(.yml文件)，一种数据序列化格式，方便传输和存储</p></li>
+<li><p>只要我们在文章中插入
+<!-- more -->，该标签之上的是摘要，之后的内容不可见，需点击全文阅读按钮。</p></li>
+</ul>
+<h1 id="references">References</h1>
+<ul>
+<li><p><a href="https://theme-next.js.org/">NexT - Theme for Hexo
+(theme-next.js.org)</a>Next主题官方文档</p></li>
+<li><p><a
+href="https://github.com/next-theme/hexo-filter-mathjax">next-theme/hexo-filter-mathjax:
+💯 Server side MathJax renderer plugin for Hexo.
+(github.com)</a></p></li>
+<li><p><a
+href="https://github.com/next-theme/hexo-optimize">next-theme/hexo-optimize:
+🚩 A Hexo plugin that optimize the pages loading speed.
+(github.com)</a></p></li>
+<li><p>跟随知乎枫叶大佬<a
+href="https://zhuanlan.zhihu.com/p/102592286">从零开始搭建个人博客（超详细）
+- 知乎 (zhihu.com)</a>搭建此blog</p></li>
+<li><p><a
+href="https://github.com/jackfrued/Python-100-Days/blob/master/番外篇/使用Hexo搭建自己的博客.md">Python-100-Days/番外篇/使用Hexo搭建自己的博客.md
+at master · jackfrued/Python-100-Days (github.com)</a></p></li>
+<li><p>Next主题设置：<a
+href="https://github.com/theme-next/hexo-theme-next/blob/master/README.md">hexo-theme-next/README.md
+at master · theme-next/hexo-theme-next (github.com)</a></p></li>
+<li><p><a href="https://zhuanlan.zhihu.com/p/52362950">到底什么是CDN？ -
+知乎 (zhihu.com)</a></p></li>
+<li><p><a
+href="https://zhuanlan.zhihu.com/p/433176170">两分钟带你了解YAML（.yml后缀文件）
+- 知乎 (zhihu.com)</a></p></li>
+<li><p><a
+href="https://news.netshop168.com/article-85934.html">rss订阅是什么意思?为什么要使用RSS?RSS也称为RSS订阅或RSS提要
+(netshop168.com)</a></p></li>
+<li><p><a href="https://zhuanlan.zhihu.com/p/347342082">如何利用 Github
+搭建自己的免费图床？ - 知乎 (zhihu.com)</a></p></li>
+<li><p><a
+href="https://zhuanlan.zhihu.com/p/489236769">使用Github+picGo搭建图床，保姆级教程来了
+- 知乎 (zhihu.com)</a></p></li>
+<li><p><a href="https://www.ruanyifeng.com/blog/2016/07/yaml.html">YAML
+语言教程 - 阮一峰的网络日志 (ruanyifeng.com)</a></p></li>
+<li><p><a
+href="https://www.cnblogs.com/cscshi/p/15196114.html#:~:text=1%201.%20设置背景图片%20将想要的背景图片放入%20themes%2Fnext%2Fsource%2Fimages。%20打开%20themes%2Fnext%2Fsource%2Fcss%2F%20_custom%2Fcustom.styl,blog_root%2Fsource%2F_data%2Fstyles.style%20中添加以下内容：%20...%203%203.%20参考%20Hexo-NexT%20设置博客背景图片">Hexo-NexT
+设置博客背景图片 - 锦瑟，无端 - 博客园 (cnblogs.com)</a></p></li>
+</ul>
+]]></content>
+      <categories>
+        <category>奇技淫巧</category>
+      </categories>
+      <tags>
+        <tag>奇技淫巧</tag>
       </tags>
   </entry>
   <entry>
@@ -5072,59 +5072,8 @@ alt="image-20230606131804276" />
         <category>嵌入式</category>
       </categories>
       <tags>
-        <tag>嵌入式</tag>
         <tag>robomaster</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>推文制作</title>
-    <url>/2023/08/23/%E6%8E%A8%E6%96%87%E5%88%B6%E4%BD%9C/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>在太极拳社团中我常被安排写一些推文，开始直接上手（有点丑），现在还是花点时间学习一下这个有用的技能。</p>
-<p><strong>推文 = 文案 + 排版</strong></p>
-<blockquote>
-<p>Tips:学习制作推文还是建议大家看看References中的视频，看这篇blog并不能让你学会制作推文，自己做一篇就懂了。</p>
-</blockquote>
-<span id="more"></span>
-<h1 id="文案">文案</h1>
-<p>推文的一大特点就是图文并茂：</p>
-<ul>
-<li>标题+摘要</li>
-<li>上半部分：直接使用的段落</li>
-<li>下半部分：素材</li>
-</ul>
-<p>建议直接chat+bing</p>
-<h1 id="排版">排版</h1>
-<p>使用<strong>秀米编辑器</strong>（highly recommended）</p>
-<blockquote>
-<p>Tips:135编辑器:开始我用的135，免费的就东摘西选，不能成为一套。还是秀米好用</p>
-</blockquote>
-<h2 id="关注我们">关注我们</h2>
-<p>使用情形：社团纳新</p>
-<p>位置：组件-&gt;关注原文</p>
-<blockquote>
-<p>Tips:</p>
-</blockquote>
-<h2 id="正文">正文</h2>
-<p>位置：卡片-&gt;选择即可</p>
-<p>右键可查看标签，然后多标签搜索，可以查到整套模板；</p>
-<p>可以保存卡片底色到调色板，更改其他的底色就可以保持颜色一致</p>
-<h2 id="美观">美观</h2>
-<ul>
-<li>位置：组件-&gt;分割线/分隔符</li>
-</ul>
-<h2 id="二维码">二维码</h2>
-<p>直接放卡片，然后更改二维码即可</p>
-<h1 id="references">References</h1>
-<ul>
-<li>【【芝芝子】微信公众号推文制作，20分钟包教包会】https://www.bilibili.com/video/BV1KS4y1j7dv?vd_source=93bb338120537438ee9180881deab9c1</li>
-</ul>
-]]></content>
-      <categories>
-        <category>奇技淫巧</category>
-      </categories>
-      <tags>
-        <tag>奇技淫巧</tag>
+        <tag>嵌入式</tag>
       </tags>
   </entry>
   <entry>
@@ -5217,6 +5166,57 @@ id="三种数据通路单工半双工全双工">三种数据通路：单工，�
       <tags>
         <tag>嵌入式</tag>
         <tag>通信</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>推文制作</title>
+    <url>/2023/08/23/%E6%8E%A8%E6%96%87%E5%88%B6%E4%BD%9C/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>在太极拳社团中我常被安排写一些推文，开始直接上手（有点丑），现在还是花点时间学习一下这个有用的技能。</p>
+<p><strong>推文 = 文案 + 排版</strong></p>
+<blockquote>
+<p>Tips:学习制作推文还是建议大家看看References中的视频，看这篇blog并不能让你学会制作推文，自己做一篇就懂了。</p>
+</blockquote>
+<span id="more"></span>
+<h1 id="文案">文案</h1>
+<p>推文的一大特点就是图文并茂：</p>
+<ul>
+<li>标题+摘要</li>
+<li>上半部分：直接使用的段落</li>
+<li>下半部分：素材</li>
+</ul>
+<p>建议直接chat+bing</p>
+<h1 id="排版">排版</h1>
+<p>使用<strong>秀米编辑器</strong>（highly recommended）</p>
+<blockquote>
+<p>Tips:135编辑器:开始我用的135，免费的就东摘西选，不能成为一套。还是秀米好用</p>
+</blockquote>
+<h2 id="关注我们">关注我们</h2>
+<p>使用情形：社团纳新</p>
+<p>位置：组件-&gt;关注原文</p>
+<blockquote>
+<p>Tips:</p>
+</blockquote>
+<h2 id="正文">正文</h2>
+<p>位置：卡片-&gt;选择即可</p>
+<p>右键可查看标签，然后多标签搜索，可以查到整套模板；</p>
+<p>可以保存卡片底色到调色板，更改其他的底色就可以保持颜色一致</p>
+<h2 id="美观">美观</h2>
+<ul>
+<li>位置：组件-&gt;分割线/分隔符</li>
+</ul>
+<h2 id="二维码">二维码</h2>
+<p>直接放卡片，然后更改二维码即可</p>
+<h1 id="references">References</h1>
+<ul>
+<li>【【芝芝子】微信公众号推文制作，20分钟包教包会】https://www.bilibili.com/video/BV1KS4y1j7dv?vd_source=93bb338120537438ee9180881deab9c1</li>
+</ul>
+]]></content>
+      <categories>
+        <category>奇技淫巧</category>
+      </categories>
+      <tags>
+        <tag>奇技淫巧</tag>
       </tags>
   </entry>
   <entry>
@@ -5376,6 +5376,340 @@ href="https://zhuanlan.zhihu.com/p/563088705">程序员教你十分钟做出炫�
       </categories>
       <tags>
         <tag>奇技淫巧</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>电学预演</title>
+    <url>/2023/08/28/%E7%94%B5%E5%AD%A6%E9%A2%84%E6%BC%94/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>电学预演——对模电、数电以及如何从0到1设计一台计算机进行概览。（之前我上过计算机基础所以对一些概念有所了解并未全都详细记录，而是凭借自己的理解说出来）</p>
+<p>特别感谢B站Ele实验室的视频！建议直接跳转到References观看链接视频，相信你和我一样能受益匪浅。</p>
+<span id="more"></span>
+<h1 id="模电">模电</h1>
+<h2 id="电子管">电子管</h2>
+<ul>
+<li><p>缺点：体型大，做不了微型化；功耗高，容易出故障</p></li>
+<li><p>优点：有极强的抗干扰性，大功率低噪声</p></li>
+</ul>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230828113354821.png"
+alt="电子三极管" />
+<figcaption aria-hidden="true">电子三极管</figcaption>
+</figure>
+<blockquote>
+<p>Tips:三极管的重要特性：信号放大！</p>
+</blockquote>
+<h2 id="晶体管">晶体管</h2>
+<ul>
+<li><p>纯净的半导体：本征半导体</p></li>
+<li><p>加磷P：N型半导体(电中性)，易失去电子</p></li>
+<li><p>加硼B：P型半导体</p></li>
+</ul>
+<p><strong>PN结</strong>——amazing！：</p>
+<p>先是扩散运动：电子从N流向P</p>
+<p>因为电荷不均匀产生电场阻碍电子的流向有了漂移运动：电子从P流向N</p>
+<p>最后达到动态平衡</p>
+<blockquote>
+<p>Tips:电学的大厦感觉就是在PN结的基础上搭建而成的</p>
+</blockquote>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230828114010284.png"
+alt="晶体二极管" />
+<figcaption aria-hidden="true">晶体二极管</figcaption>
+</figure>
+<p>导通电压一般为0.7V，小于导通电压称为截止；</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230828114248918.png"
+alt="晶体三极管" />
+<figcaption aria-hidden="true">晶体三极管</figcaption>
+</figure>
+<blockquote>
+<p>Tips:三极管不仅有截止的状态还有饱和，详情可查看<strong>三极管的特性曲线</strong></p>
+</blockquote>
+<p>晶体三极管原理：1号与2号之间导通电压大于0.7V，使1
+2之间的PN结形成通路，涌入2号的电子很多会扩散到3号，很快就被3号收集起来了，2号很薄消耗电子能力有限电流小，3号空间大电流一般较大，2号也能以较小的变化改变3号较大的变化。</p>
+<ul>
+<li><p>1号发射极：发射电子</p></li>
+<li><p>2号基极：像阀门一样操作着原始信号</p></li>
+<li><p>3号集电极：收集电子</p></li>
+</ul>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230828114614995.png"
+alt="晶体三极管" />
+<figcaption aria-hidden="true">晶体三极管</figcaption>
+</figure>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230828115015278.png"
+alt="一种放大电路" />
+<figcaption aria-hidden="true">一种放大电路</figcaption>
+</figure>
+<blockquote>
+<p>Tips:具体分析见视频：Rb
+Rc都是为了分压，PN结导通只需要0.7V即可，电容可以导通不同方向的电流（取代二极管），利用三极管的特性方法输入的信号。</p>
+</blockquote>
+<h2 id="场效应管">场效应管</h2>
+<p>最为常见的是mos管</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230828115300114.png"
+alt="mos管" />
+<figcaption aria-hidden="true">mos管</figcaption>
+</figure>
+<p>mos管原理：1号和3号与N型半导体直接相连，1号N型半导体导通电子流出到P型半导体，2号电吸引电子在上方形成反型层——该区域的电子比1、3N型半导体的电子都多，于是电子进入3号的N型半导体从3号流出（1号不会流出因为1是负极强行提供电子）</p>
+<ul>
+<li><p>1源极：提供电子</p></li>
+<li><p>2栅极：用0和1来控制，像个栅栏一样</p></li>
+<li><p>3漏极：收集电子（通过反型层的导电沟道捡漏）</p></li>
+</ul>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230828115515585.png"
+alt="mos管" />
+<figcaption aria-hidden="true">mos管</figcaption>
+</figure>
+<h1 id="数电">数电</h1>
+<p>执行逻辑运算的电路——<strong>门电路</strong>，数电就是把一个个门电路结合起来实现复杂的逻辑运算甚至算术运算</p>
+<p>GND接地：消除不同系统间因为电位的相对性而导致的电压标准的混乱</p>
+<p>在数电中我们只管有电还是没电即1和0</p>
+<blockquote>
+<p>Tips:1，0都有一个电平范围</p>
+</blockquote>
+<p>门电路符号后面的小圈圈表示将结果取反</p>
+<h2 id="全加器">全加器</h2>
+<p>加减法——补码（各位取反+1）</p>
+<p>不接受进位的加法器——半加器，接收进位全加器</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230828174444125.png"
+alt="全加器" />
+<figcaption aria-hidden="true">全加器</figcaption>
+</figure>
+<p>能够同时接受并输出仅为的电路单元——全加器（加减都能用）</p>
+<h2 id="编码器与译码器">编码器与译码器</h2>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230828174753069.png"
+alt="83编码器" />
+<figcaption aria-hidden="true">83编码器</figcaption>
+</figure>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230828174821133.png"
+alt="38译码器" />
+<figcaption aria-hidden="true">38译码器</figcaption>
+</figure>
+<h2 id="数据选择器">数据选择器</h2>
+<p>即为多路开关</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230828174911232.png"
+alt="image-20230828174911232" />
+<figcaption aria-hidden="true">image-20230828174911232</figcaption>
+</figure>
+<blockquote>
+<p>Notes:电路不会震荡，因为电流响应也需要时间而不是突变。</p>
+</blockquote>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230828175808563.png"
+alt="image-20230828175808563" />
+<figcaption aria-hidden="true">image-20230828175808563</figcaption>
+</figure>
+<p>有两个稳定状态的系统——双稳态系统</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230828180139136.png"
+alt="双稳态系统" />
+<figcaption aria-hidden="true">双稳态系统</figcaption>
+</figure>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230828180105269.png"
+alt="真值表" />
+<figcaption aria-hidden="true">真值表</figcaption>
+</figure>
+<h2 id="sr锁存器">SR锁存器</h2>
+<p>存储数据（拥有记忆功能）——S置位端，R复位端（置0端）</p>
+<p>实际上电路S、R只能一个一个地改变</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230828180416189.png"
+alt="image-20230828180416189" />
+<figcaption aria-hidden="true">image-20230828180416189</figcaption>
+</figure>
+<h2 id="sr触发器">SR触发器</h2>
+<p><strong>同步触发</strong>：CLK=1，输入被锁死，CLK=0，输入被触发，可实现同步（只需要有同一个CLK信号）</p>
+<p>CLK——电平触发（电磁干扰不好）；脉冲触发比较好</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230828180543877.png"
+alt="同步触发" />
+<figcaption aria-hidden="true">同步触发</figcaption>
+</figure>
+<h2 id="d触发器">D触发器</h2>
+<p>用一个非门把S和R地输入合并成一个（原来4种输入变成了3种，1，1这种非法的被删去了）</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230828180935849.png"
+alt="image-20230828180935849" />
+<figcaption aria-hidden="true">image-20230828180935849</figcaption>
+</figure>
+<p>脉冲触发器由两个电平触发器结合而成（被淘汰）</p>
+<h2 id="边沿触发器">边沿触发器</h2>
+<p>由两个电平D触发器结合而成</p>
+<blockquote>
+<p>Tips:脉冲触发器由两个电平触发器结合而成（被淘汰）</p>
+</blockquote>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230828181601202.png"
+alt="image-20230828181601202" />
+<figcaption aria-hidden="true">image-20230828181601202</figcaption>
+</figure>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230828181547012.png"
+alt="image-20230828181547012" />
+<figcaption aria-hidden="true">image-20230828181547012</figcaption>
+</figure>
+<h2 id="寄存器">寄存器</h2>
+<p>寄存器由多个边沿触发器组合而成</p>
+<p>拥有记忆了，这种按照脉冲时间序列动作的电路称为<strong>时序逻辑电路</strong>=组合逻辑电路+具有记忆功能的存储电路</p>
+<h2 id="rom">ROM</h2>
+<p>Read Only Memory，只读已经消失了,flash可读可写</p>
+<p>普通ROM——PROM可编程（Programmable ROM）</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230828183104924.png"
+alt="EPROM" />
+<figcaption aria-hidden="true">EPROM</figcaption>
+</figure>
+<p>增加浮置栅EPROM(erasable Programmable Read Only
+Memory)可擦除可编程——EEPROM（量子隧道）——Flash</p>
+<h2 id="ram">RAM</h2>
+<p>Random Access Memory，迅速，断电不能保存数据，功耗低</p>
+<p>锁存结构：不过较复杂，集成度上不去，用在性能要求更高的buffer中——静态RAM（SRAM）</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230828183823282.png"
+alt="image-20230828183823282" />
+<figcaption aria-hidden="true">image-20230828183823282</figcaption>
+</figure>
+<p>用电容实现存储——需要复杂的外围电路的配合——动态RAM（DRAM）内存就是DRAM</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230828184048129.png"
+alt="image-20230828184048129" />
+<figcaption aria-hidden="true">image-20230828184048129</figcaption>
+</figure>
+<p><strong>Bonus</strong></p>
+<p>DDR（double data
+rate）——脉冲上升沿、下降沿都可以触发，实现双倍速率</p>
+<p>时钟信号同步——SDRAM， DDR SDRAM</p>
+<h1 id="设计计算机">设计计算机</h1>
+<p>冯诺依曼结构，哈佛结构——常见于单片机，MCU中</p>
+<h2 id="寄存器组">寄存器组</h2>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230828092425254.png"
+alt="image-20230828092425254" />
+<figcaption aria-hidden="true">image-20230828092425254</figcaption>
+</figure>
+<p>CLK:时钟脉冲，Dout：data out，可随意读取</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230828092704891.png"
+alt="image-20230828092704891" />
+<figcaption aria-hidden="true">image-20230828092704891</figcaption>
+</figure>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230828094303750.png"
+alt="image-20230828094303750" />
+<figcaption aria-hidden="true">image-20230828094303750</figcaption>
+</figure>
+<p><strong>设计原则</strong>：CPU和RAM必须通过<strong>寄存器组</strong>进行交流</p>
+<blockquote>
+<p>Tips:如果对于输入有不同的输出方式，一般都有一个控制信号来表示选择哪一个模式</p>
+</blockquote>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230828093604265.png"
+alt="image-20230828093604265" />
+<figcaption aria-hidden="true">image-20230828093604265</figcaption>
+</figure>
+<h2 id="运算器">运算器</h2>
+<h3 id="au">AU</h3>
+<p>arithmetic unit算术单元</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230828093801136.png"
+alt="image-20230828093801136" />
+<figcaption aria-hidden="true">image-20230828093801136</figcaption>
+</figure>
+<h3 id="lu">LU</h3>
+<p>logic unit逻辑单元</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230828093944882.png"
+alt="image-20230828093944882" />
+<figcaption aria-hidden="true">image-20230828093944882</figcaption>
+</figure>
+<h3 id="alu">ALU</h3>
+<p>arithmetic and logic unit算术逻辑单元</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230828094015348.png"
+alt="image-20230828094015348" />
+<figcaption aria-hidden="true">image-20230828094015348</figcaption>
+</figure>
+<h2 id="指令集">指令集</h2>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230828094844870.png"
+alt="image-20230828094844870" />
+<figcaption aria-hidden="true">image-20230828094844870</figcaption>
+</figure>
+<h2 id="汇编器">汇编器</h2>
+<p>汇编器就是将汇编语言转化为指令集，汇编语言：把人性化的语言转化为二进制机器指令的工作</p>
+<p>一般是先设计汇编再结合电路反推出二进制</p>
+<h2 id="程序计数器">程序计数器</h2>
+<p>PC（program
+counter）——CPU的一部分，自动实现指令的依次执行，控制程序顺序</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230828233751294.png"
+alt="image-20230828233751294" />
+<figcaption aria-hidden="true">image-20230828233751294</figcaption>
+</figure>
+<p>I型指令</p>
+<p>J型指令：比如强制跳转地址</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230828234031855.png"
+alt="强制跳转地址" />
+<figcaption aria-hidden="true">强制跳转地址</figcaption>
+</figure>
+<h2 id="bonus">Bonus</h2>
+<p>其他的比如图像的显示——用一条IO口引出即可。</p>
+<p>我们需要什么功能，都可以运用我们的智慧改进硬件来达到要求！计算机的设计就是一个不断迭代的过程。</p>
+<h1 id="references">References</h1>
+<ul>
+<li>【编程前你最好了解的基本硬件和计算机基础知识（模拟电路）】https://www.bilibili.com/video/BV1774114798?p=2&amp;vd_source=93bb338120537438ee9180881deab9c1</li>
+<li>【编程前你最好了解的基本硬件和计算机基础知识（数字电路）】https://www.bilibili.com/video/BV1Hi4y1t7zY?vd_source=93bb338120537438ee9180881deab9c1</li>
+<li>【从0到1设计一台计算机】https://www.bilibili.com/video/BV1wi4y157D3?vd_source=93bb338120537438ee9180881deab9c1</li>
+</ul>
+]]></content>
+      <categories>
+        <category>嵌入式</category>
+      </categories>
+      <tags>
+        <tag>嵌入式</tag>
       </tags>
   </entry>
   <entry>
