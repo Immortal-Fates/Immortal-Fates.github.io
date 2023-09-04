@@ -732,6 +732,338 @@ CAN通信的位定时与同步_weixin_40528417的博客-CSDN博客</a></li>
       </tags>
   </entry>
   <entry>
+    <title>CAN总线学习——过滤器及API</title>
+    <url>/2023/08/27/CAN%E6%80%BB%E7%BA%BF%E5%AD%A6%E4%B9%A0%E2%80%94%E2%80%94%E8%BF%87%E6%BB%A4%E5%99%A8%E5%8F%8AAPI/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>记录学习CAN的历程，主要是谈谈对CAN（bxCAN）过滤器及CAN的API。</p>
+<p>来填上次的坑！</p>
+<blockquote>
+<p>Tips:我对CAN的API应用并不是很了解，因为CAN至少需要在两块单片机上运用，所以我并未做实验，没有亲手敲过，以后实践后再补充</p>
+</blockquote>
+<span id="more"></span>
+<h1 id="两种过滤模式">两种过滤模式</h1>
+<h2 id="列表模式">列表模式</h2>
+<p>将ID输入列表，进行对照即可</p>
+<blockquote>
+<p>Tips:资源有限，受数量限制</p>
+</blockquote>
+<h2 id="掩码模式">掩码模式</h2>
+<p><strong>验证码与屏蔽码</strong></p>
+<p>ID通过哪几位由屏蔽码决定，再将通过的那几位与验证码进行比较</p>
+<figure>
+<img src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230827233906861.png" alt="掩码模式的计算过程">
+<figcaption aria-hidden="true">掩码模式的计算过程</figcaption>
+</figure>
+<p>在bxCAN中，分别采用了两个寄存器(CAN_FiR1,CAN_FiR2)来存储屏蔽码与验证码，从而实现掩码模式的工作流程的</p>
+<blockquote>
+<p>Tips:采用掩码模式的方式并不能精确的对每一个ID进行过滤eg:我想要1150——1158，然后我验证115满足即可，那么1159也会通过，不精确</p>
+</blockquote>
+<table>
+<colgroup>
+<col style="width: 8%">
+<col style="width: 62%">
+<col style="width: 29%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>模式</th>
+<th>优点</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>列表模式</td>
+<td>能精确地过滤每个指定的CAN ID</td>
+<td>有数量限制</td>
+</tr>
+<tr class="even">
+<td>掩码模式</td>
+<td>取决于屏蔽码，有时无法完全精确到每一个CAN ID，部分不期望的CAN
+ID有时也会收到</td>
+<td>数量取决于屏蔽码，最多无上限</td>
+</tr>
+</tbody>
+</table>
+<h1 id="bxcan的过滤器的解决方案">bxCAN的过滤器的解决方案</h1>
+<ul>
+<li><p>过滤模式的位就定义在<strong>CAN_FM1R</strong>寄存器中的FBMx位：”0”表示掩码模式，”1”表示列表模式。</p></li>
+<li><p>一个标志用告诉过滤器是否需要处理32位的CAN ID：标准CAN
+ID位11位，而扩展CAN ID有29位，对于标准的CAN
+ID来说，我们有一个16位的寄存器来处理他足够了，相应地，扩展CAN
+ID，我们就必须使用32位的寄存器来处理它。设置了这么一个寄存器<strong>CAN_FS1R</strong>来表示CAN
+ID的位宽</p></li>
+</ul>
+<h1 id="api">API</h1>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**</span><br><span class="line">* @brief CAN filter configuration structure definition</span><br><span class="line">*/</span><br><span class="line">CAN_FilterTypeDef;</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**</span><br><span class="line">    * @brief Configures the CAN reception filter according to the specified</span><br><span class="line">    * parameters in the CAN_FilterInitStruct.</span><br><span class="line">    * @param hcan pointer to a CAN_HandleTypeDef structure that contains</span><br><span class="line">    * the configuration information for the specified CAN.</span><br><span class="line">    * @param sFilterConfig pointer to a CAN_FilterTypeDef structure that</span><br><span class="line">    * contains the filter configuration information.</span><br><span class="line">    * @retval None</span><br><span class="line">*/</span><br><span class="line">HAL_StatusTypeDef HAL_CAN_ConfigFilter(CAN_HandleTypeDef *hcan,CAN_FilterTypeDef *sFilterConfig)</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**</span><br><span class="line">    * @brief Start the CAN module.</span><br><span class="line">    * @param hcan pointer to an CAN_HandleTypeDef structure that contains</span><br><span class="line">    * the configuration information for the specified CAN.</span><br><span class="line">    * @retval HAL status</span><br><span class="line">*/</span><br><span class="line">HAL_StatusTypeDef HAL_CAN_Start(CAN_HandleTypeDef *hcan)</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**</span><br><span class="line">    * @brief Enable interrupts.</span><br><span class="line">    * @param hcan pointer to an CAN_HandleTypeDef structure that contains</span><br><span class="line">    * the configuration information for the specified CAN.</span><br><span class="line">    * @param ActiveITs indicates which interrupts will be enabled.</span><br><span class="line">    * This parameter can be any combination of @arg CAN_Interrupts.</span><br><span class="line">    * @retval HAL status</span><br><span class="line">*/</span><br><span class="line">HAL_StatusTypeDef HAL_CAN_ActivateNotification(CAN_HandleTypeDef *hcan, uint32_t</span><br><span class="line">ActiveITs)</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**</span><br><span class="line">    * @brief Add a message to the first free Tx mailbox and activate the</span><br><span class="line">    * corresponding transmission request.</span><br><span class="line">    * @param hcan pointer to a CAN_HandleTypeDef structure that contains</span><br><span class="line">    * the configuration information for the specified CAN.</span><br><span class="line">    * @param pHeader pointer to a CAN_TxHeaderTypeDef structure.</span><br><span class="line">    * @param aData array containing the payload of the Tx frame.</span><br><span class="line">    * @param pTxMailbox pointer to a variable where the function will return</span><br><span class="line">    * the TxMailbox used to store the Tx message.</span><br><span class="line">    * This parameter can be a value of @arg CAN_Tx_Mailboxes.</span><br><span class="line">    * @retval HAL status</span><br><span class="line">*/</span><br><span class="line">HAL_StatusTypeDef HAL_CAN_AddTxMessage(CAN_HandleTypeDef *hcan,CAN_TxHeaderTypeDef *pHeader, uint8_t aData[], uint32_t *pTxMailbox)</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**</span><br><span class="line">    * @brief Get an CAN frame from the Rx FIFO zone into the message RAM.</span><br><span class="line">    * @param hcan pointer to an CAN_HandleTypeDef structure that contains</span><br><span class="line">    * the configuration information for the specified CAN.</span><br><span class="line">    * @param RxFifo Fifo number of the received message to be read.</span><br><span class="line">    * This parameter can be a value of @arg CAN_receive_FIFO_number.</span><br><span class="line">    * @param pHeader pointer to a CAN_RxHeaderTypeDef structure where the header</span><br><span class="line">    * of the Rx frame will be stored.</span><br><span class="line">    * @param aData array where the payload of the Rx frame will be stored.</span><br><span class="line">    * @retval HAL status</span><br><span class="line">*/</span><br><span class="line">HAL_StatusTypeDef HAL_CAN_GetRxMessage(CAN_HandleTypeDef *hcan, uint32_t RxFifo,CAN_RxHeaderTypeDef *pHeader, uint8_t aData[])</span><br></pre></td></tr></table></figure>
+<h1 id="references">References</h1>
+<ul>
+<li>B站哈工深电控组内训视频</li>
+<li><a href="https://zhuanlan.zhihu.com/p/38299092">CAN总线波特率的设定——以STM32F103为例
+- 知乎 (zhihu.com)</a></li>
+<li><a href="https://blog.csdn.net/flydream0/article/details/52317532">再谈STM32的CAN过滤器-bxCAN的过滤器的4种工作模式以及使用方法总结_f407
+can id过滤_flydream0的博客-CSDN博客</a></li>
+</ul>
+]]></content>
+      <categories>
+        <category>嵌入式</category>
+      </categories>
+      <tags>
+        <tag>嵌入式</tag>
+        <tag>robomaster</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Environment_variables</title>
+    <url>/2023/08/14/Environment-variables/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>最近调整自己的workflow，遇到很多配置环境变量（environment
+variable）的问题，借此机会了解一下</p>
+<span id="more"></span>
+<h1 id="introduction">Introduction</h1>
+<p>环境变量是一种<strong>在操作系统中</strong>用来指定操作系统运行环境的参数，例如临时文件夹的位置，系统文件夹的位置，可执行文件的搜索路径等。</p>
+<p>环境变量的作用是<strong>让操作系统或者应用程序能够找到所需要的资源或者设置</strong>。</p>
+<h1 id="diffenent-systems">diffenent systems</h1>
+<h2 id="在windows中">在Windows中</h2>
+<p>可以通过“控制面板”-“系统”-“高级系统设置”-“环境变量”来查看和编辑环境变量。通过可视化的窗口模式展现出来的.</p>
+<h2 id="在linux中">在Linux中</h2>
+<p>可以通过命令行工具或者编辑配置文件来查看和编辑环境变量。</p>
+<h3 id="设置">设置：</h3>
+<p>在
+/etc/profile文件中设置，export的意思就是将局部变量设置为环境变量。现有的变量是被这样一行代码设置的：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">export PATH USER LOGNAME MAIL HOSTNAME HISTSIZE HISTCONTROL</span><br></pre></td></tr></table></figure>
+<p>这几个环境变量已经有一些默认值了，不过我们可以追加内容，比如修改PATH：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line"># : 的意思是并列</span><br><span class="line">PATH = /abc/def:$PATH</span><br></pre></td></tr></table></figure>
+<h3 id="查看">查看：</h3>
+<p>查看全部，使用<code>env</code>命令即可。</p>
+<p>查看单个，可以使用<code>echo：如echo $JAVA_HOME。</code></p>
+<h1 id="一些常见的环境变量有">一些常见的环境变量有</h1>
+<ul>
+<li><p>PATH：指定可执行文件的搜索路径，当你在命令行中输入一个程序名而没有指定完整路径时，系统会在PATH中指定的目录下寻找该程序。（一般为bin文件姐）</p></li>
+<li><p>JAVA_HOME：指定JDK（Java开发工具包）的安装目录，一些Java开发工具或者应用程序会使用这个变量来找到JDK。</p></li>
+<li><p>TEMP或TMP：指定临时文件夹的位置，一些应用程序会在这个目录下存储临时数据或者缓存文件。</p></li>
+<li><p>USERPROFILE：指定当前用户的配置文件的位置，一些应用程序会在这个目录下存储用户相关的数据或者设置。</p></li>
+</ul>
+<h1 id="references">References</h1>
+<ul>
+<li><a href="https://zhuanlan.zhihu.com/p/82011100">看懂什么是环境变量!
+- 知乎 (zhihu.com)</a></li>
+</ul>
+]]></content>
+      <categories>
+        <category>CS</category>
+      </categories>
+      <tags>
+        <tag>CS</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Flash入门</title>
+    <url>/2023/08/24/Flash%E5%85%A5%E9%97%A8/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>Following
+哈工深上传到B站的电控组培训来入门robomaster电控组，我购买了普中科技玄武套餐开发板作为硬件。</p>
+<p>本篇介绍我学习Flash的见闻</p>
+<span id="more"></span>
+<h1 id="flash">FLASH</h1>
+<p>不需配置任何东西，只需要时钟即可</p>
+<p>RS232-----TTL</p>
+<h2 id="简介">简介</h2>
+<p>一个32位地址指向1个字节，我们常说的flash空间，多少多少K，指的是多少多少K
+byte。</p>
+<p>Flash
+中文名字叫闪存，是一种长寿命的非易失性（断电数据不丢失）的存储器。可以对称为块的存储器单元块进行擦写和再编程，在进行写入操作之前必须先执行擦除。</p>
+<p>STM32的FLASH地址起始于 0x08000000
+，结束地址是0x08000000加上芯片实际的FLASH大小，不同的芯片FLASH大小不同。</p>
+<blockquote>
+<p>Tips:一般情况下，程序文件是从 0x0800 0000
+地址写入，这个是STM32开始执行的地方，0x0800
+0004是STM32的中断向量表的起始地址。（我们可以手动更改）</p>
+</blockquote>
+<p>RAM起始地址是 0x20000000
+，结束地址是0x20000000加上芯片的RAM大小，不同的芯片RAM也不同。</p>
+<p>Flash中的内容一般用来存储代码和一些定义为const的数据，断电不丢失，且不会保存调试中改变的数据；RAM可以理解为内存，用来存储代码运行时的数据，变量等等，掉电数据丢失。</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230824221707146.png"
+alt="image-20230824221707146" />
+<figcaption aria-hidden="true">image-20230824221707146</figcaption>
+</figure>
+<p>STM32将外设都映射为地址，操作外设也即操作地址。</p>
+<blockquote>
+<p>Tips:stm32的外设地址从0x4000
+0000开始，可以看到在库文件中，是通过基于0x4000
+0000地址的偏移量来操作寄存器以及外设的。</p>
+</blockquote>
+<h3 id="单片机执行流程">单片机执行流程</h3>
+<p>单片机复位后，从 0x08000004
+取出复位中断的地址，并且跳转到复位中断程序，中断执行完之后会跳到我们的
+main 函数， main
+函数里边一般是一个死循环，进去后就不会再退出，当有中断发生的时候，单片机将指针强制跳转回中断向量表，然后根据中断源进入对应的中断函数，执行完中断函数之后，再次返回
+main 函数中。</p>
+<h3 id="启动模式选择管脚">启动模式选择管脚</h3>
+<p>BOOT1 BOOT0 启动模式 说明</p>
+<ul>
+<li><p>X 0 用户闪存存储器du 用户闪存存储器被选为启动区域</p></li>
+<li><p>0 1 系统zhi存储器 系统存储器被选为启动区域</p></li>
+<li><p>1 1 内嵌SRAM 内嵌SRAM被选为启动区域</p></li>
+</ul>
+<p>根据选定的启动模式，主闪存存储器、系统存储器或SRAM可以按照以下方式访问：</p>
+<p>● 从主闪存存储器启动：主闪存存储器被映射到启动空间(0x0000
+0000)，但仍然能够在它原有的地址(0x0800
+0000)访问它，即闪存存储器的内容可以在两个地址区域访问，0x0000
+0000或0x0800 0000。</p>
+<p>● 从系统存储器启动：系统存储器被映射到启动空间(0x0000
+0000)，但仍然能够在它原有的地址(0x1FFF F000)访问它。</p>
+<p>● 从内置SRAM启动：只能在0x2000 0000开始的地址区访问SRAM。</p>
+<h2 id="内部构造">内部构造</h2>
+<p>按照不同容量，存储器组织成32个1K字节/页(小容量)、
+128个1K字节/页(中容量)、
+256个2K字节/页(大容量)的主存储器块和一个信息块。</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230824222249830.png"
+alt="image-20230824222249830" />
+<figcaption aria-hidden="true">image-20230824222249830</figcaption>
+</figure>
+<p>闪存存储器被组织成32位宽的存储器单元，可以存放代码和数据常数。每一个STM32F10xxx微控制器的闪存模块都有一个特定的启始地址。</p>
+<p>信息块分为两个部分：</p>
+<ul>
+<li><p>系统存储器是用于存放在系统存储器自举模式下的启动程序bootloader(用户无法更改)，这个区域只保留给ST使用，启动程序使用USART1串行接口实现对闪存存储器的编程；
+ST在生产线上对这个区域编程并锁定以防止用户擦写</p></li>
+<li><p>选择字节： 选项字节存储芯片的配置信息及对主存储块的保护信息。
+用于配置 FLASH 的读写保护、电源管理中的 BOR
+级别、软件/硬件看门狗等功能，这部分共 32 字节。可以通过修改
+FLASH的选项控制寄存器修改。</p></li>
+</ul>
+<p>闪存存储器有两种保护方式防止非法的访问(读、写、擦除)：</p>
+<ul>
+<li>页写入保护</li>
+<li>读出保护</li>
+</ul>
+<p>在执行闪存写操作时，任何对闪存的读操作都会锁住总线，在写操作完成后读操作才能正确地进行。</p>
+<blockquote>
+<p>Tips:即在进行写或擦除操作时，不能进行代码或数据的读取操作。</p>
+</blockquote>
+<p>进行闪存编程操作时(写或擦除)，必须打开内部的RC振荡器(HSI)。</p>
+<blockquote>
+<p>Tips:CubeMX默认打开</p>
+</blockquote>
+<p>闪存存储器可以用ICP或IAP方式编程。</p>
+<ul>
+<li>IAP(In-Application Programming)：
+IAP是在用户程序运行时对闪存微控制器中存储器重新编程。</li>
+<li>ICP(In-Circuit Programming)：
+ICP是在芯片安装到用户应用板上后，通过JTAG协议对闪存微控制器中存储器编程</li>
+</ul>
+<h2 id="flash的读写操作">FLASH的读/写操作</h2>
+<h3 id="读操作">读操作</h3>
+<p>内置闪存模块可以在通用地址空间直接寻址，任何32位数据的读操作都能访问闪存模块的内容并得到相应的数据。（读操作较为简单）</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">uint32_t Robot_Num_Flash_Add = 0x08005000;</span><br><span class="line">ID_Num = *(__IO uint16_t*)( Robot_Num_Flash_Add ); </span><br><span class="line">//*(__IO uint16_t *)是读取该地址的参数值,其值为16位数据,一次读取两个字节，*(__IO uint32_t *)就一次读4个字节</span><br><span class="line">printf(&quot;ID_num:0x%x\r\n&quot;, ID_Num);</span><br></pre></td></tr></table></figure>
+<h3 id="写操作">写操作</h3>
+<p>闪存编程和擦除控制器(FPEC)处理闪存的编程和擦除操作。它包括7个32位的寄存器：</p>
+<ul>
+<li>FPEC键寄存器(FLASH_KEYR)</li>
+<li>选择字节键寄存器(FLASH_OPTKEYR)闪存控制寄存器(FLASH_CR)</li>
+<li>闪存状态寄存器(FLASH_SR)</li>
+<li>闪存地址寄存器(FLASH_AR)</li>
+<li>选择字节寄存器(FLASH_OBR)</li>
+<li>写保护寄存器(FLASH_WRPR)</li>
+</ul>
+<p>复位后，
+FPEC模块是被保护的，不能写入FLASH_CR寄存器；通过写入特定的序列到FLASH_KEYR寄存器可以打开FPEC模块，这个特定的序列是在FLASH_KEYR写入两个键值(KEY1和KEY2)；错误的操作序列都会在下次复位前锁死FPEC模块和FLASH_CR寄存器。</p>
+<ul>
+<li>KEY1: 0x45670123</li>
+<li>KEY2: 0xCDEF89AB</li>
+</ul>
+<p>写入错误的键序列还会产生总线错误；总线错误发生在第一次写入的不是KEY1，或第一次写入的是KEY1但第二次写入的不是KEY2时；
+FPEC模块和FLASH_CR寄存器可以由程序设置FLASH_CR寄存器中的LOCK位锁住，这时可以通过在FLASH_KEYR中写入正确的键值对FPEC解锁。</p>
+<h4 id="闪存擦除">闪存擦除</h4>
+<p>闪存可以按页擦除，也可以整片擦除</p>
+<h5 id="页擦除"><strong>页擦除</strong></h5>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230824232659185.png"
+alt="流程" />
+<figcaption aria-hidden="true">流程</figcaption>
+</figure>
+<p>闪存的任何一页都可以通过FPEC的页擦除功能擦除；擦除一页应遵守下述过程：</p>
+<ul>
+<li><p>检查FLASH_SR寄存器的BSY位，以确认没有其他正在进行的闪存操作；</p></li>
+<li><p>设置FLASH_CR寄存器的PER位为1 ；</p></li>
+<li><p>用FLASH_AR寄存器选择要擦除的页；</p></li>
+<li><p>设置FLASH_CR寄存器的STRT位为 1 ；</p></li>
+<li><p>等待BSY位变为 0 ；</p></li>
+<li><p>读出被擦除的页并做验证。（没必要）</p></li>
+</ul>
+<p><strong>整片擦除</strong></p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230824233016388.png"
+alt="整片擦除流程" />
+<figcaption aria-hidden="true">整片擦除流程</figcaption>
+</figure>
+<p>可以用整片擦除功能擦除所有用户区的闪存，信息块不受此操作影响。建议使用下述过程：</p>
+<ul>
+<li><p>检查FLASH_SR寄存器的BSY位，以确认没有其他正在进行的闪存操作；</p></li>
+<li><p>设置FLASH_CR寄存器的MER位为 1 ；</p></li>
+<li><p>设置FLASH_CR寄存器的STRT位为 1 ；</p></li>
+<li><p>等待BSY位变为 0 ；</p></li>
+<li><p>读出所有页并做验证。</p></li>
+</ul>
+<p><strong>主闪存编程</strong></p>
+<p>对主闪存编程每次可以写入16位。即在一个闪存地址写入一个半字将启动一次编程；写入任何非半字的数据，
+FPEC都会产生总线错误。</p>
+<blockquote>
+<p>Tips:在编程过程中，任何读写闪存的操作都会使CPU暂停（即改代码）
+，直到此次闪存编程结束。</p>
+</blockquote>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230824233303404.png"
+alt="image-20230824233303404" />
+<figcaption aria-hidden="true">image-20230824233303404</figcaption>
+</figure>
+<p>标准的闪存编程顺序如下：</p>
+<ul>
+<li><p>检查FLASH_SR寄存器的BSY位，以确认没有其他正在进行的编程操作；</p></li>
+<li><p>设置FLASH_CR寄存器的PG位为 1 ；</p></li>
+<li><p>在指定的地址写入要编程的半字；</p></li>
+<li><p>等待BSY位变为 0 ；</p></li>
+<li><p>读出写入的地址并验证数据。</p></li>
+</ul>
+<p>FPEC先读出指定地址的内容并检查它是否被擦除，如未被擦除则不执行编程；如果指定的地址在FLASH_WRPR中设定为写保护，也不执行编程。</p>
+<blockquote>
+<p><strong>Notes</strong>:所有的编程操作结束后要锁上FLASH。</p>
+</blockquote>
+<h2 id="查看工程的内存分布">查看工程的内存分布</h2>
+<p>通过查询应用程序编译时产生的 *.map 后缀文件，打开map
+文件后，查看文件最后部分的区域，可以看到一段以 Memory Map of the image
+开头的记录</p>
+<h2 id="api">API</h2>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">FLASH_EraseInitTypeDef; //一个结构体的名字</span><br><span class="line">HAL_StatusTypeDef HAL_FLASH_Unlock(void);解锁</span><br><span class="line">HAL_StatusTypeDef HAL_FLASH_Lock(void);上锁</span><br><span class="line">HAL_StatusTypeDef HAL_FLASHEx_Erase(FLASH_EraseInitTypeDef *pEraseInit, uint32_t *PageError);</span><br><span class="line">//Perform a mass erase or erase the specified FLASH memory pages</span><br><span class="line"></span><br><span class="line">HAL_StatusTypeDef HAL_FLASH_Program(uint32_t TypeProgram, uint32_t Address,uint64_t Data);</span><br><span class="line">//Program halfword, word or double word at a specified address</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h1 id="实验">实验</h1>
+<p>FLASH读写实验</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/*FLASH写入程序*/</span><br><span class="line">void writeFlash(uint32_t addr, uint32_t WriteFlashData)</span><br><span class="line">&#123;</span><br><span class="line">    /* 1/4解锁FLASH*/</span><br><span class="line">    HAL_FLASH_Unlock();</span><br><span class="line">    </span><br><span class="line">    /* 2/4擦除FLASH*/</span><br><span class="line">    /*初始化FLASH_EraseInitTypeDef*/</span><br><span class="line">    FLASH_EraseInitTypeDef FlashSet;</span><br><span class="line">    FlashSet.TypeErase = FLASH_TYPEERASE_PAGES;</span><br><span class="line">    FlashSet.Banks = FLASH_BANK_1;</span><br><span class="line">    FlashSet.PageAddress = addr;</span><br><span class="line">    FlashSet.NbPages = 1;</span><br><span class="line">    </span><br><span class="line">    /*设置PageError，调用擦除函数*/</span><br><span class="line">    uint32_t PageError = 0;</span><br><span class="line">    HAL_FLASHEx_Erase(&amp;FlashSet, &amp;PageError);</span><br><span class="line">    </span><br><span class="line">    /* 3/4对FLASH烧写*/</span><br><span class="line">    HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, addr, WriteFlashData);</span><br><span class="line">    </span><br><span class="line">    /* 4/4锁住FLASH*/</span><br><span class="line">    HAL_FLASH_Lock();</span><br><span class="line">&#125; </span><br><span class="line">/*FLASH读取程序*/</span><br><span class="line">uint32_t readFlash(uint32_t addr)</span><br><span class="line">&#123;</span><br><span class="line">    uint32_t temp = *(__IO uint32_t*)(addr);</span><br><span class="line">    return temp;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h1 id="references">References</h1>
+<ul>
+<li>哈工深电控内训</li>
+</ul>
+]]></content>
+      <categories>
+        <category>嵌入式</category>
+      </categories>
+      <tags>
+        <tag>嵌入式</tag>
+        <tag>robomaster</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>EXTI入门</title>
     <url>/2023/08/21/EXTI%E5%85%A5%E9%97%A8/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
@@ -871,126 +1203,153 @@ href="https://zhidao.baidu.com/question/1959763145635584700.html">单片机的�
       </tags>
   </entry>
   <entry>
-    <title>Environment_variables</title>
-    <url>/2023/08/14/Environment-variables/</url>
+    <title>FreeRTOS（2）</title>
+    <url>/2023/08/29/FreeRTOS%EF%BC%882%EF%BC%89/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>最近调整自己的workflow，遇到很多配置环境变量（environment
-variable）的问题，借此机会了解一下</p>
+<p>Following
+哈工深上传到B站的电控组培训来入门robomaster电控组，我购买了普中科技玄武套餐开发板作为硬件。</p>
+<p>本篇介绍我学习FreeRTOS的见闻，自己看FreeRTOS中文参考手册进行琢磨。</p>
+<p>FreeRTOS(2)——中断管理</p>
 <span id="more"></span>
-<h1 id="introduction">Introduction</h1>
-<p>环境变量是一种<strong>在操作系统中</strong>用来指定操作系统运行环境的参数，例如临时文件夹的位置，系统文件夹的位置，可执行文件的搜索路径等。</p>
-<p>环境变量的作用是<strong>让操作系统或者应用程序能够找到所需要的资源或者设置</strong>。</p>
-<h1 id="diffenent-systems">diffenent systems</h1>
-<h2 id="在windows中">在Windows中</h2>
-<p>可以通过“控制面板”-“系统”-“高级系统设置”-“环境变量”来查看和编辑环境变量。通过可视化的窗口模式展现出来的.</p>
-<h2 id="在linux中">在Linux中</h2>
-<p>可以通过命令行工具或者编辑配置文件来查看和编辑环境变量。</p>
-<h3 id="设置">设置：</h3>
-<p>在
-/etc/profile文件中设置，export的意思就是将局部变量设置为环境变量。现有的变量是被这样一行代码设置的：</p>
-<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">export PATH USER LOGNAME MAIL HOSTNAME HISTSIZE HISTCONTROL</span><br></pre></td></tr></table></figure>
-<p>这几个环境变量已经有一些默认值了，不过我们可以追加内容，比如修改PATH：</p>
-<figure class="highlight text"><table><tr><td class="code"><pre><span class="line"># : 的意思是并列</span><br><span class="line">PATH = /abc/def:$PATH</span><br></pre></td></tr></table></figure>
-<h3 id="查看">查看：</h3>
-<p>查看全部，使用<code>env</code>命令即可。</p>
-<p>查看单个，可以使用<code>echo：如echo $JAVA_HOME。</code></p>
-<h1 id="一些常见的环境变量有">一些常见的环境变量有</h1>
+<h1 id="中断管理">中断管理</h1>
+<p>嵌入式实时系统需要对整个系统环境产生的事件作出反应。需要处理来自各种源头产生的事件，因此中断是必要的！</p>
+<p>中断服务例程(ISR)</p>
+<h2 id="延迟中断处理">延迟中断处理</h2>
+<p><strong>二值信号量</strong>：可看作一个深度为1的队列（所以仅二值）</p>
+<p><strong>延迟处理任务</strong>（优先级自己设置）对一个信号量进行带阻塞性质的”take”调用，意思是进入阻塞态以等待事件发生。当事件发生后，
+ISR
+对同一个信号量进行”give”操作，使得延迟处理任务解除阻塞，从而事件在延迟处理任务中得到相应的处理。</p>
 <ul>
-<li><p>PATH：指定可执行文件的搜索路径，当你在命令行中输入一个程序名而没有指定完整路径时，系统会在PATH中指定的目录下寻找该程序。（一般为bin文件姐）</p></li>
-<li><p>JAVA_HOME：指定JDK（Java开发工具包）的安装目录，一些Java开发工具或者应用程序会使用这个变量来找到JDK。</p></li>
-<li><p>TEMP或TMP：指定临时文件夹的位置，一些应用程序会在这个目录下存储临时数据或者缓存文件。</p></li>
-<li><p>USERPROFILE：指定当前用户的配置文件的位置，一些应用程序会在这个目录下存储用户相关的数据或者设置。</p></li>
+<li>vSemaphoreCreateBinary() ：创建二值信号量</li>
+<li>xSemaphoreTake()
+：延迟处理任务调用xSemaphoreTake()时，等效于带阻塞时间地读取队列</li>
 </ul>
-<h1 id="references">References</h1>
+<blockquote>
+<p>Tips:take了信号就没了</p>
+<p>除互斥信号量外(Recursive
+Semaphore)——偶也还没搞懂互斥是什么意思之后文章会填坑，所有信号量都可以调用该API来获取</p>
+</blockquote>
 <ul>
-<li><a href="https://zhuanlan.zhihu.com/p/82011100">看懂什么是环境变量!
-- 知乎 (zhihu.com)</a></li>
+<li>xSemaphoreGiveFromISR() ：ISR 简单地通过调用
+xSemaphoreGiveFromISR()放置一个令牌(信号量)到队列中，使得队列成为满状态。这也使得延迟处理任务切出阻塞态，并移除令牌，使得队列再次成为空。当任务完成处理后，再次读取队列，发现队列为空，又</li>
 </ul>
-]]></content>
-      <categories>
-        <category>CS</category>
-      </categories>
-      <tags>
-        <tag>CS</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>CAN总线学习——过滤器及API</title>
-    <url>/2023/08/27/CAN%E6%80%BB%E7%BA%BF%E5%AD%A6%E4%B9%A0%E2%80%94%E2%80%94%E8%BF%87%E6%BB%A4%E5%99%A8%E5%8F%8AAPI/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>记录学习CAN的历程，主要是谈谈对CAN（bxCAN）过滤器及CAN的API。</p>
-<p>来填上次的坑！</p>
 <blockquote>
-<p>Tips:我对CAN的API应用并不是很了解，因为CAN至少需要在两块单片机上运用，所以我并未做实验，没有亲手敲过，以后实践后再补充</p>
+<p>Tips:即实现了中断和延时处理任务的同步</p>
+<p>除互斥信号量外(Recursive
+Semaphore)，所有信号量都可以调用该API来给出</p>
 </blockquote>
-<span id="more"></span>
-<h1 id="两种过滤模式">两种过滤模式</h1>
-<h2 id="列表模式">列表模式</h2>
-<p>将ID输入列表，进行对照即可</p>
+<p>ISR中：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">xSemaphoreGiveFromISR( xBinarySemaphore, &amp;xHigherPriorityTaskWoken );</span><br><span class="line">if( xHigherPriorityTaskWoken == pdTRUE )</span><br><span class="line">&#123;</span><br><span class="line">    /* 给出信号量以使得等待此信号量的任务解除阻塞。如果解出阻塞的任务的优先级高于当前任务的优先级 – 强制进行一次任务切换，以确保中断直接返回到解出阻塞的任务(优选级更高)。</span><br><span class="line">    说明：在实际使用中， ISR中强制上下文切换的宏依赖于具体移植。此处调用的是基于Open Watcom DOS移植的宏。其它平台下的移植可能有不同的语法要求。对于实际使用的平台，请参如数对应移植自带的示例程序，以决定正确的语法和符号。</span><br><span class="line">    */</span><br><span class="line">	portSWITCH_CONTEXT();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>main函数中要先创建二值信号量且安装中断服务例程</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/* 信号量在使用前都必须先创建。本例中创建了一个二值信号量 */</span><br><span class="line">vSemaphoreCreateBinary( xBinarySemaphore );</span><br><span class="line"></span><br><span class="line">/* 安装中断服务例程 */</span><br><span class="line">_dos_setvect( 0x82, vExampleInterruptHandler );</span><br></pre></td></tr></table></figure>
 <blockquote>
-<p>Tips:资源有限，受数量限制</p>
+<p>Tips:中断服务例程(ISR) 越短越好，中断频率相对较慢用二值信号量很好</p>
 </blockquote>
-<h2 id="掩码模式">掩码模式</h2>
-<p><strong>验证码与屏蔽码</strong></p>
-<p>ID通过哪几位由屏蔽码决定，再将通过的那几位与验证码进行比较</p>
+<p>延时中断处理流程</p>
+<ol type="1">
+<li><p>中断产生。</p></li>
+<li><p>中断服务例程启动，给出信号量以使延迟处理任务解除阻塞。</p></li>
+<li><p>当中断服务例程退出时，延迟处理任务得到执行。延迟处理任务做的第一件事便是获取信号量。</p></li>
+<li><p>延迟处理任务完成中断事件处理后，试图再次获取信号量——如果此时信号量无效，任务将切入阻塞待等待事件发生</p></li>
+</ol>
+<h2 id="计数信号量">计数信号量</h2>
+<h3 id="概念">概念</h3>
+<p>二值信号量相当于一个深度为1的队列，计数信号量即可自己设定深度，对事件计数</p>
+<p>如果在延迟处理任务完成上一个中断事件的处理之前，新的中断事件又发生了，等效于将新的事件锁存在二值信号量中，使得延迟处理任务在处理完上一个事件之后，立即就可以处理新的事件。也就是说，延迟处理任务在两次事件处理之间，<strong>不会有进入阻塞态的机会</strong>，因为信号量中锁存有一个事件，所以当
+xSempaphoreTake()调用时，信号量立即有效。</p>
 <figure>
-<img src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230827233906861.png" alt="掩码模式的计算过程">
-<figcaption aria-hidden="true">掩码模式的计算过程</figcaption>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230829161049717.png"
+alt="image-20230829161049717" />
+<figcaption aria-hidden="true">image-20230829161049717</figcaption>
 </figure>
-<p>在bxCAN中，分别采用了两个寄存器(CAN_FiR1,CAN_FiR2)来存储屏蔽码与验证码，从而实现掩码模式的工作流程的</p>
 <blockquote>
-<p>Tips:采用掩码模式的方式并不能精确的对每一个ID进行过滤eg:我想要1150——1158，然后我验证115满足即可，那么1159也会通过，不精确</p>
+<p>Tips:leaving one more "latched" semaphore available</p>
 </blockquote>
+<h3 id="用法">用法</h3>
+<ul>
+<li><p>事件计数</p>
+<p>在这种用法中，每次事件发生时，中断服务例程都会“给出(Give)”信号量——信号量在每次被给出时其计数值加
+1。延迟处理任务每处理一个任务都会”获取(Take)”一次信号量——信号量在每次被获取时其计数值减
+1。<strong>信号量的计数值其实就是已发生事件的数目与已处理事件的数目之间的差值</strong>。</p></li>
+<li><p>资源管理</p>
+<p>在这种用法中，信号量的计数值用于表示可用资源的数目。一个任务要获取资源的控制权，其必须先获得信号量——使信号量的计数值减
+1。当计数值减至
+0，则表示没有可用资源。当任务利用资源完成工作后，将给出(归还)信号量——使信号量的计数值加
+1。用于资源管理的信号量，在创建时其计数值被初始化为可用资源总数。</p></li>
+</ul>
+<h3 id="api">API</h3>
+<ul>
+<li>xSemaphoreCreateCounting() ：创建一个计数信号量</li>
+</ul>
+<h2 id="使用队列">使用队列</h2>
+<ul>
+<li>xQueueSendToFrontFromISR()</li>
+<li>xQueueSendToBackFromISR()</li>
+<li>xQueueReceiveFromISR()</li>
+</ul>
+<p>分别是 xQueueSendToFront()，xQueueSendToBack()与
+xQueueReceive()的中断安全版本，专门用于中断服务例程中。</p>
+<p>信号量用于事件通信。而队列不仅可以用于事件通信，还可以用来传递数据。</p>
+<p>xQueueSendFromISR()完全等同于 xQueueSendToBackFromISR()</p>
+<ul>
+<li><p>将接收到的字符先缓存到内存中。当接收到一个传输完成消息，或是检测到传输中断后，使用信号量让某个任务解除阻塞，这个任务将对字符缓存进行处理。</p></li>
+<li><p>在中断服务中直接解析接收到的字符，然后通过队列将解析后经解码得到的命令发送到处理任务。这种技术仅适用于数据流能够快速解析的场合，这样整个数据解析工作才可以放在中断服务中完成。</p></li>
+</ul>
+<h2 id="中断嵌套">中断嵌套</h2>
+<p>中断嵌套需要在 FreeRTOSConfig.h 中定义表 17
+详细列出的一个或两个常量。</p>
 <table>
 <colgroup>
-<col style="width: 8%">
-<col style="width: 62%">
-<col style="width: 29%">
+<col style="width: 37%" />
+<col style="width: 62%" />
 </colgroup>
 <thead>
 <tr class="header">
-<th>模式</th>
-<th>优点</th>
-<th>缺点</th>
+<th>常量</th>
+<th>描述</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>列表模式</td>
-<td>能精确地过滤每个指定的CAN ID</td>
-<td>有数量限制</td>
+<td>configKERNEL_INTERRUPT_PRIORITY</td>
+<td>设置系统心跳时钟的中断优先级。如 果 在 移 植 中 没 有 使 用 常
+量configMAX_SYSCALL_INTERRUPT_PRIORITY，那么需要调用中断安全版本
+FreeRTOS API的中断都必须运行在此优先级上。</td>
 </tr>
 <tr class="even">
-<td>掩码模式</td>
-<td>取决于屏蔽码，有时无法完全精确到每一个CAN ID，部分不期望的CAN
-ID有时也会收到</td>
-<td>数量取决于屏蔽码，最多无上限</td>
+<td>configMAX_SYSCALL_INTERRUPT_PRIORITY</td>
+<td>设置中断安全版本 FreeRTOS API 可以运行的最高中断优先级。</td>
 </tr>
 </tbody>
 </table>
-<h1 id="bxcan的过滤器的解决方案">bxCAN的过滤器的解决方案</h1>
+<p>建立一个全面的中断嵌套模型需要设置
+configMAX_SYSCALL_INTERRUPT_PRIRITY为比configKERNEL_INTERRUPT_PRIORITY更高的优先级</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230829162605920.png"
+alt="image-20230829162605920" />
+<figcaption aria-hidden="true">image-20230829162605920</figcaption>
+</figure>
 <ul>
-<li><p>过滤模式的位就定义在<strong>CAN_FM1R</strong>寄存器中的FBMx位：”0”表示掩码模式，”1”表示列表模式。</p></li>
-<li><p>一个标志用告诉过滤器是否需要处理32位的CAN ID：标准CAN
-ID位11位，而扩展CAN ID有29位，对于标准的CAN
-ID来说，我们有一个16位的寄存器来处理他足够了，相应地，扩展CAN
-ID，我们就必须使用32位的寄存器来处理它。设置了这么一个寄存器<strong>CAN_FS1R</strong>来表示CAN
-ID的位宽</p></li>
+<li>处于中断优先级 1 到
+3(含)的中断会被内核或处于临界区的应用程序阻塞执行，
+但是它们可以调用中断安全版本的 FreeRTOS API 函数</li>
+<li>处于中断优先级 4
+及以上的中断不受临界区影响，所以其不会被内核的任何行为阻塞，可以立即得到执行——这是由微控制器本身对中断优先级的限定所决定的。通常
+需 要 严 格 时 间 精 度 的 功 能 ( 如 电 机 控 制 ) 会 使 用
+高于configMAX_SYSCALL_INTERRUPT_PRIRITY
+的优先级，以保证调度器不会对其中断响应时间造成抖动。</li>
+<li>不需要调用任何FreeRTOS API
+函数的中断，可以自由地使用任意优先级。</li>
 </ul>
-<h1 id="api">API</h1>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**</span><br><span class="line">* @brief CAN filter configuration structure definition</span><br><span class="line">*/</span><br><span class="line">CAN_FilterTypeDef;</span><br></pre></td></tr></table></figure>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**</span><br><span class="line">    * @brief Configures the CAN reception filter according to the specified</span><br><span class="line">    * parameters in the CAN_FilterInitStruct.</span><br><span class="line">    * @param hcan pointer to a CAN_HandleTypeDef structure that contains</span><br><span class="line">    * the configuration information for the specified CAN.</span><br><span class="line">    * @param sFilterConfig pointer to a CAN_FilterTypeDef structure that</span><br><span class="line">    * contains the filter configuration information.</span><br><span class="line">    * @retval None</span><br><span class="line">*/</span><br><span class="line">HAL_StatusTypeDef HAL_CAN_ConfigFilter(CAN_HandleTypeDef *hcan,CAN_FilterTypeDef *sFilterConfig)</span><br></pre></td></tr></table></figure>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**</span><br><span class="line">    * @brief Start the CAN module.</span><br><span class="line">    * @param hcan pointer to an CAN_HandleTypeDef structure that contains</span><br><span class="line">    * the configuration information for the specified CAN.</span><br><span class="line">    * @retval HAL status</span><br><span class="line">*/</span><br><span class="line">HAL_StatusTypeDef HAL_CAN_Start(CAN_HandleTypeDef *hcan)</span><br></pre></td></tr></table></figure>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**</span><br><span class="line">    * @brief Enable interrupts.</span><br><span class="line">    * @param hcan pointer to an CAN_HandleTypeDef structure that contains</span><br><span class="line">    * the configuration information for the specified CAN.</span><br><span class="line">    * @param ActiveITs indicates which interrupts will be enabled.</span><br><span class="line">    * This parameter can be any combination of @arg CAN_Interrupts.</span><br><span class="line">    * @retval HAL status</span><br><span class="line">*/</span><br><span class="line">HAL_StatusTypeDef HAL_CAN_ActivateNotification(CAN_HandleTypeDef *hcan, uint32_t</span><br><span class="line">ActiveITs)</span><br></pre></td></tr></table></figure>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**</span><br><span class="line">    * @brief Add a message to the first free Tx mailbox and activate the</span><br><span class="line">    * corresponding transmission request.</span><br><span class="line">    * @param hcan pointer to a CAN_HandleTypeDef structure that contains</span><br><span class="line">    * the configuration information for the specified CAN.</span><br><span class="line">    * @param pHeader pointer to a CAN_TxHeaderTypeDef structure.</span><br><span class="line">    * @param aData array containing the payload of the Tx frame.</span><br><span class="line">    * @param pTxMailbox pointer to a variable where the function will return</span><br><span class="line">    * the TxMailbox used to store the Tx message.</span><br><span class="line">    * This parameter can be a value of @arg CAN_Tx_Mailboxes.</span><br><span class="line">    * @retval HAL status</span><br><span class="line">*/</span><br><span class="line">HAL_StatusTypeDef HAL_CAN_AddTxMessage(CAN_HandleTypeDef *hcan,CAN_TxHeaderTypeDef *pHeader, uint8_t aData[], uint32_t *pTxMailbox)</span><br></pre></td></tr></table></figure>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**</span><br><span class="line">    * @brief Get an CAN frame from the Rx FIFO zone into the message RAM.</span><br><span class="line">    * @param hcan pointer to an CAN_HandleTypeDef structure that contains</span><br><span class="line">    * the configuration information for the specified CAN.</span><br><span class="line">    * @param RxFifo Fifo number of the received message to be read.</span><br><span class="line">    * This parameter can be a value of @arg CAN_receive_FIFO_number.</span><br><span class="line">    * @param pHeader pointer to a CAN_RxHeaderTypeDef structure where the header</span><br><span class="line">    * of the Rx frame will be stored.</span><br><span class="line">    * @param aData array where the payload of the Rx frame will be stored.</span><br><span class="line">    * @retval HAL status</span><br><span class="line">*/</span><br><span class="line">HAL_StatusTypeDef HAL_CAN_GetRxMessage(CAN_HandleTypeDef *hcan, uint32_t RxFifo,CAN_RxHeaderTypeDef *pHeader, uint8_t aData[])</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>Tips:此处不是很懂，希望以后在实践中能有所感悟。</p>
+</blockquote>
 <h1 id="references">References</h1>
 <ul>
-<li>B站哈工深电控组内训视频</li>
-<li><a href="https://zhuanlan.zhihu.com/p/38299092">CAN总线波特率的设定——以STM32F103为例
-- 知乎 (zhihu.com)</a></li>
-<li><a href="https://blog.csdn.net/flydream0/article/details/52317532">再谈STM32的CAN过滤器-bxCAN的过滤器的4种工作模式以及使用方法总结_f407
-can id过滤_flydream0的博客-CSDN博客</a></li>
+<li>哈工深电控内训</li>
+<li>FreeRTOS中文参考手册</li>
 </ul>
 ]]></content>
       <categories>
@@ -1209,641 +1568,6 @@ taskYIELD()时，才会进行上下文切换。任务永远不会被抢占，而
       <tags>
         <tag>嵌入式</tag>
         <tag>robomaster</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Flash入门</title>
-    <url>/2023/08/24/Flash%E5%85%A5%E9%97%A8/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>Following
-哈工深上传到B站的电控组培训来入门robomaster电控组，我购买了普中科技玄武套餐开发板作为硬件。</p>
-<p>本篇介绍我学习Flash的见闻</p>
-<span id="more"></span>
-<h1 id="flash">FLASH</h1>
-<p>不需配置任何东西，只需要时钟即可</p>
-<p>RS232-----TTL</p>
-<h2 id="简介">简介</h2>
-<p>一个32位地址指向1个字节，我们常说的flash空间，多少多少K，指的是多少多少K
-byte。</p>
-<p>Flash
-中文名字叫闪存，是一种长寿命的非易失性（断电数据不丢失）的存储器。可以对称为块的存储器单元块进行擦写和再编程，在进行写入操作之前必须先执行擦除。</p>
-<p>STM32的FLASH地址起始于 0x08000000
-，结束地址是0x08000000加上芯片实际的FLASH大小，不同的芯片FLASH大小不同。</p>
-<blockquote>
-<p>Tips:一般情况下，程序文件是从 0x0800 0000
-地址写入，这个是STM32开始执行的地方，0x0800
-0004是STM32的中断向量表的起始地址。（我们可以手动更改）</p>
-</blockquote>
-<p>RAM起始地址是 0x20000000
-，结束地址是0x20000000加上芯片的RAM大小，不同的芯片RAM也不同。</p>
-<p>Flash中的内容一般用来存储代码和一些定义为const的数据，断电不丢失，且不会保存调试中改变的数据；RAM可以理解为内存，用来存储代码运行时的数据，变量等等，掉电数据丢失。</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230824221707146.png"
-alt="image-20230824221707146" />
-<figcaption aria-hidden="true">image-20230824221707146</figcaption>
-</figure>
-<p>STM32将外设都映射为地址，操作外设也即操作地址。</p>
-<blockquote>
-<p>Tips:stm32的外设地址从0x4000
-0000开始，可以看到在库文件中，是通过基于0x4000
-0000地址的偏移量来操作寄存器以及外设的。</p>
-</blockquote>
-<h3 id="单片机执行流程">单片机执行流程</h3>
-<p>单片机复位后，从 0x08000004
-取出复位中断的地址，并且跳转到复位中断程序，中断执行完之后会跳到我们的
-main 函数， main
-函数里边一般是一个死循环，进去后就不会再退出，当有中断发生的时候，单片机将指针强制跳转回中断向量表，然后根据中断源进入对应的中断函数，执行完中断函数之后，再次返回
-main 函数中。</p>
-<h3 id="启动模式选择管脚">启动模式选择管脚</h3>
-<p>BOOT1 BOOT0 启动模式 说明</p>
-<ul>
-<li><p>X 0 用户闪存存储器du 用户闪存存储器被选为启动区域</p></li>
-<li><p>0 1 系统zhi存储器 系统存储器被选为启动区域</p></li>
-<li><p>1 1 内嵌SRAM 内嵌SRAM被选为启动区域</p></li>
-</ul>
-<p>根据选定的启动模式，主闪存存储器、系统存储器或SRAM可以按照以下方式访问：</p>
-<p>● 从主闪存存储器启动：主闪存存储器被映射到启动空间(0x0000
-0000)，但仍然能够在它原有的地址(0x0800
-0000)访问它，即闪存存储器的内容可以在两个地址区域访问，0x0000
-0000或0x0800 0000。</p>
-<p>● 从系统存储器启动：系统存储器被映射到启动空间(0x0000
-0000)，但仍然能够在它原有的地址(0x1FFF F000)访问它。</p>
-<p>● 从内置SRAM启动：只能在0x2000 0000开始的地址区访问SRAM。</p>
-<h2 id="内部构造">内部构造</h2>
-<p>按照不同容量，存储器组织成32个1K字节/页(小容量)、
-128个1K字节/页(中容量)、
-256个2K字节/页(大容量)的主存储器块和一个信息块。</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230824222249830.png"
-alt="image-20230824222249830" />
-<figcaption aria-hidden="true">image-20230824222249830</figcaption>
-</figure>
-<p>闪存存储器被组织成32位宽的存储器单元，可以存放代码和数据常数。每一个STM32F10xxx微控制器的闪存模块都有一个特定的启始地址。</p>
-<p>信息块分为两个部分：</p>
-<ul>
-<li><p>系统存储器是用于存放在系统存储器自举模式下的启动程序bootloader(用户无法更改)，这个区域只保留给ST使用，启动程序使用USART1串行接口实现对闪存存储器的编程；
-ST在生产线上对这个区域编程并锁定以防止用户擦写</p></li>
-<li><p>选择字节： 选项字节存储芯片的配置信息及对主存储块的保护信息。
-用于配置 FLASH 的读写保护、电源管理中的 BOR
-级别、软件/硬件看门狗等功能，这部分共 32 字节。可以通过修改
-FLASH的选项控制寄存器修改。</p></li>
-</ul>
-<p>闪存存储器有两种保护方式防止非法的访问(读、写、擦除)：</p>
-<ul>
-<li>页写入保护</li>
-<li>读出保护</li>
-</ul>
-<p>在执行闪存写操作时，任何对闪存的读操作都会锁住总线，在写操作完成后读操作才能正确地进行。</p>
-<blockquote>
-<p>Tips:即在进行写或擦除操作时，不能进行代码或数据的读取操作。</p>
-</blockquote>
-<p>进行闪存编程操作时(写或擦除)，必须打开内部的RC振荡器(HSI)。</p>
-<blockquote>
-<p>Tips:CubeMX默认打开</p>
-</blockquote>
-<p>闪存存储器可以用ICP或IAP方式编程。</p>
-<ul>
-<li>IAP(In-Application Programming)：
-IAP是在用户程序运行时对闪存微控制器中存储器重新编程。</li>
-<li>ICP(In-Circuit Programming)：
-ICP是在芯片安装到用户应用板上后，通过JTAG协议对闪存微控制器中存储器编程</li>
-</ul>
-<h2 id="flash的读写操作">FLASH的读/写操作</h2>
-<h3 id="读操作">读操作</h3>
-<p>内置闪存模块可以在通用地址空间直接寻址，任何32位数据的读操作都能访问闪存模块的内容并得到相应的数据。（读操作较为简单）</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">uint32_t Robot_Num_Flash_Add = 0x08005000;</span><br><span class="line">ID_Num = *(__IO uint16_t*)( Robot_Num_Flash_Add ); </span><br><span class="line">//*(__IO uint16_t *)是读取该地址的参数值,其值为16位数据,一次读取两个字节，*(__IO uint32_t *)就一次读4个字节</span><br><span class="line">printf(&quot;ID_num:0x%x\r\n&quot;, ID_Num);</span><br></pre></td></tr></table></figure>
-<h3 id="写操作">写操作</h3>
-<p>闪存编程和擦除控制器(FPEC)处理闪存的编程和擦除操作。它包括7个32位的寄存器：</p>
-<ul>
-<li>FPEC键寄存器(FLASH_KEYR)</li>
-<li>选择字节键寄存器(FLASH_OPTKEYR)闪存控制寄存器(FLASH_CR)</li>
-<li>闪存状态寄存器(FLASH_SR)</li>
-<li>闪存地址寄存器(FLASH_AR)</li>
-<li>选择字节寄存器(FLASH_OBR)</li>
-<li>写保护寄存器(FLASH_WRPR)</li>
-</ul>
-<p>复位后，
-FPEC模块是被保护的，不能写入FLASH_CR寄存器；通过写入特定的序列到FLASH_KEYR寄存器可以打开FPEC模块，这个特定的序列是在FLASH_KEYR写入两个键值(KEY1和KEY2)；错误的操作序列都会在下次复位前锁死FPEC模块和FLASH_CR寄存器。</p>
-<ul>
-<li>KEY1: 0x45670123</li>
-<li>KEY2: 0xCDEF89AB</li>
-</ul>
-<p>写入错误的键序列还会产生总线错误；总线错误发生在第一次写入的不是KEY1，或第一次写入的是KEY1但第二次写入的不是KEY2时；
-FPEC模块和FLASH_CR寄存器可以由程序设置FLASH_CR寄存器中的LOCK位锁住，这时可以通过在FLASH_KEYR中写入正确的键值对FPEC解锁。</p>
-<h4 id="闪存擦除">闪存擦除</h4>
-<p>闪存可以按页擦除，也可以整片擦除</p>
-<h5 id="页擦除"><strong>页擦除</strong></h5>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230824232659185.png"
-alt="流程" />
-<figcaption aria-hidden="true">流程</figcaption>
-</figure>
-<p>闪存的任何一页都可以通过FPEC的页擦除功能擦除；擦除一页应遵守下述过程：</p>
-<ul>
-<li><p>检查FLASH_SR寄存器的BSY位，以确认没有其他正在进行的闪存操作；</p></li>
-<li><p>设置FLASH_CR寄存器的PER位为1 ；</p></li>
-<li><p>用FLASH_AR寄存器选择要擦除的页；</p></li>
-<li><p>设置FLASH_CR寄存器的STRT位为 1 ；</p></li>
-<li><p>等待BSY位变为 0 ；</p></li>
-<li><p>读出被擦除的页并做验证。（没必要）</p></li>
-</ul>
-<p><strong>整片擦除</strong></p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230824233016388.png"
-alt="整片擦除流程" />
-<figcaption aria-hidden="true">整片擦除流程</figcaption>
-</figure>
-<p>可以用整片擦除功能擦除所有用户区的闪存，信息块不受此操作影响。建议使用下述过程：</p>
-<ul>
-<li><p>检查FLASH_SR寄存器的BSY位，以确认没有其他正在进行的闪存操作；</p></li>
-<li><p>设置FLASH_CR寄存器的MER位为 1 ；</p></li>
-<li><p>设置FLASH_CR寄存器的STRT位为 1 ；</p></li>
-<li><p>等待BSY位变为 0 ；</p></li>
-<li><p>读出所有页并做验证。</p></li>
-</ul>
-<p><strong>主闪存编程</strong></p>
-<p>对主闪存编程每次可以写入16位。即在一个闪存地址写入一个半字将启动一次编程；写入任何非半字的数据，
-FPEC都会产生总线错误。</p>
-<blockquote>
-<p>Tips:在编程过程中，任何读写闪存的操作都会使CPU暂停（即改代码）
-，直到此次闪存编程结束。</p>
-</blockquote>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230824233303404.png"
-alt="image-20230824233303404" />
-<figcaption aria-hidden="true">image-20230824233303404</figcaption>
-</figure>
-<p>标准的闪存编程顺序如下：</p>
-<ul>
-<li><p>检查FLASH_SR寄存器的BSY位，以确认没有其他正在进行的编程操作；</p></li>
-<li><p>设置FLASH_CR寄存器的PG位为 1 ；</p></li>
-<li><p>在指定的地址写入要编程的半字；</p></li>
-<li><p>等待BSY位变为 0 ；</p></li>
-<li><p>读出写入的地址并验证数据。</p></li>
-</ul>
-<p>FPEC先读出指定地址的内容并检查它是否被擦除，如未被擦除则不执行编程；如果指定的地址在FLASH_WRPR中设定为写保护，也不执行编程。</p>
-<blockquote>
-<p><strong>Notes</strong>:所有的编程操作结束后要锁上FLASH。</p>
-</blockquote>
-<h2 id="查看工程的内存分布">查看工程的内存分布</h2>
-<p>通过查询应用程序编译时产生的 *.map 后缀文件，打开map
-文件后，查看文件最后部分的区域，可以看到一段以 Memory Map of the image
-开头的记录</p>
-<h2 id="api">API</h2>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">FLASH_EraseInitTypeDef; //一个结构体的名字</span><br><span class="line">HAL_StatusTypeDef HAL_FLASH_Unlock(void);解锁</span><br><span class="line">HAL_StatusTypeDef HAL_FLASH_Lock(void);上锁</span><br><span class="line">HAL_StatusTypeDef HAL_FLASHEx_Erase(FLASH_EraseInitTypeDef *pEraseInit, uint32_t *PageError);</span><br><span class="line">//Perform a mass erase or erase the specified FLASH memory pages</span><br><span class="line"></span><br><span class="line">HAL_StatusTypeDef HAL_FLASH_Program(uint32_t TypeProgram, uint32_t Address,uint64_t Data);</span><br><span class="line">//Program halfword, word or double word at a specified address</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<h1 id="实验">实验</h1>
-<p>FLASH读写实验</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/*FLASH写入程序*/</span><br><span class="line">void writeFlash(uint32_t addr, uint32_t WriteFlashData)</span><br><span class="line">&#123;</span><br><span class="line">    /* 1/4解锁FLASH*/</span><br><span class="line">    HAL_FLASH_Unlock();</span><br><span class="line">    </span><br><span class="line">    /* 2/4擦除FLASH*/</span><br><span class="line">    /*初始化FLASH_EraseInitTypeDef*/</span><br><span class="line">    FLASH_EraseInitTypeDef FlashSet;</span><br><span class="line">    FlashSet.TypeErase = FLASH_TYPEERASE_PAGES;</span><br><span class="line">    FlashSet.Banks = FLASH_BANK_1;</span><br><span class="line">    FlashSet.PageAddress = addr;</span><br><span class="line">    FlashSet.NbPages = 1;</span><br><span class="line">    </span><br><span class="line">    /*设置PageError，调用擦除函数*/</span><br><span class="line">    uint32_t PageError = 0;</span><br><span class="line">    HAL_FLASHEx_Erase(&amp;FlashSet, &amp;PageError);</span><br><span class="line">    </span><br><span class="line">    /* 3/4对FLASH烧写*/</span><br><span class="line">    HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, addr, WriteFlashData);</span><br><span class="line">    </span><br><span class="line">    /* 4/4锁住FLASH*/</span><br><span class="line">    HAL_FLASH_Lock();</span><br><span class="line">&#125; </span><br><span class="line">/*FLASH读取程序*/</span><br><span class="line">uint32_t readFlash(uint32_t addr)</span><br><span class="line">&#123;</span><br><span class="line">    uint32_t temp = *(__IO uint32_t*)(addr);</span><br><span class="line">    return temp;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h1 id="references">References</h1>
-<ul>
-<li>哈工深电控内训</li>
-</ul>
-]]></content>
-      <categories>
-        <category>嵌入式</category>
-      </categories>
-      <tags>
-        <tag>嵌入式</tag>
-        <tag>robomaster</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>FreeRTOS（2）</title>
-    <url>/2023/08/29/FreeRTOS%EF%BC%882%EF%BC%89/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>Following
-哈工深上传到B站的电控组培训来入门robomaster电控组，我购买了普中科技玄武套餐开发板作为硬件。</p>
-<p>本篇介绍我学习FreeRTOS的见闻，自己看FreeRTOS中文参考手册进行琢磨。</p>
-<p>FreeRTOS(2)——中断管理</p>
-<span id="more"></span>
-<h1 id="中断管理">中断管理</h1>
-<p>嵌入式实时系统需要对整个系统环境产生的事件作出反应。需要处理来自各种源头产生的事件，因此中断是必要的！</p>
-<p>中断服务例程(ISR)</p>
-<h2 id="延迟中断处理">延迟中断处理</h2>
-<p><strong>二值信号量</strong>：可看作一个深度为1的队列（所以仅二值）</p>
-<p><strong>延迟处理任务</strong>（优先级自己设置）对一个信号量进行带阻塞性质的”take”调用，意思是进入阻塞态以等待事件发生。当事件发生后，
-ISR
-对同一个信号量进行”give”操作，使得延迟处理任务解除阻塞，从而事件在延迟处理任务中得到相应的处理。</p>
-<ul>
-<li>vSemaphoreCreateBinary() ：创建二值信号量</li>
-<li>xSemaphoreTake()
-：延迟处理任务调用xSemaphoreTake()时，等效于带阻塞时间地读取队列</li>
-</ul>
-<blockquote>
-<p>Tips:take了信号就没了</p>
-<p>除互斥信号量外(Recursive
-Semaphore)——偶也还没搞懂互斥是什么意思之后文章会填坑，所有信号量都可以调用该API来获取</p>
-</blockquote>
-<ul>
-<li>xSemaphoreGiveFromISR() ：ISR 简单地通过调用
-xSemaphoreGiveFromISR()放置一个令牌(信号量)到队列中，使得队列成为满状态。这也使得延迟处理任务切出阻塞态，并移除令牌，使得队列再次成为空。当任务完成处理后，再次读取队列，发现队列为空，又</li>
-</ul>
-<blockquote>
-<p>Tips:即实现了中断和延时处理任务的同步</p>
-<p>除互斥信号量外(Recursive
-Semaphore)，所有信号量都可以调用该API来给出</p>
-</blockquote>
-<p>ISR中：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">xSemaphoreGiveFromISR( xBinarySemaphore, &amp;xHigherPriorityTaskWoken );</span><br><span class="line">if( xHigherPriorityTaskWoken == pdTRUE )</span><br><span class="line">&#123;</span><br><span class="line">    /* 给出信号量以使得等待此信号量的任务解除阻塞。如果解出阻塞的任务的优先级高于当前任务的优先级 – 强制进行一次任务切换，以确保中断直接返回到解出阻塞的任务(优选级更高)。</span><br><span class="line">    说明：在实际使用中， ISR中强制上下文切换的宏依赖于具体移植。此处调用的是基于Open Watcom DOS移植的宏。其它平台下的移植可能有不同的语法要求。对于实际使用的平台，请参如数对应移植自带的示例程序，以决定正确的语法和符号。</span><br><span class="line">    */</span><br><span class="line">	portSWITCH_CONTEXT();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>main函数中要先创建二值信号量且安装中断服务例程</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/* 信号量在使用前都必须先创建。本例中创建了一个二值信号量 */</span><br><span class="line">vSemaphoreCreateBinary( xBinarySemaphore );</span><br><span class="line"></span><br><span class="line">/* 安装中断服务例程 */</span><br><span class="line">_dos_setvect( 0x82, vExampleInterruptHandler );</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>Tips:中断服务例程(ISR) 越短越好，中断频率相对较慢用二值信号量很好</p>
-</blockquote>
-<p>延时中断处理流程</p>
-<ol type="1">
-<li><p>中断产生。</p></li>
-<li><p>中断服务例程启动，给出信号量以使延迟处理任务解除阻塞。</p></li>
-<li><p>当中断服务例程退出时，延迟处理任务得到执行。延迟处理任务做的第一件事便是获取信号量。</p></li>
-<li><p>延迟处理任务完成中断事件处理后，试图再次获取信号量——如果此时信号量无效，任务将切入阻塞待等待事件发生</p></li>
-</ol>
-<h2 id="计数信号量">计数信号量</h2>
-<h3 id="概念">概念</h3>
-<p>二值信号量相当于一个深度为1的队列，计数信号量即可自己设定深度，对事件计数</p>
-<p>如果在延迟处理任务完成上一个中断事件的处理之前，新的中断事件又发生了，等效于将新的事件锁存在二值信号量中，使得延迟处理任务在处理完上一个事件之后，立即就可以处理新的事件。也就是说，延迟处理任务在两次事件处理之间，<strong>不会有进入阻塞态的机会</strong>，因为信号量中锁存有一个事件，所以当
-xSempaphoreTake()调用时，信号量立即有效。</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230829161049717.png"
-alt="image-20230829161049717" />
-<figcaption aria-hidden="true">image-20230829161049717</figcaption>
-</figure>
-<blockquote>
-<p>Tips:leaving one more "latched" semaphore available</p>
-</blockquote>
-<h3 id="用法">用法</h3>
-<ul>
-<li><p>事件计数</p>
-<p>在这种用法中，每次事件发生时，中断服务例程都会“给出(Give)”信号量——信号量在每次被给出时其计数值加
-1。延迟处理任务每处理一个任务都会”获取(Take)”一次信号量——信号量在每次被获取时其计数值减
-1。<strong>信号量的计数值其实就是已发生事件的数目与已处理事件的数目之间的差值</strong>。</p></li>
-<li><p>资源管理</p>
-<p>在这种用法中，信号量的计数值用于表示可用资源的数目。一个任务要获取资源的控制权，其必须先获得信号量——使信号量的计数值减
-1。当计数值减至
-0，则表示没有可用资源。当任务利用资源完成工作后，将给出(归还)信号量——使信号量的计数值加
-1。用于资源管理的信号量，在创建时其计数值被初始化为可用资源总数。</p></li>
-</ul>
-<h3 id="api">API</h3>
-<ul>
-<li>xSemaphoreCreateCounting() ：创建一个计数信号量</li>
-</ul>
-<h2 id="使用队列">使用队列</h2>
-<ul>
-<li>xQueueSendToFrontFromISR()</li>
-<li>xQueueSendToBackFromISR()</li>
-<li>xQueueReceiveFromISR()</li>
-</ul>
-<p>分别是 xQueueSendToFront()，xQueueSendToBack()与
-xQueueReceive()的中断安全版本，专门用于中断服务例程中。</p>
-<p>信号量用于事件通信。而队列不仅可以用于事件通信，还可以用来传递数据。</p>
-<p>xQueueSendFromISR()完全等同于 xQueueSendToBackFromISR()</p>
-<ul>
-<li><p>将接收到的字符先缓存到内存中。当接收到一个传输完成消息，或是检测到传输中断后，使用信号量让某个任务解除阻塞，这个任务将对字符缓存进行处理。</p></li>
-<li><p>在中断服务中直接解析接收到的字符，然后通过队列将解析后经解码得到的命令发送到处理任务。这种技术仅适用于数据流能够快速解析的场合，这样整个数据解析工作才可以放在中断服务中完成。</p></li>
-</ul>
-<h2 id="中断嵌套">中断嵌套</h2>
-<p>中断嵌套需要在 FreeRTOSConfig.h 中定义表 17
-详细列出的一个或两个常量。</p>
-<table>
-<colgroup>
-<col style="width: 37%" />
-<col style="width: 62%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th>常量</th>
-<th>描述</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>configKERNEL_INTERRUPT_PRIORITY</td>
-<td>设置系统心跳时钟的中断优先级。如 果 在 移 植 中 没 有 使 用 常
-量configMAX_SYSCALL_INTERRUPT_PRIORITY，那么需要调用中断安全版本
-FreeRTOS API的中断都必须运行在此优先级上。</td>
-</tr>
-<tr class="even">
-<td>configMAX_SYSCALL_INTERRUPT_PRIORITY</td>
-<td>设置中断安全版本 FreeRTOS API 可以运行的最高中断优先级。</td>
-</tr>
-</tbody>
-</table>
-<p>建立一个全面的中断嵌套模型需要设置
-configMAX_SYSCALL_INTERRUPT_PRIRITY为比configKERNEL_INTERRUPT_PRIORITY更高的优先级</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230829162605920.png"
-alt="image-20230829162605920" />
-<figcaption aria-hidden="true">image-20230829162605920</figcaption>
-</figure>
-<ul>
-<li>处于中断优先级 1 到
-3(含)的中断会被内核或处于临界区的应用程序阻塞执行，
-但是它们可以调用中断安全版本的 FreeRTOS API 函数</li>
-<li>处于中断优先级 4
-及以上的中断不受临界区影响，所以其不会被内核的任何行为阻塞，可以立即得到执行——这是由微控制器本身对中断优先级的限定所决定的。通常
-需 要 严 格 时 间 精 度 的 功 能 ( 如 电 机 控 制 ) 会 使 用
-高于configMAX_SYSCALL_INTERRUPT_PRIRITY
-的优先级，以保证调度器不会对其中断响应时间造成抖动。</li>
-<li>不需要调用任何FreeRTOS API
-函数的中断，可以自由地使用任意优先级。</li>
-</ul>
-<blockquote>
-<p>Tips:此处不是很懂，希望以后在实践中能有所感悟。</p>
-</blockquote>
-<h1 id="references">References</h1>
-<ul>
-<li>哈工深电控内训</li>
-<li>FreeRTOS中文参考手册</li>
-</ul>
-]]></content>
-      <categories>
-        <category>嵌入式</category>
-      </categories>
-      <tags>
-        <tag>嵌入式</tag>
-        <tag>robomaster</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Git入门</title>
-    <url>/2023/08/05/Git%E5%85%A5%E9%97%A8/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>following <a
-href="https://missing-semester-cn.github.io/2020/version-control/">版本控制(Git)
-· the missing semester of your cs education
-(missing-semester-cn.github.io)</a>来学习git的相关知识</p>
-<p>希望通过<a href="https://git-scm.com/book/zh/v2">Git - Book
-(git-scm.com)</a>+<a
-href="https://learngitbranching.js.org/?locale=zh_CN">Learn Git
-Branching</a>来进一步掌握Git</p>
-<p><strong>Learn to love the command line. Leave the IDE
-behind.</strong></p>
-<span id="more"></span>
-<h1 id="version-controlgit">Version control(Git)</h1>
-<p>版本控制系统version control
-system(VCS)是一类用于追踪源代码（或其他文件、文件夹）改动的工具</p>
-<h4 id="好处">好处：</h4>
-<ul>
-<li>这些工具可以帮助我们管理代码的修改历史</li>
-<li>可以让协作编码变得更方便</li>
-</ul>
-<h4 id="工作方式">工作方式</h4>
-<p>VCS通过一系列的快照将某个文件夹及其内容保存了起来，每个快照都包含了文件或文件夹的完整状态。同时它还维护了快照创建者的信息以及每个快照的相关信息等等。</p>
-<figure>
-<img
-src="https://cdn.jsdelivr.net/gh/Immortal-Fates/figure_Bed@main/blog/git.png"
-alt="git" />
-<figcaption aria-hidden="true">git</figcaption>
-</figure>
-<h4 id="dvcs">DVCS</h4>
-<p>分布式版本控制系统（Distributed Version Control System，简称
-DVCS）</p>
-<p>客户端并不只提取最新版本的文件快照，
-而是把代码仓库完整地镜像下来，包括完整的历史记录。
-这么一来，任何一处协同工作用的服务器发生故障，事后都可以用任何一个镜像出来的本地仓库恢复。
-因为每一次的克隆操作，实际上都是一次对代码仓库的完整备份。</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/distributed.png"
-alt="distributed" />
-<figcaption aria-hidden="true">distributed</figcaption>
-</figure>
-<p>许多这类系统都可以指定和若干不同的远端代码仓库进行交互。籍此，你就可以在同一个项目中，分别和不同工作小组的人相互协作。
-你可以根据需要设定不同的协作流程，比如层次模型式的工作流，而这在以前的集中式系统中是无法实现的。</p>
-<h1 id="git-的数据模型">Git 的数据模型</h1>
-<p>进行版本控制的方法很多。Git
-拥有一个经过精心设计的模型，这使其能够支持版本控制所需的所有特性，例如维护历史记录、支持分支和促进协作。</p>
-<h4 id="快照snapshots">快照（snapshots）</h4>
-<p>Git
-将顶级目录中的文件和文件夹作为集合，并通过一系列快照来管理其历史记录。在Git的术语里，文件被称作Blob对象（数据对象），也就是一组数据。目录则被称之为“树”，它将名字与
-Blob
-对象或树对象进行映射（使得目录中可以包含其他目录）。快照则是被追踪的最顶层的树。例如，一个树看起来可能是这样的：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&lt;root&gt; (tree)</span><br><span class="line">|</span><br><span class="line">+- foo (tree)</span><br><span class="line">|  |</span><br><span class="line">|  + bar.txt (blob, contents = &quot;hello world&quot;)</span><br><span class="line">|</span><br><span class="line">+- baz.txt (blob, contents = &quot;git is wonderful&quot;)</span><br></pre></td></tr></table></figure>
-<p>这个顶层的树包含了两个元素，一个名为 “foo”
-的tree（它本身包含了一个blob对象 “bar.txt”），以及一个 blob 对象
-“baz.txt”。</p>
-<h4 id="历史记录建模关联快照">历史记录建模：关联快照</h4>
-<p>版本控制系统和快照有什么关系呢？线性历史记录是一种最简单的模型，它包含了一组按照时间顺序线性排列的快照。</p>
-<p>在 Git 中，历史记录是一个由快照组成的有向无环图(directed acyclic
-graph (DAG))。有向无环图，这代表 Git
-中的每个快照都有一系列的“父辈”，也就是其之前的一系列快照。</p>
-<blockquote>
-<p>notes：快照具有多个“父辈”而非一个，因为某个快照可能由多个父辈而来。例如，经过合并后的两条分支。</p>
-</blockquote>
-<p>在 Git
-中，这些快照被称为“提交commit”。通过可视化的方式来表示这些历史提交记录时，看起来差不多是这样的：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">o &lt;-- o &lt;-- o &lt;-- o</span><br><span class="line">            ^  </span><br><span class="line">             \</span><br><span class="line">              --- o &lt;-- o</span><br></pre></td></tr></table></figure>
-<p>其中的 <code>o</code> 表示一次提交（快照）。</p>
-<p>箭头指向了当前提交的父辈（这是一种“在…之前”，而不是“在…之后”的关系）。在第三次提交之后，历史记录分岔成了两条独立的分支。这可能因为此时需要同时开发两个不同的特性，它们之间是相互独立的。开发完成后，这些分支可能会被合并并创建一个新的提交，这个新的提交会同时包含这些特性。新的提交会创建一个新的历史记录，看上去像这样（最新的合并提交用粗体标记）：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">o &lt;-- o &lt;-- o &lt;-- o &lt;---- o</span><br><span class="line">            ^            /</span><br><span class="line">             \          v</span><br><span class="line">              --- o &lt;-- o</span><br></pre></td></tr></table></figure>
-<p>Git
-中的提交是不可改变的。但这并不代表错误不能被修改，只不过这种“修改”实际上是创建了一个全新的提交记录。而引用（参见下文）则被更新为指向这些新的提交。</p>
-<h4 id="数据模型及其伪代码表示">数据模型及其伪代码表示</h4>
-<p>以伪代码的形式来学习 Git 的数据模型，可能更加清晰：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">// 文件就是一组数据</span><br><span class="line">type blob = array&lt;byte&gt;</span><br><span class="line"></span><br><span class="line">// 一个包含文件和目录的目录</span><br><span class="line">type tree = map&lt;string, tree | blob&gt;</span><br><span class="line"></span><br><span class="line">// 每个提交都包含一个父辈，元数据和顶层树</span><br><span class="line">type commit = struct &#123;</span><br><span class="line">    parent: array&lt;commit&gt;</span><br><span class="line">    author: string</span><br><span class="line">    message: string</span><br><span class="line">    snapshot: tree</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>这是一种简洁的历史模型。</p>
-<h4 id="对象和内存寻址">对象和内存寻址</h4>
-<p>Git 中的对象可以是 blob、tree or commit：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">type object = blob | tree | commit</span><br></pre></td></tr></table></figure>
-<p>Git 在储存数据时，所有的对象都会基于它们的 <a
-href="https://en.wikipedia.org/wiki/SHA-1">SHA-1 哈希</a> 进行寻址。</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">objects = map&lt;string, object&gt;</span><br><span class="line"></span><br><span class="line">def store(object):</span><br><span class="line">    id = sha1(object)</span><br><span class="line">    objects[id] = object</span><br><span class="line"></span><br><span class="line">def load(id):</span><br><span class="line">    return objects[id]</span><br></pre></td></tr></table></figure>
-<p>Blobs、树和提交都一样，它们都是对象。当它们引用其他对象时，它们并没有真正的在硬盘上保存这些对象，而是仅仅保存了它们的哈希值作为引用。</p>
-<p>例如，上面例子中的树（可以通过
-<code>git cat-file -p 698281bc680d1995c5f4caaf3359721a5a58d48d</code>
-来进行可视化），看上去是这样的：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">100644 blob 4448adbf7ecd394f42ae135bbeed9676e894af85    baz.txt</span><br><span class="line">040000 tree c68d233a33c5c06e0340e4c224f0afca87c8ce87    foo</span><br></pre></td></tr></table></figure>
-<p>树本身会包含一些指向其他内容的指针，例如 <code>baz.txt</code> (blob)
-和 <code>foo</code> (树)。如果我们用
-<code>git cat-file -p 4448adbf7ecd394f42ae135bbeed9676e894af85</code>，即通过哈希值查看
-baz.txt 的内容，会得到以下信息：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">git is wonderful</span><br></pre></td></tr></table></figure>
-<h4 id="引用references">引用(References)</h4>
-<p>Git
-给这些哈希值赋予人类可读的名字，也就是引用（references）。<strong>引用是指向提交的指针</strong>。与对象不同的是，它是可变的（引用可以被更新，指向新的提交）。例如，<code>master</code>
-引用通常会指向主分支的最新一次提交。</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">references = map&lt;string, string&gt;</span><br><span class="line"></span><br><span class="line">def update_reference(name, id):</span><br><span class="line">    references[name] = id</span><br><span class="line"></span><br><span class="line">def read_reference(name):</span><br><span class="line">    return references[name]</span><br><span class="line"></span><br><span class="line">def load_reference(name_or_id):</span><br><span class="line">    if name_or_id in references:</span><br><span class="line">        return load(references[name_or_id])</span><br><span class="line">    else:</span><br><span class="line">        return load(name_or_id)</span><br></pre></td></tr></table></figure>
-<p>这样，Git 就可以使用诸如 “master”
-这样人类可读的名称来表示历史记录中某个特定的提交，而不需要在使用一长串十六进制字符了。</p>
-<p>有一个细节需要我们注意，
-通常情况下，我们会想要知道“我们当前所在位置”，并将其标记下来。这样当我们创建新的快照的时候，我们就可以知道它的相对位置（如何设置它的“父辈”）。在
-Git 中，我们当前的位置有一个特殊的索引，它就是 “HEAD”。</p>
-<h4 id="仓库repositories">仓库(Repositories)</h4>
-<p>最后，我们可以粗略地给出 Git 仓库的定义了：<code>对象</code> 和
-<code>引用</code>。</p>
-<p>在硬盘上，Git 仅存储对象和引用：因为其数据模型仅包含这些东西。所有的
-<code>git</code>
-命令都对应着对提交树的操作，例如增加对象，增加或删除引用。</p>
-<p>当你输入某个指令时，请思考一下这条命令是如何对底层的图数据结构进行操作的。另一方面，如果您希望修改提交树，例如“丢弃未提交的修改和将
-‘master’ 引用指向提交 <code>5d83f9e</code>
-时，有什么命令可以完成该操作（针对这个具体问题，您可以使用
-<code>git checkout master; git reset --hard 5d83f9e</code>）</p>
-<h1 id="staging-area">staging area</h1>
-<p>Git
-中还包括一个和数据模型完全不相关的概念，但它确是创建提交的接口的一部分。</p>
-<p>就上面介绍的快照系统来说，您也许会期望它的实现里包括一个 “创建快照”
-的命令，该命令能够基于当前工作目录的当前状态创建一个全新的快照。有些版本控制系统确实是这样工作的，但
-Git
-不是。我们希望简洁的快照，而且每次从当前状态创建快照可能效果并不理想。例如，考虑如下场景，您开发了两个独立的特性，然后您希望创建两个独立的提交，其中第一个提交仅包含第一个特性，而第二个提交仅包含第二个特性。或者，假设您在调试代码时添加了很多打印语句，然后您仅仅希望提交和修复
-bug 相关的代码而丢弃所有的打印语句。</p>
-<p>Git 处理这些场景的方法是使用一种叫做 “暂存区（staging
-area）”的机制，它允许您指定下次快照中要包括那些改动。</p>
-<h1 id="git-的命令行接口">Git 的命令行接口</h1>
-<p>为了避免重复信息，我们将不会详细解释以下命令行。强烈推荐您阅读 <a
-href="https://git-scm.com/book/zh/v2">Pro Git
-中文版</a>或可以观看本讲座的视频来学习。</p>
-<h4 id="基础">基础</h4>
-<ul>
-<li><p><code>git help &lt;command&gt;</code>: 获取 git
-命令的帮助信息</p></li>
-<li><p><code>git init</code>: 创建一个新的 git
-仓库，其数据会存放在一个名为 <code>.git</code> 的目录下</p></li>
-<li><p><code>git status</code>: 显示当前的仓库状态</p></li>
-<li><p><code>git add &lt;filename&gt;</code>: 添加文件到暂存区</p></li>
-<li><p>```plaintext git commit <figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">  : 创建一个新的提交</span><br><span class="line"></span><br><span class="line">  - 如何编写 [良好的提交信息](https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html)!</span><br><span class="line">  - 为何要 [编写良好的提交信息](https://chris.beams.io/posts/git-commit/)</span><br><span class="line"></span><br><span class="line">- `git log`: 显示历史日志</span><br><span class="line"></span><br><span class="line">- `git log --all --graph --decorate`: 可视化历史记录（有向无环图）</span><br><span class="line"></span><br><span class="line">- `git diff &lt;filename&gt;`: 显示与暂存区文件的差异</span><br><span class="line"></span><br><span class="line">- `git diff &lt;revision&gt; &lt;filename&gt;`: 显示某个文件两个版本之间的差异</span><br><span class="line"></span><br><span class="line">- `git checkout &lt;revision&gt;`: 更新 HEAD 和目前的分支</span><br><span class="line"></span><br><span class="line">#### 分支和合并</span><br><span class="line"></span><br><span class="line">- `git branch`: 显示分支</span><br><span class="line"></span><br><span class="line">- `git branch &lt;name&gt;`: 创建分支</span><br><span class="line"></span><br><span class="line">- ```plaintext</span><br><span class="line">  git checkout -b &lt;name&gt;</span><br></pre></td></tr></table></figure></p>
-<p>: 创建分支并切换到该分支</p>
-<ul>
-<li>相当于
-<code>git branch &lt;name&gt;; git checkout &lt;name&gt;</code></li>
-</ul></li>
-<li><p><code>git merge &lt;revision&gt;</code>: 合并到当前分支</p></li>
-<li><p><code>git mergetool</code>: 使用工具来处理合并冲突</p></li>
-<li><p><code>git rebase</code>:
-将一系列补丁变基（rebase）为新的基线</p></li>
-</ul>
-<h4 id="远端操作">远端操作</h4>
-<ul>
-<li><code>git remote</code>: 列出远端</li>
-<li><code>git remote add &lt;name&gt; &lt;url&gt;</code>:
-添加一个远端</li>
-<li><code>git push &lt;remote&gt; &lt;local branch&gt;:&lt;remote branch&gt;</code>:
-将对象传送至远端并更新远端引用</li>
-<li><code>git branch --set-upstream-to=&lt;remote&gt;/&lt;remote branch&gt;</code>:
-创建本地和远端分支的关联关系</li>
-<li><code>git fetch</code>: 从远端获取对象/索引</li>
-<li><code>git pull</code>: 相当于 <code>git fetch; git merge</code></li>
-<li><code>git clone</code>: 从远端下载仓库</li>
-</ul>
-<h4 id="撤销">撤销</h4>
-<ul>
-<li><code>git commit --amend</code>: 编辑提交的内容或信息</li>
-<li><code>git reset HEAD &lt;file&gt;</code>: 恢复暂存的文件</li>
-<li><code>git checkout -- &lt;file&gt;</code>: 丢弃修改</li>
-<li><code>git restore</code>: git2.32版本后取代git reset
-进行许多撤销操作</li>
-</ul>
-<h1 id="git-高级操作">Git 高级操作</h1>
-<ul>
-<li><code>git config</code>: Git 是一个 <a
-href="https://git-scm.com/docs/git-config">高度可定制的</a> 工具</li>
-<li><code>git clone --depth=1</code>: 浅克隆（shallow
-clone），不包括完整的版本历史信息</li>
-<li><code>git add -p</code>: 交互式暂存</li>
-<li><code>git rebase -i</code>: 交互式变基</li>
-<li><code>git blame</code>: 查看最后修改某行的人</li>
-<li><code>git stash</code>: 暂时移除工作目录下的修改内容</li>
-<li><code>git bisect</code>: 通过二分查找搜索历史记录</li>
-<li><code>.gitignore</code>: <a
-href="https://git-scm.com/docs/gitignore">指定</a> 故意不追踪的文件</li>
-</ul>
-<h1 id="bonus">Bonus</h1>
-<ul>
-<li><p><strong>图形用户界面</strong>: Git 的 <a
-href="https://git-scm.com/downloads/guis">图形用户界面客户端</a>
-有很多，但是我们自己并不使用这些图形用户界面的客户端，我们选择使用命令行接口</p></li>
-<li><p><strong>Shell 集成</strong>: 将 Git 状态集成到您的 shell
-中会非常方便。(<a
-href="https://github.com/olivierverdier/zsh-git-prompt">zsh</a>, <a
-href="https://github.com/magicmonty/bash-git-prompt">bash</a>)。<a
-href="https://github.com/ohmyzsh/ohmyzsh">Oh My
-Zsh</a>这样的框架中一般以及集成了这一功能</p></li>
-<li><p><strong>编辑器集成</strong>: 和上面一条类似，将 Git
-集成到编辑器中好处多多。<a
-href="https://github.com/tpope/vim-fugitive">fugitive.vim</a> 是 Vim
-中集成 GIt 的常用插件</p></li>
-<li><p><strong>工作流</strong>:
-我们已经讲解了数据模型与一些基础命令，但还没讨论到进行大型项目时的一些惯例
-( 有<a
-href="https://nvie.com/posts/a-successful-git-branching-model/">很多</a>
-<a
-href="https://www.endoflineblog.com/gitflow-considered-harmful">不同的</a>
-<a
-href="https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow">处理方法</a>)</p></li>
-<li><p><strong>GitHub</strong>: Git 并不等同于 GitHub。 在 GitHub
-中您需要使用一个被称作<a
-href="https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/about-pull-requests">拉取请求（pull
-request）</a>的方法来向其他项目贡献代码</p></li>
-<li><p><strong>其他 Git 提供商</strong>: GitHub 并不是唯一的。还有像 <a
-href="https://about.gitlab.com/">GitLab</a> 和 <a
-href="https://bitbucket.org/">BitBucket</a> 这样的平台。</p></li>
-<li><p>良好的git提交消息(设置用于git的编辑器)</p>
-<ul>
-<li><p><a
-href="https://cbea.ms/git-commit/#separate">用空行将主题与正文分开</a>:</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">git log --oneline #只打印出主题行</span><br><span class="line">git shortlog #按用户提交哪些组，再次仅显示主题行以简洁明了</span><br></pre></td></tr></table></figure></li>
-<li><p><a href="https://cbea.ms/git-commit/#limit-50">将主题行限制为 50
-个字符</a>（make sure less than 72 characters）</p></li>
-<li><p><a
-href="https://cbea.ms/git-commit/#capitalize">将主题行大写</a></p></li>
-<li><p><a
-href="https://cbea.ms/git-commit/#end">不要以句点结束主题行</a></p></li>
-<li><p><a
-href="https://cbea.ms/git-commit/#imperative">在主题行中使用命令式语气</a>:祈使句</p></li>
-<li><p><a href="https://cbea.ms/git-commit/#wrap-72">将正文包装为 72
-个字符</a>：It`s easy to configure Vim</p></li>
-<li><p><a
-href="https://cbea.ms/git-commit/#why-not-how">使用正文来解释什么和为什么与如何</a></p></li>
-</ul></li>
-</ul>
-<h1 id="resources">Resources</h1>
-<ul>
-<li><a href="https://git-scm.com/book/en/v2">Pro Git</a>
-，<strong>强烈推荐</strong>！学习前五章的内容可以教会您流畅使用 Git
-的绝大多数技巧，因为您已经理解了 Git
-的数据模型。后面的章节提供了很多有趣的高级主题。（<a
-href="https://git-scm.com/book/zh/v2">Pro Git 中文版</a>）；</li>
-<li><a href="https://ohshitgit.com/">Oh Shit, Git!?!</a>
-，简短的介绍了如何从 Git 错误中恢复；</li>
-<li><a
-href="https://eagain.net/articles/git-for-computer-scientists/">Git for
-Computer Scientists</a> ，简短的介绍了 Git
-的数据模型，与本文相比包含较少量的伪代码以及大量的精美图片；</li>
-<li><a href="https://jwiegley.github.io/git-from-the-bottom-up/">Git
-from the Bottom Up</a>详细的介绍了 Git
-的实现细节，而不仅仅局限于数据模型。好奇的同学可以看看；</li>
-<li><a
-href="https://smusamashah.github.io/blog/2017/10/14/explain-git-in-simple-words">How
-to explain git in simple words</a>；</li>
-<li><a href="https://learngitbranching.js.org/">Learn Git Branching</a>
-通过基于浏览器的游戏来学习 Git ；</li>
-</ul>
-<h1 id="references">References</h1>
-<ul>
-<li><a
-href="https://missing-semester-cn.github.io/2020/version-control/">版本控制(Git)
-· the missing semester of your cs education
-(missing-semester-cn.github.io)</a></li>
-<li><a
-href="https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html">tbaggery
-- A Note About Git Commit Messages</a></li>
-<li><a href="https://cbea.ms/git-commit/">How to Write a Git Commit
-Message (cbea.ms)</a></li>
-<li><a href="https://learngitbranching.js.org/?locale=zh_CN">Learn Git
-Branching</a></li>
-</ul>
-]]></content>
-      <categories>
-        <category>CS</category>
-      </categories>
-      <tags>
-        <tag>CS</tag>
-        <tag>Git</tag>
       </tags>
   </entry>
   <entry>
@@ -2788,6 +2512,282 @@ Branching</a></li>
       </tags>
   </entry>
   <entry>
+    <title>Git入门</title>
+    <url>/2023/08/05/Git%E5%85%A5%E9%97%A8/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>following <a
+href="https://missing-semester-cn.github.io/2020/version-control/">版本控制(Git)
+· the missing semester of your cs education
+(missing-semester-cn.github.io)</a>来学习git的相关知识</p>
+<p>希望通过<a href="https://git-scm.com/book/zh/v2">Git - Book
+(git-scm.com)</a>+<a
+href="https://learngitbranching.js.org/?locale=zh_CN">Learn Git
+Branching</a>来进一步掌握Git</p>
+<p><strong>Learn to love the command line. Leave the IDE
+behind.</strong></p>
+<span id="more"></span>
+<h1 id="version-controlgit">Version control(Git)</h1>
+<p>版本控制系统version control
+system(VCS)是一类用于追踪源代码（或其他文件、文件夹）改动的工具</p>
+<h4 id="好处">好处：</h4>
+<ul>
+<li>这些工具可以帮助我们管理代码的修改历史</li>
+<li>可以让协作编码变得更方便</li>
+</ul>
+<h4 id="工作方式">工作方式</h4>
+<p>VCS通过一系列的快照将某个文件夹及其内容保存了起来，每个快照都包含了文件或文件夹的完整状态。同时它还维护了快照创建者的信息以及每个快照的相关信息等等。</p>
+<figure>
+<img
+src="https://cdn.jsdelivr.net/gh/Immortal-Fates/figure_Bed@main/blog/git.png"
+alt="git" />
+<figcaption aria-hidden="true">git</figcaption>
+</figure>
+<h4 id="dvcs">DVCS</h4>
+<p>分布式版本控制系统（Distributed Version Control System，简称
+DVCS）</p>
+<p>客户端并不只提取最新版本的文件快照，
+而是把代码仓库完整地镜像下来，包括完整的历史记录。
+这么一来，任何一处协同工作用的服务器发生故障，事后都可以用任何一个镜像出来的本地仓库恢复。
+因为每一次的克隆操作，实际上都是一次对代码仓库的完整备份。</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/distributed.png"
+alt="distributed" />
+<figcaption aria-hidden="true">distributed</figcaption>
+</figure>
+<p>许多这类系统都可以指定和若干不同的远端代码仓库进行交互。籍此，你就可以在同一个项目中，分别和不同工作小组的人相互协作。
+你可以根据需要设定不同的协作流程，比如层次模型式的工作流，而这在以前的集中式系统中是无法实现的。</p>
+<h1 id="git-的数据模型">Git 的数据模型</h1>
+<p>进行版本控制的方法很多。Git
+拥有一个经过精心设计的模型，这使其能够支持版本控制所需的所有特性，例如维护历史记录、支持分支和促进协作。</p>
+<h4 id="快照snapshots">快照（snapshots）</h4>
+<p>Git
+将顶级目录中的文件和文件夹作为集合，并通过一系列快照来管理其历史记录。在Git的术语里，文件被称作Blob对象（数据对象），也就是一组数据。目录则被称之为“树”，它将名字与
+Blob
+对象或树对象进行映射（使得目录中可以包含其他目录）。快照则是被追踪的最顶层的树。例如，一个树看起来可能是这样的：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&lt;root&gt; (tree)</span><br><span class="line">|</span><br><span class="line">+- foo (tree)</span><br><span class="line">|  |</span><br><span class="line">|  + bar.txt (blob, contents = &quot;hello world&quot;)</span><br><span class="line">|</span><br><span class="line">+- baz.txt (blob, contents = &quot;git is wonderful&quot;)</span><br></pre></td></tr></table></figure>
+<p>这个顶层的树包含了两个元素，一个名为 “foo”
+的tree（它本身包含了一个blob对象 “bar.txt”），以及一个 blob 对象
+“baz.txt”。</p>
+<h4 id="历史记录建模关联快照">历史记录建模：关联快照</h4>
+<p>版本控制系统和快照有什么关系呢？线性历史记录是一种最简单的模型，它包含了一组按照时间顺序线性排列的快照。</p>
+<p>在 Git 中，历史记录是一个由快照组成的有向无环图(directed acyclic
+graph (DAG))。有向无环图，这代表 Git
+中的每个快照都有一系列的“父辈”，也就是其之前的一系列快照。</p>
+<blockquote>
+<p>notes：快照具有多个“父辈”而非一个，因为某个快照可能由多个父辈而来。例如，经过合并后的两条分支。</p>
+</blockquote>
+<p>在 Git
+中，这些快照被称为“提交commit”。通过可视化的方式来表示这些历史提交记录时，看起来差不多是这样的：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">o &lt;-- o &lt;-- o &lt;-- o</span><br><span class="line">            ^  </span><br><span class="line">             \</span><br><span class="line">              --- o &lt;-- o</span><br></pre></td></tr></table></figure>
+<p>其中的 <code>o</code> 表示一次提交（快照）。</p>
+<p>箭头指向了当前提交的父辈（这是一种“在…之前”，而不是“在…之后”的关系）。在第三次提交之后，历史记录分岔成了两条独立的分支。这可能因为此时需要同时开发两个不同的特性，它们之间是相互独立的。开发完成后，这些分支可能会被合并并创建一个新的提交，这个新的提交会同时包含这些特性。新的提交会创建一个新的历史记录，看上去像这样（最新的合并提交用粗体标记）：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">o &lt;-- o &lt;-- o &lt;-- o &lt;---- o</span><br><span class="line">            ^            /</span><br><span class="line">             \          v</span><br><span class="line">              --- o &lt;-- o</span><br></pre></td></tr></table></figure>
+<p>Git
+中的提交是不可改变的。但这并不代表错误不能被修改，只不过这种“修改”实际上是创建了一个全新的提交记录。而引用（参见下文）则被更新为指向这些新的提交。</p>
+<h4 id="数据模型及其伪代码表示">数据模型及其伪代码表示</h4>
+<p>以伪代码的形式来学习 Git 的数据模型，可能更加清晰：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">// 文件就是一组数据</span><br><span class="line">type blob = array&lt;byte&gt;</span><br><span class="line"></span><br><span class="line">// 一个包含文件和目录的目录</span><br><span class="line">type tree = map&lt;string, tree | blob&gt;</span><br><span class="line"></span><br><span class="line">// 每个提交都包含一个父辈，元数据和顶层树</span><br><span class="line">type commit = struct &#123;</span><br><span class="line">    parent: array&lt;commit&gt;</span><br><span class="line">    author: string</span><br><span class="line">    message: string</span><br><span class="line">    snapshot: tree</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这是一种简洁的历史模型。</p>
+<h4 id="对象和内存寻址">对象和内存寻址</h4>
+<p>Git 中的对象可以是 blob、tree or commit：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">type object = blob | tree | commit</span><br></pre></td></tr></table></figure>
+<p>Git 在储存数据时，所有的对象都会基于它们的 <a
+href="https://en.wikipedia.org/wiki/SHA-1">SHA-1 哈希</a> 进行寻址。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">objects = map&lt;string, object&gt;</span><br><span class="line"></span><br><span class="line">def store(object):</span><br><span class="line">    id = sha1(object)</span><br><span class="line">    objects[id] = object</span><br><span class="line"></span><br><span class="line">def load(id):</span><br><span class="line">    return objects[id]</span><br></pre></td></tr></table></figure>
+<p>Blobs、树和提交都一样，它们都是对象。当它们引用其他对象时，它们并没有真正的在硬盘上保存这些对象，而是仅仅保存了它们的哈希值作为引用。</p>
+<p>例如，上面例子中的树（可以通过
+<code>git cat-file -p 698281bc680d1995c5f4caaf3359721a5a58d48d</code>
+来进行可视化），看上去是这样的：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">100644 blob 4448adbf7ecd394f42ae135bbeed9676e894af85    baz.txt</span><br><span class="line">040000 tree c68d233a33c5c06e0340e4c224f0afca87c8ce87    foo</span><br></pre></td></tr></table></figure>
+<p>树本身会包含一些指向其他内容的指针，例如 <code>baz.txt</code> (blob)
+和 <code>foo</code> (树)。如果我们用
+<code>git cat-file -p 4448adbf7ecd394f42ae135bbeed9676e894af85</code>，即通过哈希值查看
+baz.txt 的内容，会得到以下信息：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">git is wonderful</span><br></pre></td></tr></table></figure>
+<h4 id="引用references">引用(References)</h4>
+<p>Git
+给这些哈希值赋予人类可读的名字，也就是引用（references）。<strong>引用是指向提交的指针</strong>。与对象不同的是，它是可变的（引用可以被更新，指向新的提交）。例如，<code>master</code>
+引用通常会指向主分支的最新一次提交。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">references = map&lt;string, string&gt;</span><br><span class="line"></span><br><span class="line">def update_reference(name, id):</span><br><span class="line">    references[name] = id</span><br><span class="line"></span><br><span class="line">def read_reference(name):</span><br><span class="line">    return references[name]</span><br><span class="line"></span><br><span class="line">def load_reference(name_or_id):</span><br><span class="line">    if name_or_id in references:</span><br><span class="line">        return load(references[name_or_id])</span><br><span class="line">    else:</span><br><span class="line">        return load(name_or_id)</span><br></pre></td></tr></table></figure>
+<p>这样，Git 就可以使用诸如 “master”
+这样人类可读的名称来表示历史记录中某个特定的提交，而不需要在使用一长串十六进制字符了。</p>
+<p>有一个细节需要我们注意，
+通常情况下，我们会想要知道“我们当前所在位置”，并将其标记下来。这样当我们创建新的快照的时候，我们就可以知道它的相对位置（如何设置它的“父辈”）。在
+Git 中，我们当前的位置有一个特殊的索引，它就是 “HEAD”。</p>
+<h4 id="仓库repositories">仓库(Repositories)</h4>
+<p>最后，我们可以粗略地给出 Git 仓库的定义了：<code>对象</code> 和
+<code>引用</code>。</p>
+<p>在硬盘上，Git 仅存储对象和引用：因为其数据模型仅包含这些东西。所有的
+<code>git</code>
+命令都对应着对提交树的操作，例如增加对象，增加或删除引用。</p>
+<p>当你输入某个指令时，请思考一下这条命令是如何对底层的图数据结构进行操作的。另一方面，如果您希望修改提交树，例如“丢弃未提交的修改和将
+‘master’ 引用指向提交 <code>5d83f9e</code>
+时，有什么命令可以完成该操作（针对这个具体问题，您可以使用
+<code>git checkout master; git reset --hard 5d83f9e</code>）</p>
+<h1 id="staging-area">staging area</h1>
+<p>Git
+中还包括一个和数据模型完全不相关的概念，但它确是创建提交的接口的一部分。</p>
+<p>就上面介绍的快照系统来说，您也许会期望它的实现里包括一个 “创建快照”
+的命令，该命令能够基于当前工作目录的当前状态创建一个全新的快照。有些版本控制系统确实是这样工作的，但
+Git
+不是。我们希望简洁的快照，而且每次从当前状态创建快照可能效果并不理想。例如，考虑如下场景，您开发了两个独立的特性，然后您希望创建两个独立的提交，其中第一个提交仅包含第一个特性，而第二个提交仅包含第二个特性。或者，假设您在调试代码时添加了很多打印语句，然后您仅仅希望提交和修复
+bug 相关的代码而丢弃所有的打印语句。</p>
+<p>Git 处理这些场景的方法是使用一种叫做 “暂存区（staging
+area）”的机制，它允许您指定下次快照中要包括那些改动。</p>
+<h1 id="git-的命令行接口">Git 的命令行接口</h1>
+<p>为了避免重复信息，我们将不会详细解释以下命令行。强烈推荐您阅读 <a
+href="https://git-scm.com/book/zh/v2">Pro Git
+中文版</a>或可以观看本讲座的视频来学习。</p>
+<h4 id="基础">基础</h4>
+<ul>
+<li><p><code>git help &lt;command&gt;</code>: 获取 git
+命令的帮助信息</p></li>
+<li><p><code>git init</code>: 创建一个新的 git
+仓库，其数据会存放在一个名为 <code>.git</code> 的目录下</p></li>
+<li><p><code>git status</code>: 显示当前的仓库状态</p></li>
+<li><p><code>git add &lt;filename&gt;</code>: 添加文件到暂存区</p></li>
+<li><p>```plaintext git commit <figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">  : 创建一个新的提交</span><br><span class="line"></span><br><span class="line">  - 如何编写 [良好的提交信息](https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html)!</span><br><span class="line">  - 为何要 [编写良好的提交信息](https://chris.beams.io/posts/git-commit/)</span><br><span class="line"></span><br><span class="line">- `git log`: 显示历史日志</span><br><span class="line"></span><br><span class="line">- `git log --all --graph --decorate`: 可视化历史记录（有向无环图）</span><br><span class="line"></span><br><span class="line">- `git diff &lt;filename&gt;`: 显示与暂存区文件的差异</span><br><span class="line"></span><br><span class="line">- `git diff &lt;revision&gt; &lt;filename&gt;`: 显示某个文件两个版本之间的差异</span><br><span class="line"></span><br><span class="line">- `git checkout &lt;revision&gt;`: 更新 HEAD 和目前的分支</span><br><span class="line"></span><br><span class="line">#### 分支和合并</span><br><span class="line"></span><br><span class="line">- `git branch`: 显示分支</span><br><span class="line"></span><br><span class="line">- `git branch &lt;name&gt;`: 创建分支</span><br><span class="line"></span><br><span class="line">- ```plaintext</span><br><span class="line">  git checkout -b &lt;name&gt;</span><br></pre></td></tr></table></figure></p>
+<p>: 创建分支并切换到该分支</p>
+<ul>
+<li>相当于
+<code>git branch &lt;name&gt;; git checkout &lt;name&gt;</code></li>
+</ul></li>
+<li><p><code>git merge &lt;revision&gt;</code>: 合并到当前分支</p></li>
+<li><p><code>git mergetool</code>: 使用工具来处理合并冲突</p></li>
+<li><p><code>git rebase</code>:
+将一系列补丁变基（rebase）为新的基线</p></li>
+</ul>
+<h4 id="远端操作">远端操作</h4>
+<ul>
+<li><code>git remote</code>: 列出远端</li>
+<li><code>git remote add &lt;name&gt; &lt;url&gt;</code>:
+添加一个远端</li>
+<li><code>git push &lt;remote&gt; &lt;local branch&gt;:&lt;remote branch&gt;</code>:
+将对象传送至远端并更新远端引用</li>
+<li><code>git branch --set-upstream-to=&lt;remote&gt;/&lt;remote branch&gt;</code>:
+创建本地和远端分支的关联关系</li>
+<li><code>git fetch</code>: 从远端获取对象/索引</li>
+<li><code>git pull</code>: 相当于 <code>git fetch; git merge</code></li>
+<li><code>git clone</code>: 从远端下载仓库</li>
+</ul>
+<h4 id="撤销">撤销</h4>
+<ul>
+<li><code>git commit --amend</code>: 编辑提交的内容或信息</li>
+<li><code>git reset HEAD &lt;file&gt;</code>: 恢复暂存的文件</li>
+<li><code>git checkout -- &lt;file&gt;</code>: 丢弃修改</li>
+<li><code>git restore</code>: git2.32版本后取代git reset
+进行许多撤销操作</li>
+</ul>
+<h1 id="git-高级操作">Git 高级操作</h1>
+<ul>
+<li><code>git config</code>: Git 是一个 <a
+href="https://git-scm.com/docs/git-config">高度可定制的</a> 工具</li>
+<li><code>git clone --depth=1</code>: 浅克隆（shallow
+clone），不包括完整的版本历史信息</li>
+<li><code>git add -p</code>: 交互式暂存</li>
+<li><code>git rebase -i</code>: 交互式变基</li>
+<li><code>git blame</code>: 查看最后修改某行的人</li>
+<li><code>git stash</code>: 暂时移除工作目录下的修改内容</li>
+<li><code>git bisect</code>: 通过二分查找搜索历史记录</li>
+<li><code>.gitignore</code>: <a
+href="https://git-scm.com/docs/gitignore">指定</a> 故意不追踪的文件</li>
+</ul>
+<h1 id="bonus">Bonus</h1>
+<ul>
+<li><p><strong>图形用户界面</strong>: Git 的 <a
+href="https://git-scm.com/downloads/guis">图形用户界面客户端</a>
+有很多，但是我们自己并不使用这些图形用户界面的客户端，我们选择使用命令行接口</p></li>
+<li><p><strong>Shell 集成</strong>: 将 Git 状态集成到您的 shell
+中会非常方便。(<a
+href="https://github.com/olivierverdier/zsh-git-prompt">zsh</a>, <a
+href="https://github.com/magicmonty/bash-git-prompt">bash</a>)。<a
+href="https://github.com/ohmyzsh/ohmyzsh">Oh My
+Zsh</a>这样的框架中一般以及集成了这一功能</p></li>
+<li><p><strong>编辑器集成</strong>: 和上面一条类似，将 Git
+集成到编辑器中好处多多。<a
+href="https://github.com/tpope/vim-fugitive">fugitive.vim</a> 是 Vim
+中集成 GIt 的常用插件</p></li>
+<li><p><strong>工作流</strong>:
+我们已经讲解了数据模型与一些基础命令，但还没讨论到进行大型项目时的一些惯例
+( 有<a
+href="https://nvie.com/posts/a-successful-git-branching-model/">很多</a>
+<a
+href="https://www.endoflineblog.com/gitflow-considered-harmful">不同的</a>
+<a
+href="https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow">处理方法</a>)</p></li>
+<li><p><strong>GitHub</strong>: Git 并不等同于 GitHub。 在 GitHub
+中您需要使用一个被称作<a
+href="https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/about-pull-requests">拉取请求（pull
+request）</a>的方法来向其他项目贡献代码</p></li>
+<li><p><strong>其他 Git 提供商</strong>: GitHub 并不是唯一的。还有像 <a
+href="https://about.gitlab.com/">GitLab</a> 和 <a
+href="https://bitbucket.org/">BitBucket</a> 这样的平台。</p></li>
+<li><p>良好的git提交消息(设置用于git的编辑器)</p>
+<ul>
+<li><p><a
+href="https://cbea.ms/git-commit/#separate">用空行将主题与正文分开</a>:</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">git log --oneline #只打印出主题行</span><br><span class="line">git shortlog #按用户提交哪些组，再次仅显示主题行以简洁明了</span><br></pre></td></tr></table></figure></li>
+<li><p><a href="https://cbea.ms/git-commit/#limit-50">将主题行限制为 50
+个字符</a>（make sure less than 72 characters）</p></li>
+<li><p><a
+href="https://cbea.ms/git-commit/#capitalize">将主题行大写</a></p></li>
+<li><p><a
+href="https://cbea.ms/git-commit/#end">不要以句点结束主题行</a></p></li>
+<li><p><a
+href="https://cbea.ms/git-commit/#imperative">在主题行中使用命令式语气</a>:祈使句</p></li>
+<li><p><a href="https://cbea.ms/git-commit/#wrap-72">将正文包装为 72
+个字符</a>：It`s easy to configure Vim</p></li>
+<li><p><a
+href="https://cbea.ms/git-commit/#why-not-how">使用正文来解释什么和为什么与如何</a></p></li>
+</ul></li>
+</ul>
+<h1 id="resources">Resources</h1>
+<ul>
+<li><a href="https://git-scm.com/book/en/v2">Pro Git</a>
+，<strong>强烈推荐</strong>！学习前五章的内容可以教会您流畅使用 Git
+的绝大多数技巧，因为您已经理解了 Git
+的数据模型。后面的章节提供了很多有趣的高级主题。（<a
+href="https://git-scm.com/book/zh/v2">Pro Git 中文版</a>）；</li>
+<li><a href="https://ohshitgit.com/">Oh Shit, Git!?!</a>
+，简短的介绍了如何从 Git 错误中恢复；</li>
+<li><a
+href="https://eagain.net/articles/git-for-computer-scientists/">Git for
+Computer Scientists</a> ，简短的介绍了 Git
+的数据模型，与本文相比包含较少量的伪代码以及大量的精美图片；</li>
+<li><a href="https://jwiegley.github.io/git-from-the-bottom-up/">Git
+from the Bottom Up</a>详细的介绍了 Git
+的实现细节，而不仅仅局限于数据模型。好奇的同学可以看看；</li>
+<li><a
+href="https://smusamashah.github.io/blog/2017/10/14/explain-git-in-simple-words">How
+to explain git in simple words</a>；</li>
+<li><a href="https://learngitbranching.js.org/">Learn Git Branching</a>
+通过基于浏览器的游戏来学习 Git ；</li>
+</ul>
+<h1 id="references">References</h1>
+<ul>
+<li><a
+href="https://missing-semester-cn.github.io/2020/version-control/">版本控制(Git)
+· the missing semester of your cs education
+(missing-semester-cn.github.io)</a></li>
+<li><a
+href="https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html">tbaggery
+- A Note About Git Commit Messages</a></li>
+<li><a href="https://cbea.ms/git-commit/">How to Write a Git Commit
+Message (cbea.ms)</a></li>
+<li><a href="https://learngitbranching.js.org/?locale=zh_CN">Learn Git
+Branching</a></li>
+</ul>
+]]></content>
+      <categories>
+        <category>CS</category>
+      </categories>
+      <tags>
+        <tag>CS</tag>
+        <tag>Git</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Git进阶（2）</title>
     <url>/2023/08/10/Git%E8%BF%9B%E9%98%B6%EF%BC%882%EF%BC%89/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
@@ -3170,100 +3170,62 @@ Branching</a></li>
       </tags>
   </entry>
   <entry>
-    <title>Markdown_in_Typora</title>
-    <url>/2023/08/09/Markdown-in-Typora/</url>
+    <title>Hollow Knight——空洞骑士通关！</title>
+    <url>/2023/08/27/Hollow-Knight/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>Typora写markdown是必修课，在此学习Typora常用的快捷键操作，以更方便地使用</p>
+<p>完结撒花！Hollow Knight空洞骑士通关！</p>
+<p>以后应该只会待在神居里玩玩了。</p>
 <span id="more"></span>
-<h1 id="快捷键集合">快捷键集合</h1>
-<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">Typora快捷键整合</span><br><span class="line">```</span><br><span class="line">Ctrl+1  一阶标题    Ctrl+B  字体加粗</span><br><span class="line">Ctrl+2  二阶标题    Ctrl+I  字体倾斜</span><br><span class="line">Ctrl+3  三阶标题    Ctrl+U  下划线</span><br><span class="line">Ctrl+4  四阶标题    Ctrl+Home   返回Typora顶部</span><br><span class="line">Ctrl+5  五阶标题    Ctrl+End    返回Typora底部</span><br><span class="line">Ctrl+6  六阶标题    Ctrl+T  创建表格</span><br><span class="line">Ctrl+L  选中某句话   Ctrl+K  创建超链接</span><br><span class="line">Ctrl+D  选中某个单词  Ctrl+F  搜索</span><br><span class="line">Ctrl+E  选中相同格式的文字   Ctrl+H  搜索并替换</span><br><span class="line">Alt+Shift+5 删除线 Ctrl+Shift+I    插入图片</span><br><span class="line">Ctrl+Shift+M    公式块 Ctrl+Shift+Q    引用</span><br><span class="line"></span><br><span class="line">注：一些实体符号需要在实体符号之前加”\”才能够显示</span><br></pre></td></tr></table></figure>
-<h1 id="换行符">换行符</h1>
-<p>在markdown中，段落由多个空格分隔。在Typora中，只需回车即可创建新段落。</p>
-<h1 id="标题级别">标题级别</h1>
-<p># 一级标题 快捷键为 Ctrl + 1 ## 二级标题 快捷键为 Ctrl + 2 ......
-###### 六级标题 快捷键为 Ctrl + 6</p>
-<h1 id="引用文字">引用文字</h1>
-<p>&gt; + 空格 + 引用文字</p>
-<h1 id="无序列表">无序列表</h1>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Ctrl+Shift+}</span><br></pre></td></tr></table></figure>
-<p>使用 * + - 都可以创建一个无序列表</p>
-<ul>
-<li><p>AAA</p></li>
-<li><p>BBB</p></li>
-<li><p>CCC</p></li>
-</ul>
-<h1 id="有序列表">有序列表</h1>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Ctrl+Shift+{</span><br></pre></td></tr></table></figure>
-<p>使用 1. 2. 3. 创建有序列表</p>
-<ol type="1">
-<li>AAA</li>
-<li>BBB</li>
-<li>CCC</li>
-</ol>
-<h1 id="任务列表">任务列表</h1>
-<p> -[ ] 不勾选  -[x] 勾选</p>
-<h1 id="代码块">代码块</h1>
-<p>在Typora中插入程序代码的方式有两种：使用反引号 `（~
-键）、使用缩进（Tab）。</p>
-<ul>
-<li>插入行内代码，即插入一个单词或者一句代码的情况，使用
-<code>code</code> 这样的形式插入。</li>
-<li>插入多行代码输入3个反引号（`） +
-回车，并在后面选择一个语言名称即可实现语法高亮。</li>
-</ul>
-<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">def helloworld():</span><br><span class="line">    print("hello, world!")</span><br></pre></td></tr></table></figure>
-<h1 id="数学表达式">数学表达式</h1>
-<p><a href="https://blog.csdn.net/mingzhuo_126/article/details/82722455">(15条消息)
-使用Typora添加数学公式_typora数学公式_姚明明的博客-CSDN博客</a></p>
-<p><a href="https://blog.csdn.net/qq_43444349/article/details/105400052">(15条消息)
-全面整理Typora的Latex数学公式语法_M010K的博客-CSDN博客</a></p>
-<p>当你需要在编辑器中插入数学公式时，可以使用两个美元符 $$ 包裹 TeX 或
-LaTeX 格式的数学公式来实现。根据需要加载 Mathjax
-对数学公式进行渲染。</p>
-<p>按下 <code>$$</code>，然后按下回车键，即可进行数学公式的编辑。</p>
-<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">$$</span><br><span class="line">\mathbf{V}_1\times\mathbf{V}_2 = \mathbf{X}_3</span><br><span class="line">$$</span><br></pre></td></tr></table></figure>
-<h1 id="插入表格">插入表格</h1>
-<p>输入
-<code>| 表头1 | 表头2 |</code>并回车。即可创建一个包含2列表。快捷键
-<code>Ctrl + T</code>弹出对话框。</p>
-<div class="line-block">id | number | | ---- | ------ | | | |</div>
-<ul>
-<li>不管是哪种方式，第一行为表头，第二行为分割表头和主体部分，第三行开始每一行为一个表格行</li>
-<li>列与列之间用管道符号<code>|</code> 隔开</li>
-<li>还可设置对齐方式(表头与内容之间)，如果不使用对齐标记，内容默认左对齐，表头居中对齐</li>
-<li>左对齐 ：|</li>
-<li>右对齐 |：</li>
-<li>中对齐 ：|：</li>
-<li>为了美观，可以使用空格对齐不同行的单元格，并在左右两侧都使用 |
-来标记单元格边界</li>
-<li>为了使 Markdown 更清晰，| 和 -
-两侧需要至少有一个空格（最左侧和最右侧的 | 外就不需要了）。</li>
-</ul>
-<h1 id="脚注">脚注</h1>
-<p>这个例子的脚注为[<a href="https://link.zhihu.com/?target=https%3A//www.cnblogs.com/hider/p/11614688.html%23fn1">1]</a>。</p>
-<p>注意：该例子脚注标识是1，脚注标识可以为字母数字下划线，但是暂不支持中文。脚注内容可为任意字符，包括中文。</p>
-<h1 id="分割线">分割线</h1>
-<p>输入 <code>***</code> 或者 <code>---</code>
-再按回车即可绘制一条水平线，如下：</p>
-<hr>
-<h1 id="目录toc">目录（TOC）</h1>
-<p>输入 <code>[ toc ]</code>
-然后回车，即可创建一个“目录”。TOC从文档中提取所有标题，其内容将自动更新。</p>
-<h1 id="图片">图片</h1>
-<p>以我的github库作为image
-host，利用PicGo作为上传工具，再连接Typora，实现一条龙服务</p>
-<h1 id="plugins-in-vs-code">plugins in VS Code</h1>
-<ul>
-<li><p>Markdown All in One：支持markdown语法</p></li>
-<li><p>Markdown Preview Github：预览</p></li>
-<li><p>Markmap：markdown自动生成思维导图</p></li>
-</ul>
+<h1 id="brief">Brief</h1>
+<p>以前沉迷LOL，现在下定决心弃坑，空洞骑士成了我通关的第一个游戏，战胜辐光那一刻还是很激动的！</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/248554db4b7048a8c987acd2f0025ee.jpg"
+alt="248554db4b7048a8c987acd2f0025ee" />
+<figcaption
+aria-hidden="true">248554db4b7048a8c987acd2f0025ee</figcaption>
+</figure>
+<blockquote>
+<p>虽然但是，只是主线剧情通关，神居呀，苦痛之路啊，还有什么无上辐光之类的都还没有尝试。。。</p>
+</blockquote>
+<p>用时40h，完成度98%，感觉自己有点肿</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/e1ac75cd52f42761ccfb3ead6fe736c.jpg"
+alt="e1ac75cd52f42761ccfb3ead6fe736c" />
+<figcaption
+aria-hidden="true">e1ac75cd52f42761ccfb3ead6fe736c</figcaption>
+</figure>
+<h1 id="过程体验">过程体验</h1>
+<p>让我一个人直接玩是玩不了一点的，纯靠攻略视频做任务、跑图、拿物品，当然BOSS都是自己尝试打，没有什么比失败无数次后最终战胜他爽了。</p>
+<h2 id="前期">前期</h2>
+<p>u1s1前期挺劝退的，没什么花里胡哨的东西，跑得慢，攻击慢，受不了一点。不过建议大家直接看攻略去获得技能和护符，安稳度过新手期就好了。</p>
+<p>但新手训练师——三螳螂+小姐姐，还是很有意思的，让我慢慢找到了上手游戏的节奏吧</p>
+<blockquote>
+<p>Tips:喜欢探索的玩家就加油吧。</p>
+</blockquote>
+<h2 id="中期">中期</h2>
+<p>感觉中期就是一直在收集各种各样的护符，增加血量上限，升级骨钉，进化技能，开拓地图，跑图让我挺难受的，感觉跑路清小怪太麻烦了（可能我比较浮躁，希望自己能改善）。</p>
+<p>也会遇到一些奇奇怪怪的BOSS，当然拿了梦钉后也会出现真正的挑战：梦境表哥+失败冠军，二者我都打了挺久的（头一次发现哥们儿是真有点菜）。</p>
+<p>偶最不会打的就是那个竞技场3最后那两只，就是打不过。。。（在神居偷偷练都打不过，没道理）</p>
+<h2 id="后期">后期</h2>
+<p>后期真有点爽吧，会遇到各种各样的BOSS，虽然他们的技能仍然只有几个，不过需要判断了不再那么单一。</p>
+<p>格林（梦魇之王）——佐特（把下砸练熟了）——空洞骑士——辐光（虽然过每个BOSS花的时间比失败冠军少多了）</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/8ac1b2bfcbb5ae20585d19c6a70c64d.jpg"
+alt="8ac1b2bfcbb5ae20585d19c6a70c64d" />
+<figcaption
+aria-hidden="true">8ac1b2bfcbb5ae20585d19c6a70c64d</figcaption>
+</figure>
+<h1 id="剧情">剧情</h1>
+<p>很惭愧，剧情偶是没注意一点的，在此立誓下款游戏我要代入设定。</p>
 ]]></content>
       <categories>
-        <category>奇技淫巧</category>
+        <category>life</category>
       </categories>
       <tags>
-        <tag>奇技淫巧</tag>
+        <tag>game</tag>
       </tags>
   </entry>
   <entry>
@@ -3492,62 +3454,403 @@ href="https://zhuanlan.zhihu.com/p/413285767">Jlink之J-Scope虚拟示波器 -
       </tags>
   </entry>
   <entry>
-    <title>Hollow Knight——空洞骑士通关！</title>
-    <url>/2023/08/27/Hollow-Knight/</url>
+    <title>Markdown_in_Typora</title>
+    <url>/2023/08/09/Markdown-in-Typora/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>完结撒花！Hollow Knight空洞骑士通关！</p>
-<p>以后应该只会待在神居里玩玩了。</p>
+<p>Typora写markdown是必修课，在此学习Typora常用的快捷键操作，以更方便地使用</p>
 <span id="more"></span>
-<h1 id="brief">Brief</h1>
-<p>以前沉迷LOL，现在下定决心弃坑，空洞骑士成了我通关的第一个游戏，战胜辐光那一刻还是很激动的！</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/248554db4b7048a8c987acd2f0025ee.jpg"
-alt="248554db4b7048a8c987acd2f0025ee" />
-<figcaption
-aria-hidden="true">248554db4b7048a8c987acd2f0025ee</figcaption>
-</figure>
-<blockquote>
-<p>虽然但是，只是主线剧情通关，神居呀，苦痛之路啊，还有什么无上辐光之类的都还没有尝试。。。</p>
-</blockquote>
-<p>用时40h，完成度98%，感觉自己有点肿</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/e1ac75cd52f42761ccfb3ead6fe736c.jpg"
-alt="e1ac75cd52f42761ccfb3ead6fe736c" />
-<figcaption
-aria-hidden="true">e1ac75cd52f42761ccfb3ead6fe736c</figcaption>
-</figure>
-<h1 id="过程体验">过程体验</h1>
-<p>让我一个人直接玩是玩不了一点的，纯靠攻略视频做任务、跑图、拿物品，当然BOSS都是自己尝试打，没有什么比失败无数次后最终战胜他爽了。</p>
-<h2 id="前期">前期</h2>
-<p>u1s1前期挺劝退的，没什么花里胡哨的东西，跑得慢，攻击慢，受不了一点。不过建议大家直接看攻略去获得技能和护符，安稳度过新手期就好了。</p>
-<p>但新手训练师——三螳螂+小姐姐，还是很有意思的，让我慢慢找到了上手游戏的节奏吧</p>
-<blockquote>
-<p>Tips:喜欢探索的玩家就加油吧。</p>
-</blockquote>
-<h2 id="中期">中期</h2>
-<p>感觉中期就是一直在收集各种各样的护符，增加血量上限，升级骨钉，进化技能，开拓地图，跑图让我挺难受的，感觉跑路清小怪太麻烦了（可能我比较浮躁，希望自己能改善）。</p>
-<p>也会遇到一些奇奇怪怪的BOSS，当然拿了梦钉后也会出现真正的挑战：梦境表哥+失败冠军，二者我都打了挺久的（头一次发现哥们儿是真有点菜）。</p>
-<p>偶最不会打的就是那个竞技场3最后那两只，就是打不过。。。（在神居偷偷练都打不过，没道理）</p>
-<h2 id="后期">后期</h2>
-<p>后期真有点爽吧，会遇到各种各样的BOSS，虽然他们的技能仍然只有几个，不过需要判断了不再那么单一。</p>
-<p>格林（梦魇之王）——佐特（把下砸练熟了）——空洞骑士——辐光（虽然过每个BOSS花的时间比失败冠军少多了）</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/8ac1b2bfcbb5ae20585d19c6a70c64d.jpg"
-alt="8ac1b2bfcbb5ae20585d19c6a70c64d" />
-<figcaption
-aria-hidden="true">8ac1b2bfcbb5ae20585d19c6a70c64d</figcaption>
-</figure>
-<h1 id="剧情">剧情</h1>
-<p>很惭愧，剧情偶是没注意一点的，在此立誓下款游戏我要代入设定。</p>
+<h1 id="快捷键集合">快捷键集合</h1>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">Typora快捷键整合</span><br><span class="line">```</span><br><span class="line">Ctrl+1  一阶标题    Ctrl+B  字体加粗</span><br><span class="line">Ctrl+2  二阶标题    Ctrl+I  字体倾斜</span><br><span class="line">Ctrl+3  三阶标题    Ctrl+U  下划线</span><br><span class="line">Ctrl+4  四阶标题    Ctrl+Home   返回Typora顶部</span><br><span class="line">Ctrl+5  五阶标题    Ctrl+End    返回Typora底部</span><br><span class="line">Ctrl+6  六阶标题    Ctrl+T  创建表格</span><br><span class="line">Ctrl+L  选中某句话   Ctrl+K  创建超链接</span><br><span class="line">Ctrl+D  选中某个单词  Ctrl+F  搜索</span><br><span class="line">Ctrl+E  选中相同格式的文字   Ctrl+H  搜索并替换</span><br><span class="line">Alt+Shift+5 删除线 Ctrl+Shift+I    插入图片</span><br><span class="line">Ctrl+Shift+M    公式块 Ctrl+Shift+Q    引用</span><br><span class="line"></span><br><span class="line">注：一些实体符号需要在实体符号之前加”\”才能够显示</span><br></pre></td></tr></table></figure>
+<h1 id="换行符">换行符</h1>
+<p>在markdown中，段落由多个空格分隔。在Typora中，只需回车即可创建新段落。</p>
+<h1 id="标题级别">标题级别</h1>
+<p># 一级标题 快捷键为 Ctrl + 1 ## 二级标题 快捷键为 Ctrl + 2 ......
+###### 六级标题 快捷键为 Ctrl + 6</p>
+<h1 id="引用文字">引用文字</h1>
+<p>&gt; + 空格 + 引用文字</p>
+<h1 id="无序列表">无序列表</h1>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Ctrl+Shift+}</span><br></pre></td></tr></table></figure>
+<p>使用 * + - 都可以创建一个无序列表</p>
+<ul>
+<li><p>AAA</p></li>
+<li><p>BBB</p></li>
+<li><p>CCC</p></li>
+</ul>
+<h1 id="有序列表">有序列表</h1>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Ctrl+Shift+{</span><br></pre></td></tr></table></figure>
+<p>使用 1. 2. 3. 创建有序列表</p>
+<ol type="1">
+<li>AAA</li>
+<li>BBB</li>
+<li>CCC</li>
+</ol>
+<h1 id="任务列表">任务列表</h1>
+<p> -[ ] 不勾选  -[x] 勾选</p>
+<h1 id="代码块">代码块</h1>
+<p>在Typora中插入程序代码的方式有两种：使用反引号 `（~
+键）、使用缩进（Tab）。</p>
+<ul>
+<li>插入行内代码，即插入一个单词或者一句代码的情况，使用
+<code>code</code> 这样的形式插入。</li>
+<li>插入多行代码输入3个反引号（`） +
+回车，并在后面选择一个语言名称即可实现语法高亮。</li>
+</ul>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">def helloworld():</span><br><span class="line">    print("hello, world!")</span><br></pre></td></tr></table></figure>
+<h1 id="数学表达式">数学表达式</h1>
+<p><a href="https://blog.csdn.net/mingzhuo_126/article/details/82722455">(15条消息)
+使用Typora添加数学公式_typora数学公式_姚明明的博客-CSDN博客</a></p>
+<p><a href="https://blog.csdn.net/qq_43444349/article/details/105400052">(15条消息)
+全面整理Typora的Latex数学公式语法_M010K的博客-CSDN博客</a></p>
+<p>当你需要在编辑器中插入数学公式时，可以使用两个美元符 $$ 包裹 TeX 或
+LaTeX 格式的数学公式来实现。根据需要加载 Mathjax
+对数学公式进行渲染。</p>
+<p>按下 <code>$$</code>，然后按下回车键，即可进行数学公式的编辑。</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">$$</span><br><span class="line">\mathbf{V}_1\times\mathbf{V}_2 = \mathbf{X}_3</span><br><span class="line">$$</span><br></pre></td></tr></table></figure>
+<h1 id="插入表格">插入表格</h1>
+<p>输入
+<code>| 表头1 | 表头2 |</code>并回车。即可创建一个包含2列表。快捷键
+<code>Ctrl + T</code>弹出对话框。</p>
+<div class="line-block">id | number | | ---- | ------ | | | |</div>
+<ul>
+<li>不管是哪种方式，第一行为表头，第二行为分割表头和主体部分，第三行开始每一行为一个表格行</li>
+<li>列与列之间用管道符号<code>|</code> 隔开</li>
+<li>还可设置对齐方式(表头与内容之间)，如果不使用对齐标记，内容默认左对齐，表头居中对齐</li>
+<li>左对齐 ：|</li>
+<li>右对齐 |：</li>
+<li>中对齐 ：|：</li>
+<li>为了美观，可以使用空格对齐不同行的单元格，并在左右两侧都使用 |
+来标记单元格边界</li>
+<li>为了使 Markdown 更清晰，| 和 -
+两侧需要至少有一个空格（最左侧和最右侧的 | 外就不需要了）。</li>
+</ul>
+<h1 id="脚注">脚注</h1>
+<p>这个例子的脚注为[<a href="https://link.zhihu.com/?target=https%3A//www.cnblogs.com/hider/p/11614688.html%23fn1">1]</a>。</p>
+<p>注意：该例子脚注标识是1，脚注标识可以为字母数字下划线，但是暂不支持中文。脚注内容可为任意字符，包括中文。</p>
+<h1 id="分割线">分割线</h1>
+<p>输入 <code>***</code> 或者 <code>---</code>
+再按回车即可绘制一条水平线，如下：</p>
+<hr>
+<h1 id="目录toc">目录（TOC）</h1>
+<p>输入 <code>[ toc ]</code>
+然后回车，即可创建一个“目录”。TOC从文档中提取所有标题，其内容将自动更新。</p>
+<h1 id="图片">图片</h1>
+<p>以我的github库作为image
+host，利用PicGo作为上传工具，再连接Typora，实现一条龙服务</p>
+<h1 id="plugins-in-vs-code">plugins in VS Code</h1>
+<ul>
+<li><p>Markdown All in One：支持markdown语法</p></li>
+<li><p>Markdown Preview Github：预览</p></li>
+<li><p>Markmap：markdown自动生成思维导图</p></li>
+</ul>
 ]]></content>
       <categories>
-        <category>life</category>
+        <category>奇技淫巧</category>
       </categories>
       <tags>
-        <tag>game</tag>
+        <tag>奇技淫巧</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>USART入门</title>
+    <url>/2023/08/22/USART%E5%85%A5%E9%97%A8/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>Following
+哈工深上传到B站的电控组培训来入门robomaster电控组，我购买了普中科技玄武套餐开发板作为硬件。</p>
+<p>本篇介绍我学习USART的见闻——实验仍有一些问题未解决</p>
+<span id="more"></span>
+<h1 id="usart">USART</h1>
+<h2 id="简介">简介</h2>
+<ul>
+<li><p>USART(Universal Synchronous/Asynchronous
+Receiver/Transmitter)，通用同步(CLK同步接收和发送，数据量大选择)/异步串行接收/发送器</p>
+<blockquote>
+<p>Tips:UART仅有异步通信</p>
+</blockquote></li>
+<li><p>USART是异步串口通信<strong>协议</strong>的一种，工作原理是将传输数据的每个字符一位接一位地传输，它能将要传输的资料在串行通信与并行通信之间加以转换，能够灵活地与外部设备进行全双工数据交换（并行转串行）</p></li>
+<li><p>USART有两个引脚用于传输数据，RX和TX，接线的时候应使用交叉线，此外如果是不同设备之间通信还必须有一个GND线，VCC线为可选项。</p>
+<p>TX(transmitter)：发送数据</p>
+<p>RX(receiver)：接收数据</p></li>
+<li><p>全双工：两条线互不干扰，可同时进行发送和接收
+半双工：一次只能进行发送/接收</p></li>
+<li><p>异步：只需频率一样，相位可以不一样（常用）
+同步：还需时钟线CLK（数据量很大时）</p></li>
+<li><p>支持最基本的</p>
+<ul>
+<li>通用串口同步、异步通讯</li>
+<li>LIN总线功能（局域互联网）</li>
+<li>IRDA功能（红外通讯）</li>
+<li>SmartCard功能</li>
+</ul></li>
+<li><p>UART：只有异步通讯</p></li>
+</ul>
+<h2 id="usart的通信协议"><strong>USART</strong>的通信协议</h2>
+<p>一帧一帧地发送</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230608114952821.png"
+alt="USART时序图" />
+<figcaption aria-hidden="true">USART时序图</figcaption>
+</figure>
+<ul>
+<li><p>起始位：当未有数据发送时，数据线处于逻辑“1”状态；先发出一个逻辑“0”信号，表示开始传输字符。</p></li>
+<li><p>数据位：紧接着起始位之后。数据位的个数可以是4、5、6、7、8等，构成一个字符。通常采用ASCII码。从最低位开始传送，靠时钟定位。</p>
+<blockquote>
+<p>eg:00010001,先发送1</p>
+</blockquote></li>
+<li><p>奇偶校验位：数据为加上这一位后，使得“1”的位数应为偶数（偶校验）或奇数（奇校验），以此来校验资料传送的正确性。(弱校验)</p></li>
+<li><p>停止位：它是一个字符数据的结束标志。可以是1位、1.5位、2位的高电平。
+由于数据是在传输线上定时的，并且每一个设备有其自己的时钟，很可能在通信中两台设备间出现了小小的不同步。因此停止位不仅仅是<strong>表示传输的结束</strong>，并且<strong>提供计算机校正时钟同步的机会</strong>。适用于停止位的位数越多，不同时钟同步的容忍程度越大，但是数据传输率同时也越慢。</p></li>
+<li><p>空闲位或起始位：处于逻辑“1”状态，表示当前线路上没有资料传送，进入空闲状态。处于逻辑“0”状态，表示开始传送下一数据段(起始位)。</p></li>
+<li><p>波特率：即每秒传输的二进制位数， 用 b/s
+(bps)表示，通过对时钟的控制可以改变波特率。USART具有<strong>独立</strong>的高精度波特率发生器，不占用定时/计数器。常用的波特率有：9600、115200……</p>
+<blockquote>
+<p>Notes:奇偶校验是弱校验，115200最常用，发送/接收的FIFO（CPU太快了
+）</p>
+</blockquote></li>
+</ul>
+<h2 id="usart工作原理"><strong>USART</strong>工作原理</h2>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230608115210441.png"
+alt="image-20230608115210441" />
+<figcaption aria-hidden="true">image-20230608115210441</figcaption>
+</figure>
+<h3 id="fifo-操作">FIFO 操作</h3>
+<ul>
+<li><p><strong>INTRO</strong>:FIFO 是“First-In
+First-Out”的缩写，意为“先进先出”，是一种常见的队列操作。Stellaris
+系列ARM 的UART 模块包含有2 个16
+字节的FIFO：一个用于发送，另一个用于接收。可以将两个FIFO
+分别配置为以不同深度触发中断。可供选择的配置包括：1/8、 1/4、1/2、3/4
+和7/8 深度。</p>
+<blockquote>
+<p>Tips:例如，如果接收FIFO选择1/4，则在UART 接收到4
+个数据时产生接收中断</p>
+</blockquote></li>
+<li><p>目的：收发FIFO 主要是为了解决UART 收发中断过于频繁而导致CPU
+效率不高的问题而引入的。</p>
+<p>在进行UART通信时，中断方式比轮询方式(polling)要简便且效率高。但是，如果没有收发
+FIFO，则每收发一个数据都要中断处理一次，效率仍然不够高。如果有了收发FIFO，则可以在连续收发若干个数据（可多至14
+个）后才产生一次中断然后一并处理，这就大大提高了收发效率。</p></li>
+<li><p>发送FIFO的基本工作过程：</p>
+<ul>
+<li><p>只要有数据填充到发送FIFO 里，就会立即启动发送过程。</p></li>
+<li><p>由于发送本身是个相对缓慢的过程，因此在发送的同时其它需要发送的数据还可以继续填充到发送
+FIFO 里。</p>
+<blockquote>
+<p>Tips:当发送 FIFO
+被填满时就不能再继续填充了，否则会造成数据丢失，此时只能等待。</p>
+</blockquote></li>
+<li><p>发送 FIFO 会按照填入数据的先后顺序把数据一个个发送出去，直到发送
+FIFO 全空时为止。已发送完毕的数据会被自动清除，在发送FIFO
+里同时会多出一个空位。</p></li>
+</ul></li>
+<li><p>接收FIFO的基本工作过程：</p>
+<ul>
+<li><p>当硬件逻辑接收到数据时，就会往接收FIFO
+里填充接收到的数据。</p></li>
+<li><p>程序应当及时取走这些数据，数据被取走也是在接收FIFO
+里被自动删除的过程，因此在接收 FIFO 里同时会多出一个空位。</p>
+<blockquote>
+<p>Tips:如果在接收 FIFO 里的数据未被及时取走而造成接收FIFO
+已满，则以后再接收到数据时因无空位可以填充而造成数据丢失。</p>
+</blockquote></li>
+</ul></li>
+<li><p><strong>Notes:</strong>完全不必要担心FIFO
+机制可能带来的数据丢失或得不到及时处理的问题，因为它已经帮你想到了收发过程中存在的任何问题，只要在初始化配置UART
+后，就可以放心收发了， FIFO 和中断例程会自动搞定一切。</p></li>
+</ul>
+<h3 id="发送接收">发送接收</h3>
+<ul>
+<li>发送逻辑：从发送FIFO
+读取的数据执行“并→串”转换。控制逻辑输出起始位在先的串行位流，并且根据控制寄存器中已编程的配置，后面紧跟着数据位（注意：最低位
+LSB 先输出）、奇偶校验位和停止位。</li>
+<li>接收逻辑：在检测到一个有效的起始脉冲后，对接收到的位流执行“串→并”转换。此外还会对溢出错误、奇偶校验错误、帧错误和线中止（line-break）错误进行检测，并将检测到的状态附加到被写入接收FIFO
+的数据中。</li>
+</ul>
+<h3 id="数据收发过程">数据收发过程</h3>
+<ul>
+<li>发送时，数据被写入发送FIFO。如果USART
+被使能，则会按照预先设置好的参数（波特率、数据位、停止位、校验位等）开始发送数据，一直到发送FIFO
+中没有数据。一旦向发送FIFO 写数据（如果FIFO 未空），UART 的忙标志位BUSY
+就有效，并且在发送数据期间一直保持有效。BUSY 位仅在发送FIFO
+为空，且已从移位寄存器发送最后一个字符，包括停止位时才变无效。即 USART
+不再使能，它也可以指示忙状态。</li>
+<li>在USART
+接收器空闲时，如果数据输入变成“低电平”，即接收到了起始位，则接收计数器开始运行，若起始位持续时间达到阈值，则起始位有效，否则会被认为是错误的起始位并将其忽略。</li>
+<li>如果起始位有效，则根据数据字符被编程的长度，对连续的数据位进行采样。如果奇偶校验模式使能，则还会检测奇偶校验位。</li>
+<li>最后，如果Rx
+为高电平，则有效的停止位被确认，否则发生帧错误。当接收到一个完整的字符时，将数据存放在接收FIFO
+中。</li>
+</ul>
+<h3 id="波特率">波特率</h3>
+<ul>
+<li><p>波特率除数（baud-rate divisor）是一个22 位数，它由16 位整数和6
+位小数组成，<strong>是一个用来设置USART的通信速度的参数</strong>。波特率发生器使用这两个值组成的数字来决定位周期，决定发送、接收的波特率。</p>
+<p>通过带有小数波特率的除法器，在足够高的系统时钟速率下，UART
+可以产生所有标准的波特率，而误差很小。</p></li>
+</ul>
+<blockquote>
+<p>Tips:根据距离的远近设置波特率的大小</p>
+</blockquote>
+<h3 id="中断控制">中断控制</h3>
+<p>出现以下情况时，可使UART产生中断：</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230608120340707.png"
+alt="image-20230608120340707" />
+<figcaption aria-hidden="true">image-20230608120340707</figcaption>
+</figure>
+<blockquote>
+<p>Tips:接收数据就绪可读</p>
+</blockquote>
+<p>由于所有中断事件在发送到中断控制器之前会一起进行“或运算”操作，所以<strong>任意时刻
+USART
+只能向中断产生一个中断请求</strong>。通过查询中断状态函数，软件可以在同一个中断服务函数里处理多个中断事件（多个并列的if
+语句）</p>
+<p><img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230608120555701.png" /></p>
+<h3 id="使用dma收发">使用DMA收发</h3>
+<ul>
+<li><p>DMA（Direct Memory
+Access，直接内存访问）是一种用于数据传输的技术，它可以绕过CPU直接在外设和内存之间进行数据传输。在DMA操作中，有两个重要的地址：外设基地址和内存基地址。</p>
+<ul>
+<li>外设基地址是指用于DMA传输的外设设备的起始地址。</li>
+<li>内存基地址是指用于DMA传输的内存区域的起始地址。</li>
+</ul>
+<p>DMA的优点是可以减少CPU的负担，提高系统的效率和性能。</p>
+<p>DMA的缺点是需要额外的硬件支持，如DMA控制器和总线仲裁器，以及额外的软件配置，如设置DMA通道、传输方向、数据量、优先级等参数。</p></li>
+</ul>
+<blockquote>
+<p>Tips:数据传输想象成快递，本来店家需要和快递员一个一个联系，DMA就是快递柜分好类，店家就不用一个一个联系了</p>
+</blockquote>
+<h2 id="usart重要寄存器">USART重要寄存器</h2>
+<h3 id="状态寄存器usart_sr">状态寄存器（USART_SR）</h3>
+<p>通过查询状态寄存器可查询状态</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230608120652738.png"
+alt="image-20230608120652738" />
+<figcaption aria-hidden="true">image-20230608120652738</figcaption>
+</figure>
+<ul>
+<li><p>TC：发送完成 (Transmission complete)</p>
+<p>当包含有数据的一帧发送完成后，并且TXE=1时，由硬件将该位置’1’。如果USART_CR1中的TCIE为’1’，则产生中断。由软件序列清除该位(先读USART_SR，然后写入USART_DR)。
+TC位也可以通过写入’0’来清除，只有在多缓存通讯中才推荐这种清除程序。</p>
+<p>0：发送还未完成；</p>
+<p>1：发送完成。</p></li>
+<li><p>IDLE：监测到总线空闲 (IDLE line detected)</p>
+<p>当检测到总线空闲时，该位被硬件置位。如果USART_CR1中的IDLEIE为’1’，则产生中断。由软件序列清除该位(先读USART_SR，然后读USART_DR)。</p>
+<p>0：没有检测到空闲总线；</p>
+<p>1：检测到空闲总线。</p>
+<blockquote>
+<p>Tips：
+IDLE用于不知道到底有多少个字节，IDLE位不会再次被置高,直到RXNE位被置起(即又检测到一次空闲总线)</p>
+</blockquote></li>
+</ul>
+<h3 id="控制寄存器-usart_crx">控制寄存器 （USART_CRx）</h3>
+<p>有CR1、CR2、CR3三个寄存器，具体的配置较复杂，具体的可以参考《STM32中文参考手册》。</p>
+<h2 id="usart-api"><strong>USART API</strong></h2>
+<h3 id="接收">接收</h3>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_StatusTypeDef HAL_UART_Receive(UART_HandleTypeDef *huart, uint8_t *pData,uint16_t Size, uint32_t Timeout)</span><br><span class="line">串口接收数据的库函数，阻塞的方式接收数据。</span><br><span class="line"></span><br><span class="line">huart :要发送数据的串口指针，pData:接收数据缓存地址，注意此处的指针形式，Size:接收数据的长度（字节数） Timeout：数据接收等待时间，CPU等待这个时间用来接收数据。</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_StatusTypeDef HAL_UART_Receive_IT(UART_HandleTypeDef *huart, uint8_t *pData,uint16_t Size)</span><br></pre></td></tr></table></figure>
+<p>使用中断的方式进行接受数据，在这里需要注意的一个点是，使用中断的方式接收到数据之后，需要在中断里面在调用一次HAL_UART_Receive_IT函数，重新开启下一次数据接收，否则会导致，接收完一次数据之后，不会接收下一次数据。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_UART_Receive_IT(&amp;huart2,&amp;usart2_rdata,1);  </span><br><span class="line">//IT：interrupt type control，中断</span><br><span class="line">void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)  </span><br><span class="line">&#123;</span><br><span class="line">	if(huart-&gt;Instance == USART2)  //串口屏，接收中断</span><br><span class="line">	&#123;</span><br><span class="line">	HAL_UART_Receive_IT(&amp;huart2,&amp;usart2_rdata,1);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line">//接收到指定长度就会产生一次中断</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_StatusTypeDef HAL_UART_Receive_DMA(UART_HandleTypeDef *huart, uint8_t*pData, uint16_t Size)</span><br><span class="line">//接收到指定长度就会产生一次中断</span><br></pre></td></tr></table></figure>
+<h3 id="发送">发送</h3>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_StatusTypeDef HAL_UART_Transmit(UART_HandleTypeDef *huart, uint8_t *pData,uint16_t Size, uint32_t Timeout)</span><br><span class="line">在发送方面，使用HAL_UART_Transmit阻塞数据发送的时候，一定要计算好发送数据的时间。如果发送时间到了，但是数据还没有发送完成的话，会导致没有发送的数据丢失</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_StatusTypeDef HAL_UART_Transmit_IT(UART_HandleTypeDef *huart, uint8_t*pData, uint16_t Size)</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_StatusTypeDef HAL_UART_Transmit_DMA(UART_HandleTypeDef *huart, uint8_t*pData, uint16_t Size)</span><br></pre></td></tr></table></figure>
+<h3 id="中断">中断</h3>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">void USART1_IRQHandler(void)</span><br><span class="line">&#123;</span><br><span class="line">/* USER CODE BEGIN USART1_IRQn 0 */</span><br><span class="line">/* USER CODE END USART1_IRQn 0 */</span><br><span class="line">	HAL_UART_IRQHandler(&amp;huart1);</span><br><span class="line">/* USER CODE BEGIN USART1_IRQn 1 */</span><br><span class="line">/* USER CODE END USART1_IRQn 1 */</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">__weak void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)</span><br><span class="line">&#123;</span><br><span class="line">/* Prevent unused argument(s) compilation warning */</span><br><span class="line">	UNUSED(huart);</span><br><span class="line">/* NOTE: This function should not be modified, when the callback is needed,</span><br><span class="line">the HAL_UART_TxCpltCallback could be implemented in the user file*/</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">__weak void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)</span><br><span class="line">&#123;/* Prevent unused argument(s) compilation warning */</span><br><span class="line">	UNUSED(huart);</span><br><span class="line">/* NOTE: This function should not be modified, when the callback is needed,</span><br><span class="line">the HAL_UART_RxCpltCallback could be implemented in the user file*/</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>Tips:callback函数需要重定义</p>
+</blockquote>
+<h1 id="实验">实验</h1>
+<h2 id="cubemx">CubeMX：</h2>
+<ul>
+<li><p>串口在Connectivity</p></li>
+<li><p>Asynchronous <em>adj.</em>[电]
+异步的；不同时的；不同期的</p></li>
+<li><p>Parity 奇偶校验位</p></li>
+<li><p>NVIC Interrupt打开串口中断</p></li>
+<li><p>DMA setting当不知道要接收多少时用DMA空闲中断，ADD-&gt;Rx</p></li>
+</ul>
+<h2 id="keil">Keil</h2>
+<ul>
+<li>勾选<strong>use micro lib</strong></li>
+</ul>
+<blockquote>
+<p>Tips:KeilMDK配置项中Use
+MicroLIB是一个选项，用于选择是否使用microlib库。microlib库是一个简化的C标准库，它专门为需要在极少量内存中运行的深层嵌入式应用程序设计的。microlib库的优点是可以减少代码的大小，但缺点是功能有限，不符合ISO
+C标准和IEEE 754浮点算法标准。如果你想使用printf等函数，你可以选择Use
+MicroLIB选项，或者关闭半主机模式并重写相关的底层函数。</p>
+</blockquote>
+<ul>
+<li>DMA空闲中断</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">// 先打开串口空闲中断</span><br><span class="line">__HAL_UART_ENABLE_IT(&amp;huart1, UART_IT_IDLE);</span><br><span class="line">HAL_UART_Receive_DMA(&amp;huart1, receive_data, 100);</span><br><span class="line"></span><br><span class="line">//然后重写callback函数</span><br><span class="line">void UART_IDLE_Callback(UART_HandleTypeDef *huart)</span><br><span class="line"></span><br><span class="line">//最后在it.c中调用自己的中断，屏蔽默认的中断</span><br><span class="line">void USART1_IRQHandler(void)</span><br><span class="line">&#123;</span><br><span class="line">  /* USER CODE BEGIN USART1_IRQn 0 */</span><br><span class="line">	UART_IDLE_Callback(&amp;huart1);    //调用自己的中断</span><br><span class="line">	return;    //屏蔽默认的中断</span><br><span class="line">  /* USER CODE END USART1_IRQn 0 */</span><br><span class="line">  HAL_UART_IRQHandler(&amp;huart1);</span><br><span class="line">  /* USER CODE BEGIN USART1_IRQn 1 */</span><br><span class="line"></span><br><span class="line">  /* USER CODE END USART1_IRQn 1 */</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="串口调试助手">串口调试助手</h2>
+<p>我用了xcom和sscom串口调试助手</p>
+<ul>
+<li>Xcom.exe中可以监视数据传输</li>
+<li>DTR(Data Terminal
+Ready（数据终端准备好）)：由数据终端设备（如计算机）发出，表示它已经准备好接收数据了。当DTR为高电平时，表示数据终端设备已经打开了串口，并且可以接收数据。当DTR为低电平时，表示数据终端设备已经关闭了串口，或者不想接收数据了。</li>
+<li>RTS(Request To
+Send（请求发送）)：由数据终端设备发出，表示它想要发送数据了，并且请求对方的许可。当RTS为高电平时，表示数据终端设备有数据要发送，并且等待对方的应答。当RTS为低电平时，表示数据终端设备没有数据要发送，或者暂停发送数据。</li>
+</ul>
+<h2 id="一些经验">一些经验</h2>
+<p>总结下来就是遇到串口不能使用的情况应该检查以下问题：</p>
+<p>（1）看看串口有没有和其他串口冲突或者被占用</p>
+<p>（2）代码有没有问题，实在不行先烧官方例程看看</p>
+<p>（3）检查波特率，停止位，数据位，奇偶校验位这些什么的，一定要选对</p>
+<blockquote>
+<p>Tips:对照Cube MX中的设置检查</p>
+</blockquote>
+<p>（4）还有就是要勾选<strong>use micro lib</strong>。</p>
+<h2 id="bonus">BONUS</h2>
+<ul>
+<li><p>uint8_t_16_t_t_t</p>
+<ul>
+<li><p>这些类型的来源：这些数据类型中都带有_t, _t
+表示这些数据类型是通过typedef定义的，而不是新的数据类型。也就是说，它们其实是我们已知的类型的别名。</p></li>
+<li><p>使用这些类型的原因：方便代码的维护。比如，在C中没有bool型，于是在一个软件中，一个程序员使用int，一个程序员使用short，会比较混乱。最好用一个typedef来定义一个统一的bool</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">typedef char bool;</span><br><span class="line">typedef unsigned char           uint8_t;</span><br></pre></td></tr></table></figure></li>
+<li><p>uint8_t实际上是一个char。所以输出uint8_t类型的变量实际上输出其对应的字符，而不是数值。</p></li>
+</ul></li>
+<li><p>句柄与普通指针的区别在于，指针包含的是引用对象的内存地址，而句柄则是由系统所管理的引用标识，该标识可以被系统重新定位到一个内存地址上。这种间接访问对象的模式增强了系统对引用对象的控制。句柄本质就是对底层硬件的指针的使用。句柄是针对内核的。大家可以理解为句柄是一个指向指针的指针。</p></li>
+</ul>
+<h1 id="problem">Problem</h1>
+<p>在前面两个使用EXTI中断的projects中没能收到USART传来的消息？？？</p>
+<p>在最后的DMA中断中收到了</p>
+<figure>
+<img
+src="C:\Users\Immortal\AppData\Local\Temp\WeChat%20Files\88a583cc4036de8ace38c8517d0075d.jpg"
+alt="88a583cc4036de8ace38c8517d0075d" />
+<figcaption
+aria-hidden="true">88a583cc4036de8ace38c8517d0075d</figcaption>
+</figure>
+<h1 id="references">References</h1>
+<ul>
+<li><p>哈工深电控内训</p></li>
+<li><p><a
+href="https://blog.csdn.net/weixin_56321457/article/details/124206957">STM32用XCOM调试助手打印不出数据_xcom串口调试助手_山野的风.的博客-CSDN博客</a></p></li>
+<li><p><a
+href="https://www.cnblogs.com/ChurF-Lin/p/10793111.html">基于STM32之UART串口通信协议（一）详解
+- LLLIN000 - 博客园 (cnblogs.com)</a></p></li>
+<li><p><a
+href="https://blog.csdn.net/weixin_43281206/article/details/116279189">STM32串口通信详解以及通信异常或者卡死常见问题分析_stm32
+串口传数据互相 干扰_“星云-视界”的博客-CSDN博客</a></p></li>
+</ul>
+]]></content>
+      <categories>
+        <category>嵌入式</category>
+      </categories>
+      <tags>
+        <tag>嵌入式</tag>
+        <tag>robomaster</tag>
       </tags>
   </entry>
   <entry>
@@ -3978,6 +4281,127 @@ vim插件_皛心的博客-CSDN博客</a></p></li>
       </tags>
   </entry>
   <entry>
+    <title>Vim（3）</title>
+    <url>/2023/08/14/Vim%EF%BC%883%EF%BC%89/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>Following missing semester of MIT to learn Vim.</p>
+<p>希望通过<a
+href="https://learnvimscriptthehardway.stevelosh.com/">Learn Vimscript
+the Hard Way (stevelosh.com)</a>+<a
+href="https://vim-adventures.com/">Vim Adventures</a>
+来进一步练习Vim的使用</p>
+<p>Vim（3）——Vim在其他应用上的应用</p>
+<blockquote>
+<p>双手离开鼠标！</p>
+</blockquote>
+<span id="more"></span>
+<h1 id="vim-in-other-programs">Vim in other programs</h1>
+<p>很多工具提供了 Vim 模式。这些 Vim
+模式的质量参差不齐；取决于具体工具，有的提供了很多酷炫的 Vim
+功能，但是大多数对基本功能支持的很好。</p>
+<h2 id="shell">Shell</h2>
+<p>如果你是一个 Bash 用户，用 <code>set -o vi</code>。如果你用
+Zsh：<code>bindkey -v</code>。Fish 用
+<code>fish_vi_key_bindings</code>。另外，不管利用什么 shell，你可以
+<code>export EDITOR=vim</code>。
+这是一个用来决定当一个程序需要启动编辑时启动哪个的环境变量。
+例如，<code>git</code> 会使用这个编辑器来编辑 commit 信息。</p>
+<h2 id="readline">Readline</h2>
+<p>很多程序使用 <a
+href="https://tiswww.case.edu/php/chet/readline/rltop.html">GNU
+Readline</a> 库来作为 它们的命令控制行界面。Readline 也支持基本的 Vim
+模式， 可以通过在 <code>~/.inputrc</code> 添加如下行开启：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">set editing-mode vi</span><br></pre></td></tr></table></figure>
+<p>比如，在这个设置下，Python REPL 会支持 Vim 快捷键。</p>
+<h2 id="vscode">VSCode</h2>
+<p>add extention——vim,enable</p>
+<p>Vim有些功能在VSCode中不能用，例如宏录制</p>
+<h3 id="导入vimrc">导入vimrc</h3>
+<p>再vscode的setting中enable vimrc配置方式，并填写vimrc文件地址</p>
+<p>用 vscode 打开 my.vimrc 文件，输入
+<code>set clipboard=unnamedplusset</code>。或者，直接在设置中搜索
+<code>vim.useSystemClipboard</code> ，打钩。默认使用的 vim
+无名缓存器已经与系统剪切板连通了。</p>
+<h3 id="vscode常用快捷键">VSCode常用快捷键</h3>
+<ul>
+<li><p>ctrl+B:侧边栏隐藏/显示</p></li>
+<li><p>ctrl+J:终端显示</p></li>
+<li><p>ctrl+Tab:切换tab</p></li>
+<li><p>ctrl+<number>：切换分屏，没有就创建</p></li>
+<li><p>ctrl+\:水平分屏</p></li>
+<li><p>ctrl+k+ctrl+\:竖直分屏;我改为:ctrl+&lt;]+\&gt;</p></li>
+<li><p>ctrl+w:删除当前屏幕（当当前屏幕无tab时）or tab</p></li>
+<li><p>ctrl+P:搜索文件,加上&gt;等价于ctrl+shift+P</p></li>
+<li><p>ctrl+shift+P:VSCode中的，命令:open folder</p></li>
+<li><p>ctrl+,:打开settings:配置一些json文件+vim</p></li>
+</ul>
+<p>函数定义之类：</p>
+<ul>
+<li><code>gd</code> : 进入函数定义</li>
+<li><code>Ctrl+o</code> : 从函数定义中返回</li>
+<li><code>gh</code> : 查看函数参数等信息</li>
+</ul>
+<h2 id="vimium">Vimium</h2>
+<ul>
+<li><p>基础移动hjkl,gg,G</p></li>
+<li><p>J，K跳转标签页，H(Shift+h):打开上一个网页，L(Shift+l):打开下一个网页</p></li>
+<li><p>g0，g$跳转到第一个，最后一个标签页</p></li>
+<li><p>t:打开新的标签页</p></li>
+<li><p>x:关闭当前标签页；X重新打开最后关闭的标签页</p></li>
+<li><p>d向下翻半页，u向上翻半页</p></li>
+<li><p>yy:复制当前页面地址到剪切板。如下图所示,按下yy后在按下Win+V可以看到已经将当前页面的链接复制到剪切板了</p></li>
+<li><p>p（P）:如果剪切板第一个是URL，则打开链接，是记录则搜索该内容</p></li>
+<li><p>建议直接Tab or shift+Tab（
+gi:定位到页面中的第一个输入框,前面也可以加数字）</p></li>
+<li><p>r:刷新界面</p></li>
+<li><p><strong>f（F）</strong>:在当前（新）标签页打开指定的链接。如下图所示,按下f后就会在链接上出现字母或者字母组合,只要按下相应的字母或者字母组合就可以打开对应的链接</p></li>
+</ul>
+<blockquote>
+<p>Tips:好用！</p>
+</blockquote>
+<ul>
+<li><strong>o（O）</strong>:在当前（新）标签页打开链接、书签（b是打开书签）、历史记录。如下图所示,按下o输入关键字后可以看到有符合条件的历史记录、书签等结果,可以通过上下箭头选择项目后按下Enter键即可在当前（新）标签页打开所选的项目。</li>
+<li>T:是在所有打开的标签页中搜索/</li>
+<li>m:添加标记,当你看一篇长文章时,如果你需要看前面的内容,或者想先看后面某部分内容再回来看当前的内容,则可以通过标记实现这需求。通过按下m之后再按一个字母就可以在当前位置标记,如果你在页面的其他地方想回到标记的地方,则可以通过`+之前标记的字母快速返回。</li>
+</ul>
+<h3 id="复制东西">复制东西</h3>
+<p>一般先/{}匹配到位置，再v进入可视化y复制</p>
+<h2 id="其他">其他</h2>
+<p>甚至有 Vim 的网页浏览快捷键 <a
+href="http://vim.wikia.com/wiki/Vim_key_bindings_for_web_browsers">browsers</a>,
+受欢迎的有用于 Google Chrome 的 <a
+href="https://chrome.google.com/webstore/detail/vimium/dbepggeogbaibhgnhhndojpepiihcmeb?hl=en">Vimium</a>
+和用于 Firefox 的 <a
+href="https://github.com/tridactyl/tridactyl">Tridactyl</a>。
+你甚至可以在 <a
+href="https://github.com/lambdalisue/jupyter-vim-binding">Jupyter
+notebooks</a> 中用 Vim 快捷键。 <a
+href="https://reversed.top/2016-08-13/big-list-of-vim-like-software">这个列表</a>
+中列举了支持类 vim 键位绑定的软件。</p>
+<h1 id="references">References</h1>
+<ul>
+<li><p><a
+href="https://blog.csdn.net/weixin_42514042/article/details/124169302">VSCode
+vim 使用vimrc配置 vim使用系统剪切板配置_vscode
+vimrc_未知褶皱的博客-CSDN博客</a></p></li>
+<li><p><a
+href="https://blog.csdn.net/m0_47670683/article/details/125160391?spm=1001.2101.3001.6661.1&amp;utm_medium=distribute.pc_relevant_t0.none-task-blog-2~default~CTRLIST~Rate-1-125160391-blog-121179927.235%5Ev38%5Epc_relevant_sort_base3&amp;depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-2~default~CTRLIST~Rate-1-125160391-blog-121179927.235%5Ev38%5Epc_relevant_sort_base3&amp;utm_relevant_index=1">VSCode使用Vim插件心得_vscode
+vim插件_皛心的博客-CSDN博客</a></p></li>
+<li><p><a
+href="https://zhuanlan.zhihu.com/p/113316942">Chrome插件Vimium使用教程 -
+知乎 (zhihu.com)</a></p></li>
+<li><p>【VS Code ×
+Vim：提高你的编码效率】https://www.bilibili.com/video/BV1MX4y1b7nM?vd_source=93bb338120537438ee9180881deab9c1</p></li>
+</ul>
+]]></content>
+      <categories>
+        <category>CS</category>
+      </categories>
+      <tags>
+        <tag>CS</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Vim（2）</title>
     <url>/2023/08/13/Vim%EF%BC%882%EF%BC%89/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
@@ -4135,430 +4559,6 @@ vim 使用vimrc配置 vim使用系统剪切板配置_vscode
 vimrc_未知褶皱的博客-CSDN博客</a></p></li>
 <li><p>[VSCode使用Vim插件心得_vscode
 vim插件_皛心的博客-CSDN博客](</p></li>
-</ul>
-]]></content>
-      <categories>
-        <category>CS</category>
-      </categories>
-      <tags>
-        <tag>CS</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>USART入门</title>
-    <url>/2023/08/22/USART%E5%85%A5%E9%97%A8/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>Following
-哈工深上传到B站的电控组培训来入门robomaster电控组，我购买了普中科技玄武套餐开发板作为硬件。</p>
-<p>本篇介绍我学习USART的见闻——实验仍有一些问题未解决</p>
-<span id="more"></span>
-<h1 id="usart">USART</h1>
-<h2 id="简介">简介</h2>
-<ul>
-<li><p>USART(Universal Synchronous/Asynchronous
-Receiver/Transmitter)，通用同步(CLK同步接收和发送，数据量大选择)/异步串行接收/发送器</p>
-<blockquote>
-<p>Tips:UART仅有异步通信</p>
-</blockquote></li>
-<li><p>USART是异步串口通信<strong>协议</strong>的一种，工作原理是将传输数据的每个字符一位接一位地传输，它能将要传输的资料在串行通信与并行通信之间加以转换，能够灵活地与外部设备进行全双工数据交换（并行转串行）</p></li>
-<li><p>USART有两个引脚用于传输数据，RX和TX，接线的时候应使用交叉线，此外如果是不同设备之间通信还必须有一个GND线，VCC线为可选项。</p>
-<p>TX(transmitter)：发送数据</p>
-<p>RX(receiver)：接收数据</p></li>
-<li><p>全双工：两条线互不干扰，可同时进行发送和接收
-半双工：一次只能进行发送/接收</p></li>
-<li><p>异步：只需频率一样，相位可以不一样（常用）
-同步：还需时钟线CLK（数据量很大时）</p></li>
-<li><p>支持最基本的</p>
-<ul>
-<li>通用串口同步、异步通讯</li>
-<li>LIN总线功能（局域互联网）</li>
-<li>IRDA功能（红外通讯）</li>
-<li>SmartCard功能</li>
-</ul></li>
-<li><p>UART：只有异步通讯</p></li>
-</ul>
-<h2 id="usart的通信协议"><strong>USART</strong>的通信协议</h2>
-<p>一帧一帧地发送</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230608114952821.png"
-alt="USART时序图" />
-<figcaption aria-hidden="true">USART时序图</figcaption>
-</figure>
-<ul>
-<li><p>起始位：当未有数据发送时，数据线处于逻辑“1”状态；先发出一个逻辑“0”信号，表示开始传输字符。</p></li>
-<li><p>数据位：紧接着起始位之后。数据位的个数可以是4、5、6、7、8等，构成一个字符。通常采用ASCII码。从最低位开始传送，靠时钟定位。</p>
-<blockquote>
-<p>eg:00010001,先发送1</p>
-</blockquote></li>
-<li><p>奇偶校验位：数据为加上这一位后，使得“1”的位数应为偶数（偶校验）或奇数（奇校验），以此来校验资料传送的正确性。(弱校验)</p></li>
-<li><p>停止位：它是一个字符数据的结束标志。可以是1位、1.5位、2位的高电平。
-由于数据是在传输线上定时的，并且每一个设备有其自己的时钟，很可能在通信中两台设备间出现了小小的不同步。因此停止位不仅仅是<strong>表示传输的结束</strong>，并且<strong>提供计算机校正时钟同步的机会</strong>。适用于停止位的位数越多，不同时钟同步的容忍程度越大，但是数据传输率同时也越慢。</p></li>
-<li><p>空闲位或起始位：处于逻辑“1”状态，表示当前线路上没有资料传送，进入空闲状态。处于逻辑“0”状态，表示开始传送下一数据段(起始位)。</p></li>
-<li><p>波特率：即每秒传输的二进制位数， 用 b/s
-(bps)表示，通过对时钟的控制可以改变波特率。USART具有<strong>独立</strong>的高精度波特率发生器，不占用定时/计数器。常用的波特率有：9600、115200……</p>
-<blockquote>
-<p>Notes:奇偶校验是弱校验，115200最常用，发送/接收的FIFO（CPU太快了
-）</p>
-</blockquote></li>
-</ul>
-<h2 id="usart工作原理"><strong>USART</strong>工作原理</h2>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230608115210441.png"
-alt="image-20230608115210441" />
-<figcaption aria-hidden="true">image-20230608115210441</figcaption>
-</figure>
-<h3 id="fifo-操作">FIFO 操作</h3>
-<ul>
-<li><p><strong>INTRO</strong>:FIFO 是“First-In
-First-Out”的缩写，意为“先进先出”，是一种常见的队列操作。Stellaris
-系列ARM 的UART 模块包含有2 个16
-字节的FIFO：一个用于发送，另一个用于接收。可以将两个FIFO
-分别配置为以不同深度触发中断。可供选择的配置包括：1/8、 1/4、1/2、3/4
-和7/8 深度。</p>
-<blockquote>
-<p>Tips:例如，如果接收FIFO选择1/4，则在UART 接收到4
-个数据时产生接收中断</p>
-</blockquote></li>
-<li><p>目的：收发FIFO 主要是为了解决UART 收发中断过于频繁而导致CPU
-效率不高的问题而引入的。</p>
-<p>在进行UART通信时，中断方式比轮询方式(polling)要简便且效率高。但是，如果没有收发
-FIFO，则每收发一个数据都要中断处理一次，效率仍然不够高。如果有了收发FIFO，则可以在连续收发若干个数据（可多至14
-个）后才产生一次中断然后一并处理，这就大大提高了收发效率。</p></li>
-<li><p>发送FIFO的基本工作过程：</p>
-<ul>
-<li><p>只要有数据填充到发送FIFO 里，就会立即启动发送过程。</p></li>
-<li><p>由于发送本身是个相对缓慢的过程，因此在发送的同时其它需要发送的数据还可以继续填充到发送
-FIFO 里。</p>
-<blockquote>
-<p>Tips:当发送 FIFO
-被填满时就不能再继续填充了，否则会造成数据丢失，此时只能等待。</p>
-</blockquote></li>
-<li><p>发送 FIFO 会按照填入数据的先后顺序把数据一个个发送出去，直到发送
-FIFO 全空时为止。已发送完毕的数据会被自动清除，在发送FIFO
-里同时会多出一个空位。</p></li>
-</ul></li>
-<li><p>接收FIFO的基本工作过程：</p>
-<ul>
-<li><p>当硬件逻辑接收到数据时，就会往接收FIFO
-里填充接收到的数据。</p></li>
-<li><p>程序应当及时取走这些数据，数据被取走也是在接收FIFO
-里被自动删除的过程，因此在接收 FIFO 里同时会多出一个空位。</p>
-<blockquote>
-<p>Tips:如果在接收 FIFO 里的数据未被及时取走而造成接收FIFO
-已满，则以后再接收到数据时因无空位可以填充而造成数据丢失。</p>
-</blockquote></li>
-</ul></li>
-<li><p><strong>Notes:</strong>完全不必要担心FIFO
-机制可能带来的数据丢失或得不到及时处理的问题，因为它已经帮你想到了收发过程中存在的任何问题，只要在初始化配置UART
-后，就可以放心收发了， FIFO 和中断例程会自动搞定一切。</p></li>
-</ul>
-<h3 id="发送接收">发送接收</h3>
-<ul>
-<li>发送逻辑：从发送FIFO
-读取的数据执行“并→串”转换。控制逻辑输出起始位在先的串行位流，并且根据控制寄存器中已编程的配置，后面紧跟着数据位（注意：最低位
-LSB 先输出）、奇偶校验位和停止位。</li>
-<li>接收逻辑：在检测到一个有效的起始脉冲后，对接收到的位流执行“串→并”转换。此外还会对溢出错误、奇偶校验错误、帧错误和线中止（line-break）错误进行检测，并将检测到的状态附加到被写入接收FIFO
-的数据中。</li>
-</ul>
-<h3 id="数据收发过程">数据收发过程</h3>
-<ul>
-<li>发送时，数据被写入发送FIFO。如果USART
-被使能，则会按照预先设置好的参数（波特率、数据位、停止位、校验位等）开始发送数据，一直到发送FIFO
-中没有数据。一旦向发送FIFO 写数据（如果FIFO 未空），UART 的忙标志位BUSY
-就有效，并且在发送数据期间一直保持有效。BUSY 位仅在发送FIFO
-为空，且已从移位寄存器发送最后一个字符，包括停止位时才变无效。即 USART
-不再使能，它也可以指示忙状态。</li>
-<li>在USART
-接收器空闲时，如果数据输入变成“低电平”，即接收到了起始位，则接收计数器开始运行，若起始位持续时间达到阈值，则起始位有效，否则会被认为是错误的起始位并将其忽略。</li>
-<li>如果起始位有效，则根据数据字符被编程的长度，对连续的数据位进行采样。如果奇偶校验模式使能，则还会检测奇偶校验位。</li>
-<li>最后，如果Rx
-为高电平，则有效的停止位被确认，否则发生帧错误。当接收到一个完整的字符时，将数据存放在接收FIFO
-中。</li>
-</ul>
-<h3 id="波特率">波特率</h3>
-<ul>
-<li><p>波特率除数（baud-rate divisor）是一个22 位数，它由16 位整数和6
-位小数组成，<strong>是一个用来设置USART的通信速度的参数</strong>。波特率发生器使用这两个值组成的数字来决定位周期，决定发送、接收的波特率。</p>
-<p>通过带有小数波特率的除法器，在足够高的系统时钟速率下，UART
-可以产生所有标准的波特率，而误差很小。</p></li>
-</ul>
-<blockquote>
-<p>Tips:根据距离的远近设置波特率的大小</p>
-</blockquote>
-<h3 id="中断控制">中断控制</h3>
-<p>出现以下情况时，可使UART产生中断：</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230608120340707.png"
-alt="image-20230608120340707" />
-<figcaption aria-hidden="true">image-20230608120340707</figcaption>
-</figure>
-<blockquote>
-<p>Tips:接收数据就绪可读</p>
-</blockquote>
-<p>由于所有中断事件在发送到中断控制器之前会一起进行“或运算”操作，所以<strong>任意时刻
-USART
-只能向中断产生一个中断请求</strong>。通过查询中断状态函数，软件可以在同一个中断服务函数里处理多个中断事件（多个并列的if
-语句）</p>
-<p><img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230608120555701.png" /></p>
-<h3 id="使用dma收发">使用DMA收发</h3>
-<ul>
-<li><p>DMA（Direct Memory
-Access，直接内存访问）是一种用于数据传输的技术，它可以绕过CPU直接在外设和内存之间进行数据传输。在DMA操作中，有两个重要的地址：外设基地址和内存基地址。</p>
-<ul>
-<li>外设基地址是指用于DMA传输的外设设备的起始地址。</li>
-<li>内存基地址是指用于DMA传输的内存区域的起始地址。</li>
-</ul>
-<p>DMA的优点是可以减少CPU的负担，提高系统的效率和性能。</p>
-<p>DMA的缺点是需要额外的硬件支持，如DMA控制器和总线仲裁器，以及额外的软件配置，如设置DMA通道、传输方向、数据量、优先级等参数。</p></li>
-</ul>
-<blockquote>
-<p>Tips:数据传输想象成快递，本来店家需要和快递员一个一个联系，DMA就是快递柜分好类，店家就不用一个一个联系了</p>
-</blockquote>
-<h2 id="usart重要寄存器">USART重要寄存器</h2>
-<h3 id="状态寄存器usart_sr">状态寄存器（USART_SR）</h3>
-<p>通过查询状态寄存器可查询状态</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230608120652738.png"
-alt="image-20230608120652738" />
-<figcaption aria-hidden="true">image-20230608120652738</figcaption>
-</figure>
-<ul>
-<li><p>TC：发送完成 (Transmission complete)</p>
-<p>当包含有数据的一帧发送完成后，并且TXE=1时，由硬件将该位置’1’。如果USART_CR1中的TCIE为’1’，则产生中断。由软件序列清除该位(先读USART_SR，然后写入USART_DR)。
-TC位也可以通过写入’0’来清除，只有在多缓存通讯中才推荐这种清除程序。</p>
-<p>0：发送还未完成；</p>
-<p>1：发送完成。</p></li>
-<li><p>IDLE：监测到总线空闲 (IDLE line detected)</p>
-<p>当检测到总线空闲时，该位被硬件置位。如果USART_CR1中的IDLEIE为’1’，则产生中断。由软件序列清除该位(先读USART_SR，然后读USART_DR)。</p>
-<p>0：没有检测到空闲总线；</p>
-<p>1：检测到空闲总线。</p>
-<blockquote>
-<p>Tips：
-IDLE用于不知道到底有多少个字节，IDLE位不会再次被置高,直到RXNE位被置起(即又检测到一次空闲总线)</p>
-</blockquote></li>
-</ul>
-<h3 id="控制寄存器-usart_crx">控制寄存器 （USART_CRx）</h3>
-<p>有CR1、CR2、CR3三个寄存器，具体的配置较复杂，具体的可以参考《STM32中文参考手册》。</p>
-<h2 id="usart-api"><strong>USART API</strong></h2>
-<h3 id="接收">接收</h3>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_StatusTypeDef HAL_UART_Receive(UART_HandleTypeDef *huart, uint8_t *pData,uint16_t Size, uint32_t Timeout)</span><br><span class="line">串口接收数据的库函数，阻塞的方式接收数据。</span><br><span class="line"></span><br><span class="line">huart :要发送数据的串口指针，pData:接收数据缓存地址，注意此处的指针形式，Size:接收数据的长度（字节数） Timeout：数据接收等待时间，CPU等待这个时间用来接收数据。</span><br></pre></td></tr></table></figure>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_StatusTypeDef HAL_UART_Receive_IT(UART_HandleTypeDef *huart, uint8_t *pData,uint16_t Size)</span><br></pre></td></tr></table></figure>
-<p>使用中断的方式进行接受数据，在这里需要注意的一个点是，使用中断的方式接收到数据之后，需要在中断里面在调用一次HAL_UART_Receive_IT函数，重新开启下一次数据接收，否则会导致，接收完一次数据之后，不会接收下一次数据。</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_UART_Receive_IT(&amp;huart2,&amp;usart2_rdata,1);  </span><br><span class="line">//IT：interrupt type control，中断</span><br><span class="line">void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)  </span><br><span class="line">&#123;</span><br><span class="line">	if(huart-&gt;Instance == USART2)  //串口屏，接收中断</span><br><span class="line">	&#123;</span><br><span class="line">	HAL_UART_Receive_IT(&amp;huart2,&amp;usart2_rdata,1);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line">//接收到指定长度就会产生一次中断</span><br></pre></td></tr></table></figure>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_StatusTypeDef HAL_UART_Receive_DMA(UART_HandleTypeDef *huart, uint8_t*pData, uint16_t Size)</span><br><span class="line">//接收到指定长度就会产生一次中断</span><br></pre></td></tr></table></figure>
-<h3 id="发送">发送</h3>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_StatusTypeDef HAL_UART_Transmit(UART_HandleTypeDef *huart, uint8_t *pData,uint16_t Size, uint32_t Timeout)</span><br><span class="line">在发送方面，使用HAL_UART_Transmit阻塞数据发送的时候，一定要计算好发送数据的时间。如果发送时间到了，但是数据还没有发送完成的话，会导致没有发送的数据丢失</span><br></pre></td></tr></table></figure>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_StatusTypeDef HAL_UART_Transmit_IT(UART_HandleTypeDef *huart, uint8_t*pData, uint16_t Size)</span><br></pre></td></tr></table></figure>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_StatusTypeDef HAL_UART_Transmit_DMA(UART_HandleTypeDef *huart, uint8_t*pData, uint16_t Size)</span><br></pre></td></tr></table></figure>
-<h3 id="中断">中断</h3>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">void USART1_IRQHandler(void)</span><br><span class="line">&#123;</span><br><span class="line">/* USER CODE BEGIN USART1_IRQn 0 */</span><br><span class="line">/* USER CODE END USART1_IRQn 0 */</span><br><span class="line">	HAL_UART_IRQHandler(&amp;huart1);</span><br><span class="line">/* USER CODE BEGIN USART1_IRQn 1 */</span><br><span class="line">/* USER CODE END USART1_IRQn 1 */</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">__weak void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)</span><br><span class="line">&#123;</span><br><span class="line">/* Prevent unused argument(s) compilation warning */</span><br><span class="line">	UNUSED(huart);</span><br><span class="line">/* NOTE: This function should not be modified, when the callback is needed,</span><br><span class="line">the HAL_UART_TxCpltCallback could be implemented in the user file*/</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">__weak void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)</span><br><span class="line">&#123;/* Prevent unused argument(s) compilation warning */</span><br><span class="line">	UNUSED(huart);</span><br><span class="line">/* NOTE: This function should not be modified, when the callback is needed,</span><br><span class="line">the HAL_UART_RxCpltCallback could be implemented in the user file*/</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>Tips:callback函数需要重定义</p>
-</blockquote>
-<h1 id="实验">实验</h1>
-<h2 id="cubemx">CubeMX：</h2>
-<ul>
-<li><p>串口在Connectivity</p></li>
-<li><p>Asynchronous <em>adj.</em>[电]
-异步的；不同时的；不同期的</p></li>
-<li><p>Parity 奇偶校验位</p></li>
-<li><p>NVIC Interrupt打开串口中断</p></li>
-<li><p>DMA setting当不知道要接收多少时用DMA空闲中断，ADD-&gt;Rx</p></li>
-</ul>
-<h2 id="keil">Keil</h2>
-<ul>
-<li>勾选<strong>use micro lib</strong></li>
-</ul>
-<blockquote>
-<p>Tips:KeilMDK配置项中Use
-MicroLIB是一个选项，用于选择是否使用microlib库。microlib库是一个简化的C标准库，它专门为需要在极少量内存中运行的深层嵌入式应用程序设计的。microlib库的优点是可以减少代码的大小，但缺点是功能有限，不符合ISO
-C标准和IEEE 754浮点算法标准。如果你想使用printf等函数，你可以选择Use
-MicroLIB选项，或者关闭半主机模式并重写相关的底层函数。</p>
-</blockquote>
-<ul>
-<li>DMA空闲中断</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">// 先打开串口空闲中断</span><br><span class="line">__HAL_UART_ENABLE_IT(&amp;huart1, UART_IT_IDLE);</span><br><span class="line">HAL_UART_Receive_DMA(&amp;huart1, receive_data, 100);</span><br><span class="line"></span><br><span class="line">//然后重写callback函数</span><br><span class="line">void UART_IDLE_Callback(UART_HandleTypeDef *huart)</span><br><span class="line"></span><br><span class="line">//最后在it.c中调用自己的中断，屏蔽默认的中断</span><br><span class="line">void USART1_IRQHandler(void)</span><br><span class="line">&#123;</span><br><span class="line">  /* USER CODE BEGIN USART1_IRQn 0 */</span><br><span class="line">	UART_IDLE_Callback(&amp;huart1);    //调用自己的中断</span><br><span class="line">	return;    //屏蔽默认的中断</span><br><span class="line">  /* USER CODE END USART1_IRQn 0 */</span><br><span class="line">  HAL_UART_IRQHandler(&amp;huart1);</span><br><span class="line">  /* USER CODE BEGIN USART1_IRQn 1 */</span><br><span class="line"></span><br><span class="line">  /* USER CODE END USART1_IRQn 1 */</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h2 id="串口调试助手">串口调试助手</h2>
-<p>我用了xcom和sscom串口调试助手</p>
-<ul>
-<li>Xcom.exe中可以监视数据传输</li>
-<li>DTR(Data Terminal
-Ready（数据终端准备好）)：由数据终端设备（如计算机）发出，表示它已经准备好接收数据了。当DTR为高电平时，表示数据终端设备已经打开了串口，并且可以接收数据。当DTR为低电平时，表示数据终端设备已经关闭了串口，或者不想接收数据了。</li>
-<li>RTS(Request To
-Send（请求发送）)：由数据终端设备发出，表示它想要发送数据了，并且请求对方的许可。当RTS为高电平时，表示数据终端设备有数据要发送，并且等待对方的应答。当RTS为低电平时，表示数据终端设备没有数据要发送，或者暂停发送数据。</li>
-</ul>
-<h2 id="一些经验">一些经验</h2>
-<p>总结下来就是遇到串口不能使用的情况应该检查以下问题：</p>
-<p>（1）看看串口有没有和其他串口冲突或者被占用</p>
-<p>（2）代码有没有问题，实在不行先烧官方例程看看</p>
-<p>（3）检查波特率，停止位，数据位，奇偶校验位这些什么的，一定要选对</p>
-<blockquote>
-<p>Tips:对照Cube MX中的设置检查</p>
-</blockquote>
-<p>（4）还有就是要勾选<strong>use micro lib</strong>。</p>
-<h2 id="bonus">BONUS</h2>
-<ul>
-<li><p>uint8_t_16_t_t_t</p>
-<ul>
-<li><p>这些类型的来源：这些数据类型中都带有_t, _t
-表示这些数据类型是通过typedef定义的，而不是新的数据类型。也就是说，它们其实是我们已知的类型的别名。</p></li>
-<li><p>使用这些类型的原因：方便代码的维护。比如，在C中没有bool型，于是在一个软件中，一个程序员使用int，一个程序员使用short，会比较混乱。最好用一个typedef来定义一个统一的bool</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">typedef char bool;</span><br><span class="line">typedef unsigned char           uint8_t;</span><br></pre></td></tr></table></figure></li>
-<li><p>uint8_t实际上是一个char。所以输出uint8_t类型的变量实际上输出其对应的字符，而不是数值。</p></li>
-</ul></li>
-<li><p>句柄与普通指针的区别在于，指针包含的是引用对象的内存地址，而句柄则是由系统所管理的引用标识，该标识可以被系统重新定位到一个内存地址上。这种间接访问对象的模式增强了系统对引用对象的控制。句柄本质就是对底层硬件的指针的使用。句柄是针对内核的。大家可以理解为句柄是一个指向指针的指针。</p></li>
-</ul>
-<h1 id="problem">Problem</h1>
-<p>在前面两个使用EXTI中断的projects中没能收到USART传来的消息？？？</p>
-<p>在最后的DMA中断中收到了</p>
-<figure>
-<img
-src="C:\Users\Immortal\AppData\Local\Temp\WeChat%20Files\88a583cc4036de8ace38c8517d0075d.jpg"
-alt="88a583cc4036de8ace38c8517d0075d" />
-<figcaption
-aria-hidden="true">88a583cc4036de8ace38c8517d0075d</figcaption>
-</figure>
-<h1 id="references">References</h1>
-<ul>
-<li><p>哈工深电控内训</p></li>
-<li><p><a
-href="https://blog.csdn.net/weixin_56321457/article/details/124206957">STM32用XCOM调试助手打印不出数据_xcom串口调试助手_山野的风.的博客-CSDN博客</a></p></li>
-<li><p><a
-href="https://www.cnblogs.com/ChurF-Lin/p/10793111.html">基于STM32之UART串口通信协议（一）详解
-- LLLIN000 - 博客园 (cnblogs.com)</a></p></li>
-<li><p><a
-href="https://blog.csdn.net/weixin_43281206/article/details/116279189">STM32串口通信详解以及通信异常或者卡死常见问题分析_stm32
-串口传数据互相 干扰_“星云-视界”的博客-CSDN博客</a></p></li>
-</ul>
-]]></content>
-      <categories>
-        <category>嵌入式</category>
-      </categories>
-      <tags>
-        <tag>嵌入式</tag>
-        <tag>robomaster</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Vim（3）</title>
-    <url>/2023/08/14/Vim%EF%BC%883%EF%BC%89/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>Following missing semester of MIT to learn Vim.</p>
-<p>希望通过<a
-href="https://learnvimscriptthehardway.stevelosh.com/">Learn Vimscript
-the Hard Way (stevelosh.com)</a>+<a
-href="https://vim-adventures.com/">Vim Adventures</a>
-来进一步练习Vim的使用</p>
-<p>Vim（3）——Vim在其他应用上的应用</p>
-<blockquote>
-<p>双手离开鼠标！</p>
-</blockquote>
-<span id="more"></span>
-<h1 id="vim-in-other-programs">Vim in other programs</h1>
-<p>很多工具提供了 Vim 模式。这些 Vim
-模式的质量参差不齐；取决于具体工具，有的提供了很多酷炫的 Vim
-功能，但是大多数对基本功能支持的很好。</p>
-<h2 id="shell">Shell</h2>
-<p>如果你是一个 Bash 用户，用 <code>set -o vi</code>。如果你用
-Zsh：<code>bindkey -v</code>。Fish 用
-<code>fish_vi_key_bindings</code>。另外，不管利用什么 shell，你可以
-<code>export EDITOR=vim</code>。
-这是一个用来决定当一个程序需要启动编辑时启动哪个的环境变量。
-例如，<code>git</code> 会使用这个编辑器来编辑 commit 信息。</p>
-<h2 id="readline">Readline</h2>
-<p>很多程序使用 <a
-href="https://tiswww.case.edu/php/chet/readline/rltop.html">GNU
-Readline</a> 库来作为 它们的命令控制行界面。Readline 也支持基本的 Vim
-模式， 可以通过在 <code>~/.inputrc</code> 添加如下行开启：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">set editing-mode vi</span><br></pre></td></tr></table></figure>
-<p>比如，在这个设置下，Python REPL 会支持 Vim 快捷键。</p>
-<h2 id="vscode">VSCode</h2>
-<p>add extention——vim,enable</p>
-<p>Vim有些功能在VSCode中不能用，例如宏录制</p>
-<h3 id="导入vimrc">导入vimrc</h3>
-<p>再vscode的setting中enable vimrc配置方式，并填写vimrc文件地址</p>
-<p>用 vscode 打开 my.vimrc 文件，输入
-<code>set clipboard=unnamedplusset</code>。或者，直接在设置中搜索
-<code>vim.useSystemClipboard</code> ，打钩。默认使用的 vim
-无名缓存器已经与系统剪切板连通了。</p>
-<h3 id="vscode常用快捷键">VSCode常用快捷键</h3>
-<ul>
-<li><p>ctrl+B:侧边栏隐藏/显示</p></li>
-<li><p>ctrl+J:终端显示</p></li>
-<li><p>ctrl+Tab:切换tab</p></li>
-<li><p>ctrl+<number>：切换分屏，没有就创建</p></li>
-<li><p>ctrl+\:水平分屏</p></li>
-<li><p>ctrl+k+ctrl+\:竖直分屏;我改为:ctrl+&lt;]+\&gt;</p></li>
-<li><p>ctrl+w:删除当前屏幕（当当前屏幕无tab时）or tab</p></li>
-<li><p>ctrl+P:搜索文件,加上&gt;等价于ctrl+shift+P</p></li>
-<li><p>ctrl+shift+P:VSCode中的，命令:open folder</p></li>
-<li><p>ctrl+,:打开settings:配置一些json文件+vim</p></li>
-</ul>
-<p>函数定义之类：</p>
-<ul>
-<li><code>gd</code> : 进入函数定义</li>
-<li><code>Ctrl+o</code> : 从函数定义中返回</li>
-<li><code>gh</code> : 查看函数参数等信息</li>
-</ul>
-<h2 id="vimium">Vimium</h2>
-<ul>
-<li><p>基础移动hjkl,gg,G</p></li>
-<li><p>J，K跳转标签页，H(Shift+h):打开上一个网页，L(Shift+l):打开下一个网页</p></li>
-<li><p>g0，g$跳转到第一个，最后一个标签页</p></li>
-<li><p>t:打开新的标签页</p></li>
-<li><p>x:关闭当前标签页；X重新打开最后关闭的标签页</p></li>
-<li><p>d向下翻半页，u向上翻半页</p></li>
-<li><p>yy:复制当前页面地址到剪切板。如下图所示,按下yy后在按下Win+V可以看到已经将当前页面的链接复制到剪切板了</p></li>
-<li><p>p（P）:如果剪切板第一个是URL，则打开链接，是记录则搜索该内容</p></li>
-<li><p>建议直接Tab or shift+Tab（
-gi:定位到页面中的第一个输入框,前面也可以加数字）</p></li>
-<li><p>r:刷新界面</p></li>
-<li><p><strong>f（F）</strong>:在当前（新）标签页打开指定的链接。如下图所示,按下f后就会在链接上出现字母或者字母组合,只要按下相应的字母或者字母组合就可以打开对应的链接</p></li>
-</ul>
-<blockquote>
-<p>Tips:好用！</p>
-</blockquote>
-<ul>
-<li><strong>o（O）</strong>:在当前（新）标签页打开链接、书签（b是打开书签）、历史记录。如下图所示,按下o输入关键字后可以看到有符合条件的历史记录、书签等结果,可以通过上下箭头选择项目后按下Enter键即可在当前（新）标签页打开所选的项目。</li>
-<li>T:是在所有打开的标签页中搜索/</li>
-<li>m:添加标记,当你看一篇长文章时,如果你需要看前面的内容,或者想先看后面某部分内容再回来看当前的内容,则可以通过标记实现这需求。通过按下m之后再按一个字母就可以在当前位置标记,如果你在页面的其他地方想回到标记的地方,则可以通过`+之前标记的字母快速返回。</li>
-</ul>
-<h3 id="复制东西">复制东西</h3>
-<p>一般先/{}匹配到位置，再v进入可视化y复制</p>
-<h2 id="其他">其他</h2>
-<p>甚至有 Vim 的网页浏览快捷键 <a
-href="http://vim.wikia.com/wiki/Vim_key_bindings_for_web_browsers">browsers</a>,
-受欢迎的有用于 Google Chrome 的 <a
-href="https://chrome.google.com/webstore/detail/vimium/dbepggeogbaibhgnhhndojpepiihcmeb?hl=en">Vimium</a>
-和用于 Firefox 的 <a
-href="https://github.com/tridactyl/tridactyl">Tridactyl</a>。
-你甚至可以在 <a
-href="https://github.com/lambdalisue/jupyter-vim-binding">Jupyter
-notebooks</a> 中用 Vim 快捷键。 <a
-href="https://reversed.top/2016-08-13/big-list-of-vim-like-software">这个列表</a>
-中列举了支持类 vim 键位绑定的软件。</p>
-<h1 id="references">References</h1>
-<ul>
-<li><p><a
-href="https://blog.csdn.net/weixin_42514042/article/details/124169302">VSCode
-vim 使用vimrc配置 vim使用系统剪切板配置_vscode
-vimrc_未知褶皱的博客-CSDN博客</a></p></li>
-<li><p><a
-href="https://blog.csdn.net/m0_47670683/article/details/125160391?spm=1001.2101.3001.6661.1&amp;utm_medium=distribute.pc_relevant_t0.none-task-blog-2~default~CTRLIST~Rate-1-125160391-blog-121179927.235%5Ev38%5Epc_relevant_sort_base3&amp;depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-2~default~CTRLIST~Rate-1-125160391-blog-121179927.235%5Ev38%5Epc_relevant_sort_base3&amp;utm_relevant_index=1">VSCode使用Vim插件心得_vscode
-vim插件_皛心的博客-CSDN博客</a></p></li>
-<li><p><a
-href="https://zhuanlan.zhihu.com/p/113316942">Chrome插件Vimium使用教程 -
-知乎 (zhihu.com)</a></p></li>
-<li><p>【VS Code ×
-Vim：提高你的编码效率】https://www.bilibili.com/video/BV1MX4y1b7nM?vd_source=93bb338120537438ee9180881deab9c1</p></li>
 </ul>
 ]]></content>
       <categories>
@@ -4759,6 +4759,100 @@ Vim：提高你的编码效率】https://www.bilibili.com/video/BV1MX4y1b7nM?vd_
       </categories>
       <tags>
         <tag>CS</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>blog搭建及优化</title>
+    <url>/2023/07/27/blog%E6%90%AD%E5%BB%BA%E5%8F%8A%E4%BC%98%E5%8C%96/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>仅以此blog记录生活点滴</p>
+<p>遇到困难第一时间找官方手册解决问题!</p>
+<p>优化进行ing</p>
+<span id="more"></span>
+<h1 id="优化">优化</h1>
+<ul>
+<li><p>以PicGo作为图床上传工具，在github上创建figure
+bed并连接typora（一键式typora插入图片自动上传并转化为url）</p></li>
+<li><p>增加search function</p></li>
+<li><p>设置预览摘要</p></li>
+<li><p>主页文章添加阴影效果</p></li>
+<li><p>给一篇文章设置多标签</p></li>
+<li><p>让blog支持LaTex数学公式</p>
+<p>hexo并不支持LaTex数学公式<a
+href="https://theme-next.js.org/docs/third-party-services/math-equations.html">Math
+Equations | NexT (theme-next.js.org)</a></p>
+<p>卸载hexo-math，Render
+Engines替换渲染:下载pandoc，hexo-renderer-pandoc，修改config，使用hexo-filter-mathjax</p>
+<p><a
+href="https://github.com/next-theme/hexo-filter-mathjax">next-theme/hexo-filter-mathjax:
+💯 Server side MathJax renderer plugin for Hexo.
+(github.com)</a></p></li>
+<li><p>hexo-optimize优化页面加载速度</p></li>
+<li><p>修改背景</p></li>
+</ul>
+<h1 id="bonus">Bonus</h1>
+<p>记录搭建blog过程中遇到的一些东西</p>
+<ul>
+<li><p>github.io是静态网页每次修改都需要重新部署</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#在/blog/source/_posts 中添加文件，然后再bash中重新部署</span><br><span class="line">hexo clean</span><br><span class="line">hexo g</span><br><span class="line">hexo d</span><br><span class="line">###本地查看</span><br><span class="line">hexo s</span><br><span class="line">###新建文章</span><br><span class="line">hexo n &#x27;filename&#x27;</span><br></pre></td></tr></table></figure></li>
+<li><p>设置文章的tags and categories</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">---</span><br><span class="line">title:</span><br><span class="line">date:</span><br><span class="line">tags: [ &#x27;标签1&#x27; , &#x27;标签2&#x27; , &#x27;标签3&#x27; ]  #注意空格</span><br><span class="line">categories: life</span><br><span class="line">---</span><br><span class="line">### 以下是正文</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">总结下有两种格式都适用：</span><br><span class="line"></span><br><span class="line">第一种：</span><br><span class="line"></span><br><span class="line">tags: [ &#x27;Ruby&#x27;, &#x27;Perl&#x27;, &#x27;Python&#x27; ]</span><br><span class="line"></span><br><span class="line">第二种：</span><br><span class="line"></span><br><span class="line">tags:</span><br><span class="line"></span><br><span class="line">- hexo</span><br><span class="line"></span><br><span class="line">- disqus</span><br></pre></td></tr></table></figure></li>
+<li><p>数学公式的使用需要添加：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">mathjax: true</span><br></pre></td></tr></table></figure></li>
+<li><pre><code>  background-size:contain/cover         //看你需求</code></pre></li>
+<li><p>CDN(Content Delivery
+Network，内容分发网络)是一项非常有效的<strong>缩短时延</strong>的技术，采用更多的缓存服务器（CDN边缘节点），布放在用户访问相对集中的地区或网络中。当用户访问网站时，利用全局负载技术，将用户的访问指向距离最近的缓存服务器上，由缓存服务器响应用户请求</p></li>
+<li><p>YAML(.yml文件)，一种数据序列化格式，方便传输和存储</p></li>
+<li><p>只要我们在文章中插入
+<!-- more -->，该标签之上的是摘要，之后的内容不可见，需点击全文阅读按钮。</p></li>
+</ul>
+<h1 id="references">References</h1>
+<ul>
+<li><p><a href="https://theme-next.js.org/">NexT - Theme for Hexo
+(theme-next.js.org)</a>Next主题官方文档</p></li>
+<li><p><a
+href="https://github.com/next-theme/hexo-filter-mathjax">next-theme/hexo-filter-mathjax:
+💯 Server side MathJax renderer plugin for Hexo.
+(github.com)</a></p></li>
+<li><p><a
+href="https://github.com/next-theme/hexo-optimize">next-theme/hexo-optimize:
+🚩 A Hexo plugin that optimize the pages loading speed.
+(github.com)</a></p></li>
+<li><p>跟随知乎枫叶大佬<a
+href="https://zhuanlan.zhihu.com/p/102592286">从零开始搭建个人博客（超详细）
+- 知乎 (zhihu.com)</a>搭建此blog</p></li>
+<li><p><a
+href="https://github.com/jackfrued/Python-100-Days/blob/master/番外篇/使用Hexo搭建自己的博客.md">Python-100-Days/番外篇/使用Hexo搭建自己的博客.md
+at master · jackfrued/Python-100-Days (github.com)</a></p></li>
+<li><p>Next主题设置：<a
+href="https://github.com/theme-next/hexo-theme-next/blob/master/README.md">hexo-theme-next/README.md
+at master · theme-next/hexo-theme-next (github.com)</a></p></li>
+<li><p><a href="https://zhuanlan.zhihu.com/p/52362950">到底什么是CDN？ -
+知乎 (zhihu.com)</a></p></li>
+<li><p><a
+href="https://zhuanlan.zhihu.com/p/433176170">两分钟带你了解YAML（.yml后缀文件）
+- 知乎 (zhihu.com)</a></p></li>
+<li><p><a
+href="https://news.netshop168.com/article-85934.html">rss订阅是什么意思?为什么要使用RSS?RSS也称为RSS订阅或RSS提要
+(netshop168.com)</a></p></li>
+<li><p><a href="https://zhuanlan.zhihu.com/p/347342082">如何利用 Github
+搭建自己的免费图床？ - 知乎 (zhihu.com)</a></p></li>
+<li><p><a
+href="https://zhuanlan.zhihu.com/p/489236769">使用Github+picGo搭建图床，保姆级教程来了
+- 知乎 (zhihu.com)</a></p></li>
+<li><p><a href="https://www.ruanyifeng.com/blog/2016/07/yaml.html">YAML
+语言教程 - 阮一峰的网络日志 (ruanyifeng.com)</a></p></li>
+<li><p><a
+href="https://www.cnblogs.com/cscshi/p/15196114.html#:~:text=1%201.%20设置背景图片%20将想要的背景图片放入%20themes%2Fnext%2Fsource%2Fimages。%20打开%20themes%2Fnext%2Fsource%2Fcss%2F%20_custom%2Fcustom.styl,blog_root%2Fsource%2F_data%2Fstyles.style%20中添加以下内容：%20...%203%203.%20参考%20Hexo-NexT%20设置博客背景图片">Hexo-NexT
+设置博客背景图片 - 锦瑟，无端 - 博客园 (cnblogs.com)</a></p></li>
+</ul>
+]]></content>
+      <categories>
+        <category>奇技淫巧</category>
+      </categories>
+      <tags>
+        <tag>奇技淫巧</tag>
       </tags>
   </entry>
   <entry>
@@ -5279,98 +5373,6 @@ href="https://zhuanlan.zhihu.com/p/431118510">浅析Makefile、make、cmake
       </tags>
   </entry>
   <entry>
-    <title>各种通信方式</title>
-    <url>/2023/07/29/%E5%90%84%E7%A7%8D%E9%80%9A%E4%BF%A1%E6%96%B9%E5%BC%8F/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>了解及总结（同步通信-异步通信-全双工通信-串行通信-并行通信）各种通信方法</p>
-<span id="more"></span>
-<h1 id="并行通信-and-串行通信">并行通信 and 串行通信</h1>
-<h2 id="并行通信">并行通信</h2>
-<p>Parallel communication</p>
-<h4 id="传输方式">传输方式</h4>
-<p>多个数据bit位同时传输</p>
-<h4 id="常用总线">常用总线</h4>
-<p>local bus, DDR</p>
-<h4 id="特点">特点</h4>
-<ul>
-<li>同时传输，效率高</li>
-<li>数据线多，设计复杂</li>
-</ul>
-<h2 id="串行通信">串行通信</h2>
-<p>Serial communication</p>
-<h4 id="传输方式-1">传输方式</h4>
-<p>数据bit一位一位传输</p>
-<h4 id="常用总线-1">常用总线</h4>
-<p>local bus, DDR</p>
-<h4 id="特点-1">特点</h4>
-<ul>
-<li>按bit逐位传输，效率低</li>
-<li>只需一根数据线，设计简单</li>
-</ul>
-<h1 id="异步串行通信-and-同步串行通信">异步串行通信 and
-同步串行通信</h1>
-<h2 id="异步串行通信">异步串行通信</h2>
-<p>Asynchronous serial communication</p>
-<h4 id="特点-2">特点</h4>
-<ul>
-<li>信息发送设备与接收设备之间无时钟连接</li>
-<li>信息中包含特殊标志位Start/Stop</li>
-<li>接收设备根据特殊标志位利用本地时钟对数据采样</li>
-</ul>
-<h4 id="example">Example</h4>
-<p>UART，无时钟线连接</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">接收器   发送器</span><br><span class="line">TxD-----&gt;RxD</span><br><span class="line">RxD&lt;-----TxD</span><br></pre></td></tr></table></figure>
-<h2 id="同步串行通信">同步串行通信</h2>
-<p>Synchronous serial communciation</p>
-<h4 id="特点-3">特点</h4>
-<ul>
-<li>信息发送设备与接收设备需要时钟同步</li>
-<li>两者间出数据线连接，还需要额外的时钟线连接</li>
-</ul>
-<h4 id="example-1">Example</h4>
-<p>IIC,需要时钟线SCL连接</p>
-<h1
-id="三种数据通路单工半双工全双工">三种数据通路：单工，半双工，全双工</h1>
-<h2 id="单工通信">单工通信</h2>
-<p>Simplex communciation</p>
-<h4 id="特点-4">特点</h4>
-<ul>
-<li>信息只能单一方向传输</li>
-</ul>
-<h4 id="example-2">Example</h4>
-<p>广播，遥控器</p>
-<h2 id="半双工通信">半双工通信</h2>
-<p>Half-duplex communciation</p>
-<h4 id="特点-5">特点</h4>
-<ul>
-<li>数据支持双向传输</li>
-<li>发送和接收不能同时进行，同一时间只能发送or接收数据</li>
-</ul>
-<h4 id="example-3">Example</h4>
-<p>IIC</p>
-<h2 id="全双工通信">全双工通信</h2>
-<p>Full-duplex communciation</p>
-<h4 id="特点-6">特点</h4>
-<ul>
-<li>数据支持双向传输</li>
-<li>数据接收和发送同时进行</li>
-</ul>
-<h4 id="example-4">Example</h4>
-<p>电话、网口、UART</p>
-<h1 id="references">References</h1>
-<ul>
-<li>B站视频：【四分钟搞定【同步通信-异步通信-全双工通信-串行通信-并行通信】】https://www.bilibili.com/video/BV1q64y1R72M?vd_source=93bb338120537438ee9180881deab9c1</li>
-</ul>
-]]></content>
-      <categories>
-        <category>嵌入式</category>
-      </categories>
-      <tags>
-        <tag>嵌入式</tag>
-        <tag>通信</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>基于CubeMX创建的第一个stm32工程</title>
     <url>/2023/08/04/%E5%9F%BA%E4%BA%8EcubeMX%E5%88%9B%E5%BB%BA%E7%9A%84%E7%AC%AC%E4%B8%80%E4%B8%AAstm32%E5%B7%A5%E7%A8%8B/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
@@ -5665,97 +5667,313 @@ alt="image-20230606131804276" />
       </tags>
   </entry>
   <entry>
-    <title>blog搭建及优化</title>
-    <url>/2023/07/27/blog%E6%90%AD%E5%BB%BA%E5%8F%8A%E4%BC%98%E5%8C%96/</url>
+    <title>探CMake</title>
+    <url>/2023/09/04/%E6%8E%A2CMake/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>仅以此blog记录生活点滴</p>
-<p>遇到困难第一时间找官方手册解决问题!</p>
-<p>优化进行ing</p>
+<p>使用CubeMX遇到使用makefile的时候，且HW要求使用CMake来编译项目，特此记录学习make,makefile
+and CMake——仅基础知识以看懂为主</p>
+<p>此章学习CMake</p>
 <span id="more"></span>
-<h1 id="优化">优化</h1>
+<h1 id="简介">简介</h1>
+<p>CMake是服务于将源代码转换成可执行的文件的工具。本身是一个<strong>工具集</strong>由五个可执行的程序组成：cmake、ctest、cpack、cmake-gui和ccmake</p>
 <ul>
-<li><p>以PicGo作为图床上传工具，在github上创建figure
-bed并连接typora（一键式typora插入图片自动上传并转化为url）</p></li>
-<li><p>增加search function</p></li>
-<li><p>设置预览摘要</p></li>
-<li><p>主页文章添加阴影效果</p></li>
-<li><p>给一篇文章设置多标签</p></li>
-<li><p>让blog支持LaTex数学公式</p>
-<p>hexo并不支持LaTex数学公式<a
-href="https://theme-next.js.org/docs/third-party-services/math-equations.html">Math
-Equations | NexT (theme-next.js.org)</a></p>
-<p>卸载hexo-math，Render
-Engines替换渲染:下载pandoc，hexo-renderer-pandoc，修改config，使用hexo-filter-mathjax</p>
-<p><a
-href="https://github.com/next-theme/hexo-filter-mathjax">next-theme/hexo-filter-mathjax:
-💯 Server side MathJax renderer plugin for Hexo.
-(github.com)</a></p></li>
-<li><p>hexo-optimize优化页面加载速度</p></li>
-<li><p>修改背景</p></li>
+<li>cmake用于在构建项目的第一步，进行项目的配置、生成和构建项目的主要可执行文件的工作。</li>
+<li>ctest用于运行和报告测试结果的测试驱动程序。</li>
+<li>cpack用来生成安装程序和源包的打包程序。</li>
+<li>cmake-gui是 cmake 的图形界面。</li>
+<li>ccmake（注意ccmake比cmake多了一个c）也是用于图形界面，与cmake-gui不同的地方在于ccmake是基于控制台（terminal）的图形界面</li>
 </ul>
-<h1 id="bonus">Bonus</h1>
-<p>记录搭建blog过程中遇到的一些东西</p>
+<p>CMake就是“协调器”——它清楚哪些步骤需要完成，理解最终目标是什么，以及忙碌于为构建工作找到合适的“工人”和“材料”。<strong>这个过程有三个阶段：配置、生成、构建阶段</strong></p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/v2-dc969937345ed270b37200353a50f20e_720w.webp"
+alt="CMake在三个阶段：配置、生成、构建阶段的示意图" />
+<figcaption
+aria-hidden="true">CMake在三个阶段：配置、生成、构建阶段的示意图</figcaption>
+</figure>
+<h2 id="设计初衷">设计初衷</h2>
+<p>设计、编码和测试。在更改了代码之后，工具将以智能的、快速的、可扩展的方式，在不同的操作系统和环境中以相同的方式工作。支持多个集成开发环境(IDE)
+和持续集成(CI)
+流水，这些流水在更改提交到代码库后，就能对代码进行测试。</p>
+<blockquote>
+<p>两个概念需要区分：<build tree>
+和<source tree>，分别对应构建树和源码树；构建树是目标/输出目录的路径，源码树是源码所在的路径。</p>
+</blockquote>
+<h1 id="基本语法">基本语法</h1>
+<h2 id="注释">注释</h2>
+<p><code>CMake</code> 使用 <code>#</code>
+进行<code>行注释</code>，可以放在任何位置。</p>
+<p><code>CMake</code> 使用 <code>#[[  ]]</code>
+形式进行<code>块注释</code>。</p>
+<h2 id="变量">变量</h2>
+<p>三大类：普通变量、缓存变量、环境变量。注意作用域</p>
+<blockquote>
 <ul>
-<li><p>github.io是静态网页每次修改都需要重新部署</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#在/blog/source/_posts 中添加文件，然后再bash中重新部署</span><br><span class="line">hexo clean</span><br><span class="line">hexo g</span><br><span class="line">hexo d</span><br><span class="line">###本地查看</span><br><span class="line">hexo s</span><br><span class="line">###新建文章</span><br><span class="line">hexo n &#x27;filename&#x27;</span><br></pre></td></tr></table></figure></li>
-<li><p>设置文章的tags and categories</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">---</span><br><span class="line">title:</span><br><span class="line">date:</span><br><span class="line">tags: [ &#x27;标签1&#x27; , &#x27;标签2&#x27; , &#x27;标签3&#x27; ]  #注意空格</span><br><span class="line">categories: life</span><br><span class="line">---</span><br><span class="line">### 以下是正文</span><br></pre></td></tr></table></figure>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">总结下有两种格式都适用：</span><br><span class="line"></span><br><span class="line">第一种：</span><br><span class="line"></span><br><span class="line">tags: [ &#x27;Ruby&#x27;, &#x27;Perl&#x27;, &#x27;Python&#x27; ]</span><br><span class="line"></span><br><span class="line">第二种：</span><br><span class="line"></span><br><span class="line">tags:</span><br><span class="line"></span><br><span class="line">- hexo</span><br><span class="line"></span><br><span class="line">- disqus</span><br></pre></td></tr></table></figure></li>
-<li><p>数学公式的使用需要添加：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">mathjax: true</span><br></pre></td></tr></table></figure></li>
-<li><pre><code>  background-size:contain/cover         //看你需求</code></pre></li>
-<li><p>CDN(Content Delivery
-Network，内容分发网络)是一项非常有效的<strong>缩短时延</strong>的技术，采用更多的缓存服务器（CDN边缘节点），布放在用户访问相对集中的地区或网络中。当用户访问网站时，利用全局负载技术，将用户的访问指向距离最近的缓存服务器上，由缓存服务器响应用户请求</p></li>
-<li><p>YAML(.yml文件)，一种数据序列化格式，方便传输和存储</p></li>
-<li><p>只要我们在文章中插入
-<!-- more -->，该标签之上的是摘要，之后的内容不可见，需点击全文阅读按钮。</p></li>
+<li>${} 用于引用普通变量或缓存变量。</li>
+<li>$ENV{} 用于引用环境变量。</li>
+<li>$CACHE{} 用于引用缓存变量。</li>
 </ul>
+</blockquote>
+<p>基本的变量操作指令是set()()，建议在变量名中只使用字母数字字符、减号(-)
+和下划线(_)，具体的使用方式为在设置变量时只需使用set()并提供名称和值，要取消变量的设置时可以使用unset()并提供名称。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">set(Mystring &quot;Text1&quot;)   </span><br><span class="line">message($(Mystring))</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>Tips:${}告诉CMake遍历<strong>作用域堆栈</strong>，尝试将${MyString1}替换为具体的值供message命令打印出来</p>
+<p>${} 语法进行变量的求值和展开时，是由内而外执行的</p>
+</blockquote>
+<h3 id="作用域">作用域</h3>
+<p>理解“<strong>副本</strong>“的概念是关键，当创建<strong>嵌套</strong>（子）作用域时，CMake只需用来自当前（父）作用域的<strong>所有变量的副本</strong>填充，后续<strong>嵌套</strong>（子）作用域命令将影响这些副本。但若完成了<strong>嵌套</strong>（子）作用域的执行，所有的副本都会删除，而原始的父作用域将恢复，嵌套作用域中操作的变量将不会更新到父作用域中</p>
+<p>不管是针对CMake函数作用域还是CMake目录作用域，其都有两个特点：向下有效和数值拷贝生成副本，在不使用特殊关键字的情况下，嵌套（子）作用域针对普通变量的修改不会影响到父作用域。</p>
+<p>针对变量，普通变量仅仅有效于当前作用域，而缓存变量和环境变量可以在全局作用域中使用。</p>
+<h3 id="环境变量">环境变量</h3>
+<p>使用set(ENV{<variable>} <value>)
+指令用以声明，使用unset(ENV{<variable>})来清除某一个环境变量</p>
+<blockquote>
+<p>Tips:设定或读取环境变量时，都通过ENV前缀来访问环境变量，读取环境变量值时，要在ENV前加$符号；但if判断是否定义时，不用加$符号</p>
+</blockquote>
+<p>设定环境变量后，其作用域只影响当前CMake进程，也就是说环境变量设定后是整个CMake进程的作用域都可用，但是不会影响CMake进程外的整个系统环境。</p>
+<p>环境变量在启动CMake进程后会基于CMake在配置阶段中收集的信息在<strong>CMake生成阶段</strong>生成环境变量的<strong>副本</strong>，该副本会在<strong>单一的、全局的</strong>作用域中可用。即，若使用ENV
+变量作为指令的参数，这些值将在CMake生成构建系统期间（配置阶段+生成阶段）插入，并且会将其嵌入到构建树中，在构建系统完成后即使再通过脚本或者命令行修改环境变量ENV{<variable>}的value，在构建阶段时该环境变量值也不会更新成新的value（因为在构建系统中保存的是之前环境变量的副本）</p>
+<h3 id="缓存变量">缓存变量</h3>
+<p>缓存变量可以通过$CACHE{<name>}
+语法来引用，而设置一个缓存变量使用<strong>set(<variable> <value> CACHE
+<type> <docstring> [FORCE])</strong>指令</p>
+<ul>
+<li>FORCE：强制选项，强制修改变量值。——建议一直加上</li>
+</ul>
+<p>与环境变量不同的是，缓存变量是CMake进程在配置阶段收集相关信息后存储在在构建树中的CMakeCache.txt
+文件中的变量，缓存变量不可像环境变量中在脚本使用但是可以通过cmake-gui或者ccmake来声明。</p>
+<p>Cache
+Variable缓存变量相当于一个全局变量，在同一个CMake工程中任何地方都可以使用，比如父目录，子目录等</p>
+<h2 id="控制结构">控制结构</h2>
+<h3 id="条件块">条件块</h3>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1、 if(&lt;condition&gt;)</span><br><span class="line">2、  &lt;commands&gt;</span><br><span class="line">3、 elseif(&lt;condition&gt;) # optional block, can be repeated</span><br><span class="line">4、  &lt;commands&gt;</span><br><span class="line">5、 else() # optional block</span><br><span class="line">6、  &lt;commands&gt;</span><br><span class="line">7、 endif()</span><br></pre></td></tr></table></figure>
+<h3 id="循环">循环</h3>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1、 while(&lt;condition&gt;)</span><br><span class="line">2、  &lt;commands&gt;</span><br><span class="line">3、 endwhile()</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1、 foreach(&lt;loop_var&gt; RANGE &lt;min&gt; &lt;max&gt; [&lt;step&gt;])</span><br><span class="line">2、  &lt;commands&gt;</span><br><span class="line">3、 endforeach()</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>Tips:<min>和<step>参数变量可选择配置，默认的话从0开始，min和max都必须是非负整数，在RANGE中max和min都是包括在循环内部的</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1、 foreach(&lt;loop_variable&gt; IN [LISTS &lt;lists&gt;] [ITEMS &lt;items&gt;])</span><br><span class="line"># foreach(VAR 1 2 3 e f)</span><br></pre></td></tr></table></figure>
+<p>eg:</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1、 set(MY_LIST 1 2 3)</span><br><span class="line">2、 foreach(VAR IN LISTS MY_LIST ITEMS e f)</span><br><span class="line">3、  message($&#123;VAR&#125;)</span><br><span class="line">4、 endforeach()</span><br><span class="line"># 1 2 3 e f</span><br></pre></td></tr></table></figure>
+<p>压缩列表(ZIP_LISTS)，</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="number">1</span>、 foreach(&lt;loop_var&gt;... IN ZIP_LISTS &lt;lists&gt;)</span><br></pre></td></tr></table></figure>
+<p>在压缩列表中CMake 将为每个提供的列表创建一个num_<N>
+变量，用每个列表中的项填充该变量。同时，除了使用CMake自动创建的num_<N>
+变量，用户也可以自定义传递多个<loop_var>
+变量名(每个列表一个)，每个列表将使用单独的变量来存储.</p>
+<p>针对多个列表的压缩处理，前提条件是这些待处理的多个列表中的元素个数是相同的，若列表之间的项数不同，CMake
+将不会为较短的列表定义变量。</p>
+<h3 id="定义指令">定义指令</h3>
+<h3 id="macro">macro()</h3>
+<p>查找和替换指令</p>
+<p>与函数相反，<strong>宏不会在调用堆栈上创建单独的条目</strong>。所以宏中调用return()
+将比在函数中返回调用语句的级别高一级(若已经在顶层作用域中，可能会终止执行)。在调用者的变量作用域中工作</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1、 //CMake中的宏</span><br><span class="line">2、 macro(&lt;name&gt; [&lt;argument&gt; ])</span><br><span class="line">3、  &lt;commands&gt;</span><br><span class="line">4、 endmacro()</span><br><span class="line">5、 //调用宏</span><br><span class="line">6、 &lt;name&gt;(&quot;called value&quot;)</span><br></pre></td></tr></table></figure>
+<p>宏中对变量进行修改会影响全局作用域中的变量，但在macro()内部该变量没有修改，因为<strong>传递给宏的参数没有视为真正的变量，而是作为常量查找并替换指令</strong></p>
+<h3 id="function">function()</h3>
+<p>实际子例程调用</p>
+<p>为本地变量创建一个单独的作用域，这与macro()
+命令不同，后者在调用者的变量作用域中工作，所以使用CMake的function需要注意变量的作用域问题。任何更改都将是函数的局部更改(除非指定了PARENT_SCOPE)，不影响PARENT
+SCOPE。</p>
+<h2 id="实用指令">实用指令</h2>
+<ul>
+<li><p>message()：将文本打印到标准输出，并且CMake通过提供MODE
+参数，可以自定义输出的样式</p></li>
+<li><p>include()：引用官方和CMake社区中已经配置好了的CMake模板，所谓的CMake模板就是将CMake代码划分到单独的.cmake文件中，以保持内容的有序和独立性。然后通过include()指令，从父列表文件引用</p></li>
+<li><p>file()：为了可以知道CMake
+脚本可以做什么，CMake提供了一个可以快速浏览文件的操作命令：</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="number">1</span>、 <span class="built_in">file</span>(READ &lt;filename&gt; &lt;out-var&gt; [...])</span><br><span class="line"><span class="number">2</span>、 <span class="built_in">file</span>(&#123;WRITE | APPEND&#125; &lt;filename&gt; &lt;content&gt;...)</span><br><span class="line"><span class="number">3</span>、 <span class="built_in">file</span>(DOWNLOAD &lt;url&gt; [&lt;file&gt;] [...])</span><br></pre></td></tr></table></figure>
+<p>简而言之，file()
+指令会以一种与系统无关的方式读取、写入和传输文件，并使用文件系统、文件锁、路径和存档</p></li>
+<li><p>execute_process()：有时需要使用系统中可用的工具，CMake提供execute_process()指令以用来运行其他进程，并收集它们的输出</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1、 execute_process(COMMAND &lt;cmd1&gt; [&lt;arguments&gt;]  [OPTIONS])</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h1 id="简单的cmake构建">简单的CMake构建</h1>
+<p>建议直接看原文！！！highly recommended</p>
 <h1 id="references">References</h1>
 <ul>
-<li><p><a href="https://theme-next.js.org/">NexT - Theme for Hexo
-(theme-next.js.org)</a>Next主题官方文档</p></li>
-<li><p><a
-href="https://github.com/next-theme/hexo-filter-mathjax">next-theme/hexo-filter-mathjax:
-💯 Server side MathJax renderer plugin for Hexo.
-(github.com)</a></p></li>
-<li><p><a
-href="https://github.com/next-theme/hexo-optimize">next-theme/hexo-optimize:
-🚩 A Hexo plugin that optimize the pages loading speed.
-(github.com)</a></p></li>
-<li><p>跟随知乎枫叶大佬<a
-href="https://zhuanlan.zhihu.com/p/102592286">从零开始搭建个人博客（超详细）
-- 知乎 (zhihu.com)</a>搭建此blog</p></li>
-<li><p><a
-href="https://github.com/jackfrued/Python-100-Days/blob/master/番外篇/使用Hexo搭建自己的博客.md">Python-100-Days/番外篇/使用Hexo搭建自己的博客.md
-at master · jackfrued/Python-100-Days (github.com)</a></p></li>
-<li><p>Next主题设置：<a
-href="https://github.com/theme-next/hexo-theme-next/blob/master/README.md">hexo-theme-next/README.md
-at master · theme-next/hexo-theme-next (github.com)</a></p></li>
-<li><p><a href="https://zhuanlan.zhihu.com/p/52362950">到底什么是CDN？ -
-知乎 (zhihu.com)</a></p></li>
-<li><p><a
-href="https://zhuanlan.zhihu.com/p/433176170">两分钟带你了解YAML（.yml后缀文件）
-- 知乎 (zhihu.com)</a></p></li>
-<li><p><a
-href="https://news.netshop168.com/article-85934.html">rss订阅是什么意思?为什么要使用RSS?RSS也称为RSS订阅或RSS提要
-(netshop168.com)</a></p></li>
-<li><p><a href="https://zhuanlan.zhihu.com/p/347342082">如何利用 Github
-搭建自己的免费图床？ - 知乎 (zhihu.com)</a></p></li>
-<li><p><a
-href="https://zhuanlan.zhihu.com/p/489236769">使用Github+picGo搭建图床，保姆级教程来了
-- 知乎 (zhihu.com)</a></p></li>
-<li><p><a href="https://www.ruanyifeng.com/blog/2016/07/yaml.html">YAML
-语言教程 - 阮一峰的网络日志 (ruanyifeng.com)</a></p></li>
-<li><p><a
-href="https://www.cnblogs.com/cscshi/p/15196114.html#:~:text=1%201.%20设置背景图片%20将想要的背景图片放入%20themes%2Fnext%2Fsource%2Fimages。%20打开%20themes%2Fnext%2Fsource%2Fcss%2F%20_custom%2Fcustom.styl,blog_root%2Fsource%2F_data%2Fstyles.style%20中添加以下内容：%20...%203%203.%20参考%20Hexo-NexT%20设置博客背景图片">Hexo-NexT
-设置博客背景图片 - 锦瑟，无端 - 博客园 (cnblogs.com)</a></p></li>
+<li><a
+href="https://zhuanlan.zhihu.com/p/620839692">CMake入门笔记系列（一）：CMake编译过程详解
+| Micro CMake for C++ - 知乎 (zhihu.com)</a></li>
 </ul>
 ]]></content>
       <categories>
-        <category>奇技淫巧</category>
+        <category>CS</category>
       </categories>
       <tags>
-        <tag>奇技淫巧</tag>
+        <tag>CS</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>探Makefile</title>
+    <url>/2023/09/04/%E6%8E%A2Makefile/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>使用CubeMX遇到使用makefile的时候，且HW要求使用CMake来编译项目，特此记录学习make,makefile
+and CMake——仅基础知识以看懂为主</p>
+<p>此章学习makefile</p>
+<span id="more"></span>
+<h1 id="浅析makemakefilecmake">浅析make,makefile,CMake</h1>
+<p>cmake生成makefile文件给make执行</p>
+<ul>
+<li><p>makefile中设置你想要的编译规则，你想要编译哪些文件，哪些文件不需要编译等等都可以体现在Makefile中，而且支持多线程并发操作，可以减少编译的时间。</p></li>
+<li><p>make就是根据Makefile中写的内容进行编译和链接</p>
+<blockquote>
+<p>Tips:make只会编译我们修改过的文件，没有修改过的就不用重新编译，这样我们debug了一个小bug后重新编译就不用花费大量的编译时间</p>
+</blockquote></li>
+<li><p>CMake跨平台项目管理的工具生成Makefile文件给make去执行，实现跨平台。CMake它仍然是目标、依赖之类的抽象的东西，根据一个叫CMakeLists.txt的文件（还是自己手写）生成Makefile的</p></li>
+</ul>
+<h1 id="makefile">Makefile</h1>
+<h2 id="关于程序的编译和链接">关于程序的编译和链接</h2>
+<p>源文件首先会编译(compile)成中间目标文件（在Windows下也就是 .obj
+文件，UNIX下是 .o 文件，即object file ），然后再把大量的Object
+File合成执行文件，这个动作叫作链接（link）。在编译时，编译器只检测程序语法，和函数、变量是否被声明。如果函数未被声明，
+编译器会给出一个警告，但可以生成Object
+File。而在链接程序时，链接器会在所有的Object
+File中找寻函数的实现，如果找不到，那到就会报链接错误码（Linker
+Error）</p>
+<p>.lib（windows下Library File） .a（linux下Archive
+File）库文件（打包形成，因为文件太多）</p>
+<h2 id="作用">作用</h2>
+<p>makefile关系到了整个工程的编译规则</p>
+<p>makefile定义了一系列的规则来指定，哪些文件需要先编译，哪些文件需要后编译，哪些文件需要重新编译，甚至于进行更复杂的功能操作，因为makefile就像一个Shell
+脚本一样，其中也可以执行操作系统的命令</p>
+<h2 id="好处">好处</h2>
+<p>makefile带来的好处就是——“自动化编译”，一旦写好，只需要一个make命令，整个工程完全自动编译，极大的提高了软件开发的效率</p>
+<p>大部分IDE中都有 </p>
+<p>更省事、准确。对于大的工程（文件多，一个.c对应了一个.o文件，最后还涉及.o文件和.a文件链接）编译汇编工作如果手动操作就会变得繁琐且重复，那么makefile出现能极大的简化这个重复繁琐的过程，而且对于不同的操作系统，也需要让编译自动适应</p>
+<h2 id="makefile介绍">Makefile介绍</h2>
+<p>make命令执行时，需要一个 Makefile
+文件，以告诉make命令需要怎么样的去编译和链接程序。</p>
+<p>说白一点就是说，prerequisites中如果有一个以上的文件比target文件要新的话，command所定义的命令就会被执行。这就是
+Makefile的规则。也就是Makefile中最核心的内容</p>
+<h4 id="makefile规则">Makefile规则</h4>
+<h5 id="举例">举例</h5>
+<p>foo.o : foo.c defs.h # foo模块 cc -c -g foo.c</p>
+<p>1、文件的依赖关系，foo.o依赖于foo.c和defs.h的文件，如果foo.c和defs.h的文件日期要比foo.o文件日期要新，或是foo.o不存在，那么依赖关系发生。
+2、如果生成（或更新）foo.o文件。也就是那个cc命令，其说明了，如何生成foo.o这个文件。（当然foo.c文件include了defs.h文件）</p>
+<h5 id="语法">语法</h5>
+<p>target ... :
+prerequisites（<em>n.</em>先决条件，前提<em>adj.</em>先决的，必备的）
+... command ... ...</p>
+<p>或是这样：</p>
+<p>targets : prerequisites ; command command ...</p>
+<ul>
+<li>target也就是一个目标文件，可以是Object
+File，也可以是执行文件。还可以是一个标签（Label）</li>
+<li>prerequisites就是，要生成那个target所需要的文件或是目标</li>
+<li>command也就是make需要执行的命令。（任意的Shell命令）如果不与target在同一行则必须以[Tab键]开头</li>
+</ul>
+<p>这是一个文件的依赖关系，也就是说，target这一个或多个的目标文件依赖于prerequisites中的文件，其生成规则定义在command中。
+说白一点就是说，prerequisites中如果有一个以上的文件比target文件要新的话，command所定义的命令就会被执行。这就是
+Makefile的规则。也就是Makefile中最核心的内容。</p>
+<h5 id="通配符">通配符</h5>
+<p>如果我们想定义一系列比较类似的文件，我们很自然地就想起使用通配符。make支持三各通配符：“*”，“?”和“[...]”。这是和Unix的B-Shell是相同的。</p>
+<p>波浪号（“~”）字符在文件名中也有比较特殊的用途。如果是“
+~/test”，这就表示当前用户的$HOME目录下的test目录。而
+“~hchen/test”则表示用户hchen的宿主目录下的test目录。（这些都是Unix下的小知识了，make也支持）而在Windows或是
+MS-DOS下，用户没有宿主目录，那么波浪号所指的目录则根据环境变量“HOME”而定。</p>
+<p>通配符代替了你一系列的文件，如“*.c”表示所以后缀为c的文件。</p>
+<p>$符号表示取变量的值，当变量名多于一个字符时，使用"( )"</p>
+<p>$符的其他用法</p>
+<p>$^ 表示所有的依赖文件</p>
+<p>$@ 表示生成的目标文件</p>
+<p>$&lt; 代表第一个依赖文件</p>
+<p>通配符代替了你一系列的文件，如“*.c”表示所以后缀为c的文件</p>
+<h5 id="伪目标">伪目标</h5>
+<p>因为，我们并不生成“clean”这个文件。“伪目标”并不是一个文件，只是一个标签，由于“伪目标”不是文件，所以make无法生成它的依赖关系和决定
+它是否要执行。我们只有通过显示地指明这个“目标”才能让其生效。当然，“伪目标”的取名不能和文件名重名，不然其就失去了“伪目标”的意义了。</p>
+<p>当然，为了避免和文件重名的这种情况，我们可以使用一个特殊的标记“.PHONY”来显示地指明一个目标是“伪目标”，向make说明，不管是否有这个文件，这个目标就是“伪目标”。</p>
+<p>.PHONY : clean</p>
+<p>只要有这个声明，不管是否有“clean”文件，要运行“clean”这个目标，只有“make
+clean”这样。于是整个过程可以这样写：</p>
+<p>.PHONY: clean clean: rm *.o temp</p>
+<p>伪目标一般没有依赖的文件。但是，我们也可以为伪目标指定所依赖的文件。伪目标同样可以作为“默认目标”，只要将其放在第一个。一个示例就是，如果你的
+Makefile需要一口气生成若干个可执行文件，但你只想简单地敲一个make完事，并且，所有的目标文件都写在一个Makefile中，那么你可以使
+用“伪目标”这个特性：</p>
+<p>all : prog1 prog2 prog3 .PHONY : all</p>
+<p>prog1 : prog1.o utils.o cc -o prog1 prog1.o utils.o</p>
+<p>prog2 : prog2.o cc -o prog2 prog2.o</p>
+<p>prog3 : prog3.o sort.o utils.o cc -o prog3 prog3.o sort.o utils.o</p>
+<p>我们知道，Makefile中的第一个目标会被作为其默认目标。我们声明了一个“all”的伪目标，其依赖于其它三个目标。由于伪目标的特性是，总是被执行的，所以其依赖的那三个目标就总是不如“all”这个目标新。所以，其它三个目标的规则总是会被决议。也就达到了我们一口气生成多个目标的目的。
+“.PHONY : all”声明了“all”这个目标为“伪目标”。</p>
+<p>随便提一句，从上面的例子我们可以看出，目标也可以成为依赖。所以，伪目标同样也可成为依赖。看下面的例子：</p>
+<p>.PHONY: cleanall cleanobj cleandiff</p>
+<p>cleanall : cleanobj cleandiff rm program</p>
+<p>cleanobj : rm *.o</p>
+<p>cleandiff : rm *.diff</p>
+<p>“make
+clean”将清除所有要被清除的文件。“cleanobj”和“cleandiff”这两个伪目标有点像“子程序”的意思。我们可以输入“make
+cleanall”和“make cleanobj”和“make
+cleandiff”命令来达到清除不同种类文件的目的。</p>
+<h5 id="多目标">多目标</h5>
+<p>Makefile的规则中的目标可以不止一个，其支持多目标，有可能我们的多个目标同时依赖于一个文件，并且其生成的命令大体类似。于是我们就能把其合并
+起来。当然，多个目标的生成规则的执行命令是同一个，这可能会可我们带来麻烦，不过好在我们的可以使用一个自动化变量“$@”</p>
+<h4 id="makefile内容">Makefile内容</h4>
+<p>Makefile里主要包含了五个东西：显式规则、隐晦规则、变量定义、文件指示和注释。</p>
+<p>1、显式规则。显式规则说明了，如何生成一个或多的的目标文件。这是由Makefile的书写者明显指出，要生成的文件，文件的依赖文件，生成的命令。</p>
+<p>2、隐晦规则。由于我们的make有自动推导的功能，所以隐晦的规则可以让我们比较粗糙地简略地书写Makefile，这是由make所支持的。</p>
+<p>3、变量的定义。在Makefile中我们要定义一系列的变量，变量一般都是字符串，这个有点你C语言中的宏，当Makefile被执行时，其中的变量都会被扩展到相应的引用位置上。</p>
+<p>4、文件指示。其包括了三个部分，一个是在一个Makefile中引用另一个Makefile，就像C语言中的include一样；另一个是指根据某些情况指定Makefile中的有效部分，就像C语言中的预编译#if一样；还有就是定义一个多行的命令。</p>
+<p>5、注释。Makefile中只有行注释，和UNIX的Shell脚本一样，其注释是用“#”字符，这个就像C/C++中的“//”一样。如果你要在你的Makefile中使用“#”字符，可以用反斜框进行转义，如：“#”。</p>
+<p>规则包含两个部分，一个是依赖关系，一个是生成目标的方法</p>
+<p>在Makefile中，规则的顺序是很重要的，因为，Makefile中只应该有一个最终目标，其它的目标都是被这个目标所连带出来的，所以一定要让
+make知道你的最终目标是什么。一般来说，定义在Makefile中的目标可能会有很多，但是第一条规则中的目标将被确立为最终的目标。如果第一条规则中的目标有很多个，那么，第一个目标会成为最终的目标。make所完成的也就是这个目标。</p>
+<h4 id="清空目标文件的规则">清空目标文件的规则</h4>
+<p>一般的风格都是：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">clean:</span><br><span class="line">rm edit $(objects)</span><br></pre></td></tr></table></figure>
+<p>更为稳健的做法是：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">.PHONY : clean  (phony,&lt;非正式&gt;虚伪的，做作的)</span><br><span class="line">clean :</span><br><span class="line">-rm edit $(objects)</span><br></pre></td></tr></table></figure>
+<h4 id="makefile怎么运作">MakeFile怎么运作</h4>
+<p>MakeFile里面大致是先处理一些环境变量或者参数，然后从某一个位置开始执行命令集。</p>
+<p>1、读入所有的Makefile。</p>
+<p>2、读入被include的其它Makefile。</p>
+<p>3、初始化文件中的变量。</p>
+<p>4、推导隐晦规则，并分析所有规则。</p>
+<p>5、为所有的目标文件创建依赖关系链。</p>
+<p>6、根据依赖关系，决定哪些目标要重新生成。</p>
+<p>7、执行生成命令。</p>
+<p>1-5步为第一个阶段，6-7为第二个阶段。第一个阶段中，如果定义的变量被使用了，那么，make会把其展开在使用的位置。但make并不会完全马上展
+开，make使用的是拖延战术，如果变量出现在依赖关系的规则中，那么仅当这条依赖被决定要使用了，变量才会在其内部展开。</p>
+<h1 id="常用命令行">常用命令行</h1>
+<ul>
+<li>cc、gcc、g++、CC的区别概括：<a
+href="https://blog.csdn.net/liaoshengshi/article/details/40424397#:~:text=cc是Unix系统的C%20Compiler，而gcc则是GNU%20Compiler%20Collection，GNU编译器套装。.,gcc原名为Gun%20C语言编译器，因为它原本只能处理C语言，但gcc很快地扩展，包含很多编译器（C、C%2B%2B、Objective-C、Ada、Fortran、Java）。.%20因此，它们是不一样的，一个是古老的C编译器，一个是GNU编译器集合，gcc里面的C编译器比cc强大多了，因此没必要用cc。.%20下载不到cc的原因在于：cc来自于昂贵的Unix系统，cc是商业软件。.">(17条消息)
+cc、gcc、g++、CC的区别概括_如小丧的博客-CSDN博客</a></li>
+<li>超全整理！Linux shell及常用36类命令汇总：<a
+href="https://zhuanlan.zhihu.com/p/50448669">超全整理！Linux
+shell及常用36类命令汇总 - 知乎 (zhihu.com)</a></li>
+</ul>
+<p>-g 可执行程序包含调试信息，为了调试用的：加个-g 是为了gdb
+用，不然gdb用不到</p>
+<p>-o 指定输出文件名（o：output） -c
+只编译不链接：产生.o文件，就是obj文件，不产生执行文件（c : compile）</p>
+<p>-o
+output_filename，确定输出文件的名称为output_filename，同时这个名称不能和源文件同名。如果不给出这个选项，gcc就给出预设的可执行文件a.out。
+一般语法： gcc filename.c -o filename 上面的意思是如果你不打 -o
+filename（直接gcc filename.c
+）；那么默认就是输出a.out.这个-o就是用来控制输出文件的。
+------用./a.out执行文件</p>
+<p>-c 只编译不链接</p>
+<p>产生.o文件，就是obj文件，不产生执行文件</p>
+<h1 id="references">References</h1>
+<ul>
+<li><p><a
+href="https://tieba.baidu.com/p/591519800?red_tag=2203856275">Makefile详解（超级好）【mingw吧】_百度贴吧
+(baidu.com)</a></p></li>
+<li><p><a
+href="https://blog.csdn.net/weixin_51483516/article/details/120837316">(17条消息)
+静态库与动态库的区别与优缺点_静态库和动态库的优缺点_雨荔@秋垣的博客-CSDN博客</a></p></li>
+<li><p>【GNU
+Makefile编译C/C++教程（Linux系统、VSCODE)】https://www.bilibili.com/video/BV1EM41177s1?p=22&amp;vd_source=93bb338120537438ee9180881deab9c1!!!</p></li>
+</ul>
+]]></content>
+      <categories>
+        <category>CS</category>
+      </categories>
+      <tags>
+        <tag>CS</tag>
       </tags>
   </entry>
   <entry>
@@ -5889,83 +6107,95 @@ alt="温州猪脏粉" />
       </tags>
   </entry>
   <entry>
-    <title>桌面美化</title>
-    <url>/2023/08/10/%E6%A1%8C%E9%9D%A2%E7%BE%8E%E5%8C%96/</url>
+    <title>各种通信方式</title>
+    <url>/2023/07/29/%E5%90%84%E7%A7%8D%E9%80%9A%E4%BF%A1%E6%96%B9%E5%BC%8F/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>美化桌面，愉悦心情</p>
+<p>了解及总结（同步通信-异步通信-全双工通信-串行通信-并行通信）各种通信方法</p>
 <span id="more"></span>
-<h1 id="任务栏美化">任务栏美化</h1>
-<p>微软商店安装<strong>TranslucentTB</strong>使任务栏透明</p>
-<p>任务栏设置中隐藏任务栏</p>
-<h1 id="桌面美化">桌面美化</h1>
-<h2 id="rainmeter">Rainmeter</h2>
-<p>桌面时钟、音乐频谱、电脑监控等</p>
-<h3 id="加载主题">加载主题</h3>
-<p>在<a href="https://zhutix.com/">致美化 - 最专业的视觉美化交流平台
-(zhutix.com)</a>的Rainmeter中下载即可</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230810220256059.png"
-alt="image-20230810220256059" />
-<figcaption aria-hidden="true">image-20230810220256059</figcaption>
-</figure>
-<h3 id="设置">设置</h3>
+<h1 id="并行通信-and-串行通信">并行通信 and 串行通信</h1>
+<h2 id="并行通信">并行通信</h2>
+<p>Parallel communication</p>
+<h4 id="传输方式">传输方式</h4>
+<p>多个数据bit位同时传输</p>
+<h4 id="常用总线">常用总线</h4>
+<p>local bus, DDR</p>
+<h4 id="特点">特点</h4>
 <ul>
-<li>点击穿透</li>
-<li>允许拖动</li>
-<li>总在底层</li>
+<li>同时传输，效率高</li>
+<li>数据线多，设计复杂</li>
 </ul>
-<h3 id="参数设置">参数设置</h3>
-<p>右上角可以直接该参数eg:rgb值,links等</p>
-<h3 id="主题保存">主题保存</h3>
-<p>自己自定义了组件，在主题中保存为新主题即可。</p>
-<h2 id="鼠标指针">鼠标指针</h2>
-<p>在致美化下载鼠标指针样式，解压后找到后缀.inf的文件右键安装</p>
-<p>在设置——个性化——主题——鼠标光标中切换方案即可</p>
-<h1 id="开始菜单美化">开始菜单美化</h1>
-<p>主要使用Start11给“开始”添加图片</p>
-<h1 id="wallpaper-engine">Wallpaper Engine</h1>
+<h2 id="串行通信">串行通信</h2>
+<p>Serial communication</p>
+<h4 id="传输方式-1">传输方式</h4>
+<p>数据bit一位一位传输</p>
+<h4 id="常用总线-1">常用总线</h4>
+<p>local bus, DDR</p>
+<h4 id="特点-1">特点</h4>
 <ul>
-<li><p>性能：开机时启动（设为最高优先级）；其他应用最大化时改为停止（释放内存）</p></li>
-<li><p>常规：打开覆盖壁纸图像+覆盖锁屏图像</p></li>
-<li><p>可以创建文件夹</p></li>
-<li><p>壁纸音量调为0；跟随鼠标晃动的壁纸：鼠标视差关闭即可</p></li>
-<li><p>彩蛋：设置-&gt;关于（英文大写输入）上上下下左右左右BA回车，获得星空主题</p></li>
+<li>按bit逐位传输，效率低</li>
+<li>只需一根数据线，设计简单</li>
 </ul>
-<h1 id="结果展示">结果展示</h1>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230810235722677.png"
-alt="image-20230810235722677" />
-<figcaption aria-hidden="true">image-20230810235722677</figcaption>
-</figure>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230810235744577.png"
-alt="image-20230810235744577" />
-<figcaption aria-hidden="true">image-20230810235744577</figcaption>
-</figure>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230815103141441.png"
-alt="image-20230815103141441" />
-<figcaption aria-hidden="true">image-20230815103141441</figcaption>
-</figure>
+<h1 id="异步串行通信-and-同步串行通信">异步串行通信 and
+同步串行通信</h1>
+<h2 id="异步串行通信">异步串行通信</h2>
+<p>Asynchronous serial communication</p>
+<h4 id="特点-2">特点</h4>
+<ul>
+<li>信息发送设备与接收设备之间无时钟连接</li>
+<li>信息中包含特殊标志位Start/Stop</li>
+<li>接收设备根据特殊标志位利用本地时钟对数据采样</li>
+</ul>
+<h4 id="example">Example</h4>
+<p>UART，无时钟线连接</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">接收器   发送器</span><br><span class="line">TxD-----&gt;RxD</span><br><span class="line">RxD&lt;-----TxD</span><br></pre></td></tr></table></figure>
+<h2 id="同步串行通信">同步串行通信</h2>
+<p>Synchronous serial communciation</p>
+<h4 id="特点-3">特点</h4>
+<ul>
+<li>信息发送设备与接收设备需要时钟同步</li>
+<li>两者间出数据线连接，还需要额外的时钟线连接</li>
+</ul>
+<h4 id="example-1">Example</h4>
+<p>IIC,需要时钟线SCL连接</p>
+<h1
+id="三种数据通路单工半双工全双工">三种数据通路：单工，半双工，全双工</h1>
+<h2 id="单工通信">单工通信</h2>
+<p>Simplex communciation</p>
+<h4 id="特点-4">特点</h4>
+<ul>
+<li>信息只能单一方向传输</li>
+</ul>
+<h4 id="example-2">Example</h4>
+<p>广播，遥控器</p>
+<h2 id="半双工通信">半双工通信</h2>
+<p>Half-duplex communciation</p>
+<h4 id="特点-5">特点</h4>
+<ul>
+<li>数据支持双向传输</li>
+<li>发送和接收不能同时进行，同一时间只能发送or接收数据</li>
+</ul>
+<h4 id="example-3">Example</h4>
+<p>IIC</p>
+<h2 id="全双工通信">全双工通信</h2>
+<p>Full-duplex communciation</p>
+<h4 id="特点-6">特点</h4>
+<ul>
+<li>数据支持双向传输</li>
+<li>数据接收和发送同时进行</li>
+</ul>
+<h4 id="example-4">Example</h4>
+<p>电话、网口、UART</p>
 <h1 id="references">References</h1>
 <ul>
-<li><p>【【Wallpaper
-Engine】迄今为止最详细的使用教程】https://www.bilibili.com/video/BV1dX4y1E7vF?vd_source=93bb338120537438ee9180881deab9c1</p></li>
-<li><p><a
-href="https://zhuanlan.zhihu.com/p/563088705">程序员教你十分钟做出炫酷桌面
-- 知乎 (zhihu.com)</a></p></li>
-<li><p>【雨滴桌面教程|深度打造你的自定义桌面（Rainmeter教程）】https://www.bilibili.com/video/BV1N5411x7KP?vd_source=93bb338120537438ee9180881deab9c1</p></li>
+<li>B站视频：【四分钟搞定【同步通信-异步通信-全双工通信-串行通信-并行通信】】https://www.bilibili.com/video/BV1q64y1R72M?vd_source=93bb338120537438ee9180881deab9c1</li>
 </ul>
 ]]></content>
       <categories>
-        <category>奇技淫巧</category>
+        <category>嵌入式</category>
       </categories>
       <tags>
-        <tag>奇技淫巧</tag>
+        <tag>嵌入式</tag>
+        <tag>通信</tag>
       </tags>
   </entry>
   <entry>
@@ -6609,6 +6839,86 @@ alt="强制跳转地址" />
       </categories>
       <tags>
         <tag>嵌入式</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>桌面美化</title>
+    <url>/2023/08/10/%E6%A1%8C%E9%9D%A2%E7%BE%8E%E5%8C%96/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>美化桌面，愉悦心情</p>
+<span id="more"></span>
+<h1 id="任务栏美化">任务栏美化</h1>
+<p>微软商店安装<strong>TranslucentTB</strong>使任务栏透明</p>
+<p>任务栏设置中隐藏任务栏</p>
+<h1 id="桌面美化">桌面美化</h1>
+<h2 id="rainmeter">Rainmeter</h2>
+<p>桌面时钟、音乐频谱、电脑监控等</p>
+<h3 id="加载主题">加载主题</h3>
+<p>在<a href="https://zhutix.com/">致美化 - 最专业的视觉美化交流平台
+(zhutix.com)</a>的Rainmeter中下载即可</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230810220256059.png"
+alt="image-20230810220256059" />
+<figcaption aria-hidden="true">image-20230810220256059</figcaption>
+</figure>
+<h3 id="设置">设置</h3>
+<ul>
+<li>点击穿透</li>
+<li>允许拖动</li>
+<li>总在底层</li>
+</ul>
+<h3 id="参数设置">参数设置</h3>
+<p>右上角可以直接该参数eg:rgb值,links等</p>
+<h3 id="主题保存">主题保存</h3>
+<p>自己自定义了组件，在主题中保存为新主题即可。</p>
+<h2 id="鼠标指针">鼠标指针</h2>
+<p>在致美化下载鼠标指针样式，解压后找到后缀.inf的文件右键安装</p>
+<p>在设置——个性化——主题——鼠标光标中切换方案即可</p>
+<h1 id="开始菜单美化">开始菜单美化</h1>
+<p>主要使用Start11给“开始”添加图片</p>
+<h1 id="wallpaper-engine">Wallpaper Engine</h1>
+<ul>
+<li><p>性能：开机时启动（设为最高优先级）；其他应用最大化时改为停止（释放内存）</p></li>
+<li><p>常规：打开覆盖壁纸图像+覆盖锁屏图像</p></li>
+<li><p>可以创建文件夹</p></li>
+<li><p>壁纸音量调为0；跟随鼠标晃动的壁纸：鼠标视差关闭即可</p></li>
+<li><p>彩蛋：设置-&gt;关于（英文大写输入）上上下下左右左右BA回车，获得星空主题</p></li>
+</ul>
+<h1 id="结果展示">结果展示</h1>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230810235722677.png"
+alt="image-20230810235722677" />
+<figcaption aria-hidden="true">image-20230810235722677</figcaption>
+</figure>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230810235744577.png"
+alt="image-20230810235744577" />
+<figcaption aria-hidden="true">image-20230810235744577</figcaption>
+</figure>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230815103141441.png"
+alt="image-20230815103141441" />
+<figcaption aria-hidden="true">image-20230815103141441</figcaption>
+</figure>
+<h1 id="references">References</h1>
+<ul>
+<li><p>【【Wallpaper
+Engine】迄今为止最详细的使用教程】https://www.bilibili.com/video/BV1dX4y1E7vF?vd_source=93bb338120537438ee9180881deab9c1</p></li>
+<li><p><a
+href="https://zhuanlan.zhihu.com/p/563088705">程序员教你十分钟做出炫酷桌面
+- 知乎 (zhihu.com)</a></p></li>
+<li><p>【雨滴桌面教程|深度打造你的自定义桌面（Rainmeter教程）】https://www.bilibili.com/video/BV1N5411x7KP?vd_source=93bb338120537438ee9180881deab9c1</p></li>
+</ul>
+]]></content>
+      <categories>
+        <category>奇技淫巧</category>
+      </categories>
+      <tags>
+        <tag>奇技淫巧</tag>
       </tags>
   </entry>
 </search>
