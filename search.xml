@@ -819,6 +819,145 @@ can id过滤_flydream0的博客-CSDN博客</a></li>
       </tags>
   </entry>
   <entry>
+    <title>EXTI入门</title>
+    <url>/2023/08/21/EXTI%E5%85%A5%E9%97%A8/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>Following
+哈工深上传到B站的电控组培训来入门robomaster电控组，我购买了普中科技玄武套餐开发板作为硬件。</p>
+<p>本篇介绍我学习EXIT的见闻</p>
+<span id="more"></span>
+<h1 id="exti">EXTI</h1>
+<h2 id="中断简介">中断简介</h2>
+<p>中断指计算机运行过程中，出现某些意外情况需要主机干预时，机器能自动停止正在运行的程序并转入处理新情况的程序，处理完毕后又返回原被暂停的程序继续运行。<strong>中断是实现多线程设计的必要条件</strong>。</p>
+<p>EXTI：（External interrupt/event controller）外部中断/事件控制器</p>
+<h2 id="nvic">NVIC</h2>
+<p>NVIC的全称是Nested vectoredinterrupt
+controller，即嵌套向量中断控制器</p>
+<p>能够打断当前代码执行流程的事件分为<strong>异常(exception)</strong>和<strong>中断(interrupt)</strong>，他们都被编排在中断向量表（在stm32中文参考手册中可查找，在stm32的启动文件中也能找到eg:startup_stm32f103xe.s）里面。</p>
+<ul>
+<li>编号为负的内核异常不能被设置优先级，如复位(Reset)、不可屏蔽中断
+(NMI)、硬错误(Hardfault)。从编号 7
+开始的为外部中断，这些中断的优先级都是可以自行设置的。</li>
+<li>NVIC的核心功能是中断优先级分组、中断优先级的配置、读中断请求标志、清除中断请求标志、使能中断、清除中断等.</li>
+<li>外部中断信号从核外发出，信号最终要传递到NVIC(嵌套向量中断控制器)。</li>
+<li>NVIC跟内核紧密耦合，它控制着整个芯片中断的相关功能。</li>
+</ul>
+<h2 id="中断优先级分组">中断优先级分组</h2>
+<p>STM32 的中断向量具有两个属性：抢占，响应</p>
+<ul>
+<li><p>抢占（编号越小，优先级越高），是指打断其它中断的属性，即因为具有这个属性，会出现嵌套中断(在执行中断服务函数
+A 的过程中被中断 B 打断，执行完中断服务函数 B 再继续执行中断服务函数
+A)。</p></li>
+<li><p>响应（编号越小，优先级越高）属性则应用在抢占属性相同的情况下，当两个中断向量的抢占优先级相同时，如果两个中断同时到达，则先处理响应优先级高的中断。（不能打断其他中断）</p></li>
+<li><p>在STM32中，抢占优先级和响应优先级的数量由一个 4
+位的数字来决定，把这个 4
+位数字的位数分配成抢占优先级部分和响应优先级部分。（都写在寄存器内）</p></li>
+</ul>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230607154202250.png"
+alt="image-20230607154202250" />
+<figcaption aria-hidden="true">image-20230607154202250</figcaption>
+</figure>
+<blockquote>
+<p>Tips:两个中断不可能同时来，所以响应优先级主要给出了一种响应的优先队列，当多个中断向量的抢占优先级相同时，它们不会互相打断，后续的排队会按照响应优先级排队。</p>
+</blockquote>
+<h2 id="exti介绍">EXTI介绍</h2>
+<p>中断引脚的序号需要不一样才能配置不停的中断（F1系列的硬件实现）</p>
+<blockquote>
+<p>Tips:F1系列中断是共用的eg:中断/事件线EXTI0，输入源PX0（X可为A,B,...I）PA0用了则PB0就用不了。</p>
+</blockquote>
+<p>EXTI有两大模式;中断模式和事件模式</p>
+<ul>
+<li>中断模式产生中断：把输入信号输入到NVIC中，进一步执行中断服务函数，实现功能，这是软件级别的。</li>
+<li>事件模式产生事件：传输一个脉冲信号给其他外设使用，并且这是电路级别的信号传输，不需要软件处理，硬件直接触发</li>
+</ul>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230821013658350.png"
+alt="image-20230821013658350" />
+<figcaption aria-hidden="true">image-20230821013658350</figcaption>
+</figure>
+<ul>
+<li>23：并行传输数据，和这个寄存器一样的有23个</li>
+<li>边沿检测电路：一个符合则输出1</li>
+</ul>
+<p>每一种模式都可配置为上升沿触发、下降沿触发，以及上升下降沿触发三种触发方式</p>
+<h2 id="中断函数的实现">中断函数的实现</h2>
+<p>要产生中断，必须先配置好并使能中断线。根据需要的边沿检测设置2个触发寄存器，同时在中断屏蔽寄存器的相应位写’1’允许中断请求。当外部中断线上发生了期待的边沿时，将产生一个中断请求，对应的挂起位也随之被置’1’。在挂起寄存器的对应位写’1’，将清除该中断请求。</p>
+<p>如果需要产生事件，必须先配置好并使能事件线。根据需要的边沿检测通过设置2个触发寄存器，同时在事件屏蔽寄存器的相应位写’1’允许事件请求。当事件线上发生了需要的边沿时，将产生一个事件请求脉冲，对应的挂起位不被置’1’。</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230607154902377.png"
+alt="image-20230607154902377" />
+<figcaption aria-hidden="true">image-20230607154902377</figcaption>
+</figure>
+<p>通过在软件中断/事件寄存器写’1’，也可以通过软件产生中断/事件请求。</p>
+<ul>
+<li><p>一般来说单片机的中断发生有两个条件，一是<strong>中断标志位置位</strong>，二是<strong>中断允许</strong>（中断屏蔽寄存器），如果这两个条件都满足则进入中断，因为正常情况下中断一直是允许的，那么只能通过标志位来区分是否有中断挂起</p></li>
+<li><p>中断标志位：挂起请求寄存器设置。</p>
+<p>PRx:挂起为（pending bit）：</p>
+<p>0没有发生触发请求，1发生了选择触发请求</p>
+<p>当在外部中断线上发生了选择的边沿事件，该位被置1。在该位写入1可以清楚它，也可以通过改变边沿检测的极性清除。</p></li>
+<li><p>如果进入中断不清除标志位，那么这一中断服务程序结束后由于标志位还是置位的并且中断是允许的，那么还会再次进入该中断，就会发生一直在执行中断程序的情况</p></li>
+<li><p>周期性中断是由定时器辅助完成的，只要定时时间到，硬件就会自动置位标志位，这时中断发生，定时器还在运行，<strong>与中断处理是并行的没有冲突</strong>，因此周期性的中断不是从中断标志位清零开始的。</p>
+<blockquote>
+<p>Tips:MCU和定时器是并行的，互不影响</p>
+</blockquote></li>
+<li><p>如果中断程序没有执行完并且一下个中断又来了，那么硬件还是会自动置位标志位的，如果在这之前已经清零标志位那么中断结束后会再进入一次该中断，如果这时还没有清除中断标志位，则第二个中断无效。</p>
+<blockquote>
+<p>Tips:有中断，中断标志位变为1,不清0，则不能响应新的中断。</p>
+</blockquote></li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**</span><br><span class="line"> * @brief EXTI line detection callbacks.</span><br><span class="line"> * @param GPIO_Pin: Specifies the pins connected EXTI line</span><br><span class="line"> * @retval None</span><br><span class="line"> *外部中断的回调函数,hal库</span><br><span class="line"> */ </span><br><span class="line">__weak void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) </span><br><span class="line">&#123;</span><br><span class="line"> /* Prevent unused argument(s) compilation warning */</span><br><span class="line"> UNUSED(GPIO_Pin);</span><br><span class="line"> /* NOTE: This function Should not be modified, when the callback is needed, the HAL_GPIO_EXTI_Callback could be implemented in the user file */ </span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>Tips:
+<code>_weak</code>在其他地方重新定义该函数此_weak定义的函数会被覆盖,即我们要重写void
+HAL_GPIO_EXTI_Callback(uin16_t,GPIO_Pin);函数</p>
+</blockquote>
+<h2 id="实验">实验</h2>
+<h3 id="按键扫描">按键扫描</h3>
+<p>根据需要确定GPIO模式：选择下拉输入还是上拉输入or浮空输入，通过反复读取按键状态是否为高电平判断按键是否被触发</p>
+<p><strong>按键扫描的原理</strong>：
+按键的两个引脚的一端通过下拉电阻拉倒低电平，另一端接着电源。当按下开关时，输入引脚为高电平。通过反复读取按键状态是否为高电平判断按键是否被触发。</p>
+<p><strong>notes:</strong></p>
+<ul>
+<li><p>记得在cubeMX的GPIO把NVIC设置为enable</p></li>
+<li><p>在keil
+5中添加新文件：先将文件放在同一目录下，右键add添加.c文件/双击add即可，.h文件用#include包含即可</p></li>
+<li><p>机械按键的抖动，毛刺，延时再判断，hal_delay是用systick实现的</p>
+<blockquote>
+<p>Tips:设置中断优先级（比时钟低，不然不能HAL_Delay(),会陷入死循环）</p>
+</blockquote></li>
+</ul>
+<p>如下图：数码管8位一般定义为：DP G F E D C B A</p>
+<p>B C亮表示1，即00000110=0x06;</p>
+<p>A B G E D亮表示2 即01011011=0x5b；</p>
+<p>依次类推</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/a1ec08fa513d26975dfc13c055fbb2fb4316d87b.jpg"
+alt="a1ec08fa513d26975dfc13c055fbb2fb4316d87b" />
+<figcaption
+aria-hidden="true">a1ec08fa513d26975dfc13c055fbb2fb4316d87b</figcaption>
+</figure>
+<h1 id="references">References</h1>
+<ul>
+<li>哈工深电控内训</li>
+<li><a
+href="https://zhidao.baidu.com/question/1959763145635584700.html">单片机的中断标志位是有什么作用？_百度知道
+(baidu.com)</a></li>
+</ul>
+]]></content>
+      <categories>
+        <category>嵌入式</category>
+      </categories>
+      <tags>
+        <tag>嵌入式</tag>
+        <tag>robomaster</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Environment_variables</title>
     <url>/2023/08/14/Environment-variables/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
@@ -1053,145 +1192,6 @@ alt="image-20230824233303404" />
 <h1 id="references">References</h1>
 <ul>
 <li>哈工深电控内训</li>
-</ul>
-]]></content>
-      <categories>
-        <category>嵌入式</category>
-      </categories>
-      <tags>
-        <tag>嵌入式</tag>
-        <tag>robomaster</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>EXTI入门</title>
-    <url>/2023/08/21/EXTI%E5%85%A5%E9%97%A8/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>Following
-哈工深上传到B站的电控组培训来入门robomaster电控组，我购买了普中科技玄武套餐开发板作为硬件。</p>
-<p>本篇介绍我学习EXIT的见闻</p>
-<span id="more"></span>
-<h1 id="exti">EXTI</h1>
-<h2 id="中断简介">中断简介</h2>
-<p>中断指计算机运行过程中，出现某些意外情况需要主机干预时，机器能自动停止正在运行的程序并转入处理新情况的程序，处理完毕后又返回原被暂停的程序继续运行。<strong>中断是实现多线程设计的必要条件</strong>。</p>
-<p>EXTI：（External interrupt/event controller）外部中断/事件控制器</p>
-<h2 id="nvic">NVIC</h2>
-<p>NVIC的全称是Nested vectoredinterrupt
-controller，即嵌套向量中断控制器</p>
-<p>能够打断当前代码执行流程的事件分为<strong>异常(exception)</strong>和<strong>中断(interrupt)</strong>，他们都被编排在中断向量表（在stm32中文参考手册中可查找，在stm32的启动文件中也能找到eg:startup_stm32f103xe.s）里面。</p>
-<ul>
-<li>编号为负的内核异常不能被设置优先级，如复位(Reset)、不可屏蔽中断
-(NMI)、硬错误(Hardfault)。从编号 7
-开始的为外部中断，这些中断的优先级都是可以自行设置的。</li>
-<li>NVIC的核心功能是中断优先级分组、中断优先级的配置、读中断请求标志、清除中断请求标志、使能中断、清除中断等.</li>
-<li>外部中断信号从核外发出，信号最终要传递到NVIC(嵌套向量中断控制器)。</li>
-<li>NVIC跟内核紧密耦合，它控制着整个芯片中断的相关功能。</li>
-</ul>
-<h2 id="中断优先级分组">中断优先级分组</h2>
-<p>STM32 的中断向量具有两个属性：抢占，响应</p>
-<ul>
-<li><p>抢占（编号越小，优先级越高），是指打断其它中断的属性，即因为具有这个属性，会出现嵌套中断(在执行中断服务函数
-A 的过程中被中断 B 打断，执行完中断服务函数 B 再继续执行中断服务函数
-A)。</p></li>
-<li><p>响应（编号越小，优先级越高）属性则应用在抢占属性相同的情况下，当两个中断向量的抢占优先级相同时，如果两个中断同时到达，则先处理响应优先级高的中断。（不能打断其他中断）</p></li>
-<li><p>在STM32中，抢占优先级和响应优先级的数量由一个 4
-位的数字来决定，把这个 4
-位数字的位数分配成抢占优先级部分和响应优先级部分。（都写在寄存器内）</p></li>
-</ul>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230607154202250.png"
-alt="image-20230607154202250" />
-<figcaption aria-hidden="true">image-20230607154202250</figcaption>
-</figure>
-<blockquote>
-<p>Tips:两个中断不可能同时来，所以响应优先级主要给出了一种响应的优先队列，当多个中断向量的抢占优先级相同时，它们不会互相打断，后续的排队会按照响应优先级排队。</p>
-</blockquote>
-<h2 id="exti介绍">EXTI介绍</h2>
-<p>中断引脚的序号需要不一样才能配置不停的中断（F1系列的硬件实现）</p>
-<blockquote>
-<p>Tips:F1系列中断是共用的eg:中断/事件线EXTI0，输入源PX0（X可为A,B,...I）PA0用了则PB0就用不了。</p>
-</blockquote>
-<p>EXTI有两大模式;中断模式和事件模式</p>
-<ul>
-<li>中断模式产生中断：把输入信号输入到NVIC中，进一步执行中断服务函数，实现功能，这是软件级别的。</li>
-<li>事件模式产生事件：传输一个脉冲信号给其他外设使用，并且这是电路级别的信号传输，不需要软件处理，硬件直接触发</li>
-</ul>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230821013658350.png"
-alt="image-20230821013658350" />
-<figcaption aria-hidden="true">image-20230821013658350</figcaption>
-</figure>
-<ul>
-<li>23：并行传输数据，和这个寄存器一样的有23个</li>
-<li>边沿检测电路：一个符合则输出1</li>
-</ul>
-<p>每一种模式都可配置为上升沿触发、下降沿触发，以及上升下降沿触发三种触发方式</p>
-<h2 id="中断函数的实现">中断函数的实现</h2>
-<p>要产生中断，必须先配置好并使能中断线。根据需要的边沿检测设置2个触发寄存器，同时在中断屏蔽寄存器的相应位写’1’允许中断请求。当外部中断线上发生了期待的边沿时，将产生一个中断请求，对应的挂起位也随之被置’1’。在挂起寄存器的对应位写’1’，将清除该中断请求。</p>
-<p>如果需要产生事件，必须先配置好并使能事件线。根据需要的边沿检测通过设置2个触发寄存器，同时在事件屏蔽寄存器的相应位写’1’允许事件请求。当事件线上发生了需要的边沿时，将产生一个事件请求脉冲，对应的挂起位不被置’1’。</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230607154902377.png"
-alt="image-20230607154902377" />
-<figcaption aria-hidden="true">image-20230607154902377</figcaption>
-</figure>
-<p>通过在软件中断/事件寄存器写’1’，也可以通过软件产生中断/事件请求。</p>
-<ul>
-<li><p>一般来说单片机的中断发生有两个条件，一是<strong>中断标志位置位</strong>，二是<strong>中断允许</strong>（中断屏蔽寄存器），如果这两个条件都满足则进入中断，因为正常情况下中断一直是允许的，那么只能通过标志位来区分是否有中断挂起</p></li>
-<li><p>中断标志位：挂起请求寄存器设置。</p>
-<p>PRx:挂起为（pending bit）：</p>
-<p>0没有发生触发请求，1发生了选择触发请求</p>
-<p>当在外部中断线上发生了选择的边沿事件，该位被置1。在该位写入1可以清楚它，也可以通过改变边沿检测的极性清除。</p></li>
-<li><p>如果进入中断不清除标志位，那么这一中断服务程序结束后由于标志位还是置位的并且中断是允许的，那么还会再次进入该中断，就会发生一直在执行中断程序的情况</p></li>
-<li><p>周期性中断是由定时器辅助完成的，只要定时时间到，硬件就会自动置位标志位，这时中断发生，定时器还在运行，<strong>与中断处理是并行的没有冲突</strong>，因此周期性的中断不是从中断标志位清零开始的。</p>
-<blockquote>
-<p>Tips:MCU和定时器是并行的，互不影响</p>
-</blockquote></li>
-<li><p>如果中断程序没有执行完并且一下个中断又来了，那么硬件还是会自动置位标志位的，如果在这之前已经清零标志位那么中断结束后会再进入一次该中断，如果这时还没有清除中断标志位，则第二个中断无效。</p>
-<blockquote>
-<p>Tips:有中断，中断标志位变为1,不清0，则不能响应新的中断。</p>
-</blockquote></li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**</span><br><span class="line"> * @brief EXTI line detection callbacks.</span><br><span class="line"> * @param GPIO_Pin: Specifies the pins connected EXTI line</span><br><span class="line"> * @retval None</span><br><span class="line"> *外部中断的回调函数,hal库</span><br><span class="line"> */ </span><br><span class="line">__weak void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) </span><br><span class="line">&#123;</span><br><span class="line"> /* Prevent unused argument(s) compilation warning */</span><br><span class="line"> UNUSED(GPIO_Pin);</span><br><span class="line"> /* NOTE: This function Should not be modified, when the callback is needed, the HAL_GPIO_EXTI_Callback could be implemented in the user file */ </span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>Tips:
-<code>_weak</code>在其他地方重新定义该函数此_weak定义的函数会被覆盖,即我们要重写void
-HAL_GPIO_EXTI_Callback(uin16_t,GPIO_Pin);函数</p>
-</blockquote>
-<h2 id="实验">实验</h2>
-<h3 id="按键扫描">按键扫描</h3>
-<p>根据需要确定GPIO模式：选择下拉输入还是上拉输入or浮空输入，通过反复读取按键状态是否为高电平判断按键是否被触发</p>
-<p><strong>按键扫描的原理</strong>：
-按键的两个引脚的一端通过下拉电阻拉倒低电平，另一端接着电源。当按下开关时，输入引脚为高电平。通过反复读取按键状态是否为高电平判断按键是否被触发。</p>
-<p><strong>notes:</strong></p>
-<ul>
-<li><p>记得在cubeMX的GPIO把NVIC设置为enable</p></li>
-<li><p>在keil
-5中添加新文件：先将文件放在同一目录下，右键add添加.c文件/双击add即可，.h文件用#include包含即可</p></li>
-<li><p>机械按键的抖动，毛刺，延时再判断，hal_delay是用systick实现的</p>
-<blockquote>
-<p>Tips:设置中断优先级（比时钟低，不然不能HAL_Delay(),会陷入死循环）</p>
-</blockquote></li>
-</ul>
-<p>如下图：数码管8位一般定义为：DP G F E D C B A</p>
-<p>B C亮表示1，即00000110=0x06;</p>
-<p>A B G E D亮表示2 即01011011=0x5b；</p>
-<p>依次类推</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/a1ec08fa513d26975dfc13c055fbb2fb4316d87b.jpg"
-alt="a1ec08fa513d26975dfc13c055fbb2fb4316d87b" />
-<figcaption
-aria-hidden="true">a1ec08fa513d26975dfc13c055fbb2fb4316d87b</figcaption>
-</figure>
-<h1 id="references">References</h1>
-<ul>
-<li>哈工深电控内训</li>
-<li><a
-href="https://zhidao.baidu.com/question/1959763145635584700.html">单片机的中断标志位是有什么作用？_百度知道
-(baidu.com)</a></li>
 </ul>
 ]]></content>
       <categories>
@@ -1799,6 +1799,282 @@ href="https://blog.csdn.net/qq_35157382/article/details/119653413">嵌入式-STM
       <tags>
         <tag>嵌入式</tag>
         <tag>robomaster</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Git入门</title>
+    <url>/2023/08/05/Git%E5%85%A5%E9%97%A8/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>following <a
+href="https://missing-semester-cn.github.io/2020/version-control/">版本控制(Git)
+· the missing semester of your cs education
+(missing-semester-cn.github.io)</a>来学习git的相关知识</p>
+<p>希望通过<a href="https://git-scm.com/book/zh/v2">Git - Book
+(git-scm.com)</a>+<a
+href="https://learngitbranching.js.org/?locale=zh_CN">Learn Git
+Branching</a>来进一步掌握Git</p>
+<p><strong>Learn to love the command line. Leave the IDE
+behind.</strong></p>
+<span id="more"></span>
+<h1 id="version-controlgit">Version control(Git)</h1>
+<p>版本控制系统version control
+system(VCS)是一类用于追踪源代码（或其他文件、文件夹）改动的工具</p>
+<h4 id="好处">好处：</h4>
+<ul>
+<li>这些工具可以帮助我们管理代码的修改历史</li>
+<li>可以让协作编码变得更方便</li>
+</ul>
+<h4 id="工作方式">工作方式</h4>
+<p>VCS通过一系列的快照将某个文件夹及其内容保存了起来，每个快照都包含了文件或文件夹的完整状态。同时它还维护了快照创建者的信息以及每个快照的相关信息等等。</p>
+<figure>
+<img
+src="https://cdn.jsdelivr.net/gh/Immortal-Fates/figure_Bed@main/blog/git.png"
+alt="git" />
+<figcaption aria-hidden="true">git</figcaption>
+</figure>
+<h4 id="dvcs">DVCS</h4>
+<p>分布式版本控制系统（Distributed Version Control System，简称
+DVCS）</p>
+<p>客户端并不只提取最新版本的文件快照，
+而是把代码仓库完整地镜像下来，包括完整的历史记录。
+这么一来，任何一处协同工作用的服务器发生故障，事后都可以用任何一个镜像出来的本地仓库恢复。
+因为每一次的克隆操作，实际上都是一次对代码仓库的完整备份。</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/distributed.png"
+alt="distributed" />
+<figcaption aria-hidden="true">distributed</figcaption>
+</figure>
+<p>许多这类系统都可以指定和若干不同的远端代码仓库进行交互。籍此，你就可以在同一个项目中，分别和不同工作小组的人相互协作。
+你可以根据需要设定不同的协作流程，比如层次模型式的工作流，而这在以前的集中式系统中是无法实现的。</p>
+<h1 id="git-的数据模型">Git 的数据模型</h1>
+<p>进行版本控制的方法很多。Git
+拥有一个经过精心设计的模型，这使其能够支持版本控制所需的所有特性，例如维护历史记录、支持分支和促进协作。</p>
+<h4 id="快照snapshots">快照（snapshots）</h4>
+<p>Git
+将顶级目录中的文件和文件夹作为集合，并通过一系列快照来管理其历史记录。在Git的术语里，文件被称作Blob对象（数据对象），也就是一组数据。目录则被称之为“树”，它将名字与
+Blob
+对象或树对象进行映射（使得目录中可以包含其他目录）。快照则是被追踪的最顶层的树。例如，一个树看起来可能是这样的：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&lt;root&gt; (tree)</span><br><span class="line">|</span><br><span class="line">+- foo (tree)</span><br><span class="line">|  |</span><br><span class="line">|  + bar.txt (blob, contents = &quot;hello world&quot;)</span><br><span class="line">|</span><br><span class="line">+- baz.txt (blob, contents = &quot;git is wonderful&quot;)</span><br></pre></td></tr></table></figure>
+<p>这个顶层的树包含了两个元素，一个名为 “foo”
+的tree（它本身包含了一个blob对象 “bar.txt”），以及一个 blob 对象
+“baz.txt”。</p>
+<h4 id="历史记录建模关联快照">历史记录建模：关联快照</h4>
+<p>版本控制系统和快照有什么关系呢？线性历史记录是一种最简单的模型，它包含了一组按照时间顺序线性排列的快照。</p>
+<p>在 Git 中，历史记录是一个由快照组成的有向无环图(directed acyclic
+graph (DAG))。有向无环图，这代表 Git
+中的每个快照都有一系列的“父辈”，也就是其之前的一系列快照。</p>
+<blockquote>
+<p>notes：快照具有多个“父辈”而非一个，因为某个快照可能由多个父辈而来。例如，经过合并后的两条分支。</p>
+</blockquote>
+<p>在 Git
+中，这些快照被称为“提交commit”。通过可视化的方式来表示这些历史提交记录时，看起来差不多是这样的：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">o &lt;-- o &lt;-- o &lt;-- o</span><br><span class="line">            ^  </span><br><span class="line">             \</span><br><span class="line">              --- o &lt;-- o</span><br></pre></td></tr></table></figure>
+<p>其中的 <code>o</code> 表示一次提交（快照）。</p>
+<p>箭头指向了当前提交的父辈（这是一种“在…之前”，而不是“在…之后”的关系）。在第三次提交之后，历史记录分岔成了两条独立的分支。这可能因为此时需要同时开发两个不同的特性，它们之间是相互独立的。开发完成后，这些分支可能会被合并并创建一个新的提交，这个新的提交会同时包含这些特性。新的提交会创建一个新的历史记录，看上去像这样（最新的合并提交用粗体标记）：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">o &lt;-- o &lt;-- o &lt;-- o &lt;---- o</span><br><span class="line">            ^            /</span><br><span class="line">             \          v</span><br><span class="line">              --- o &lt;-- o</span><br></pre></td></tr></table></figure>
+<p>Git
+中的提交是不可改变的。但这并不代表错误不能被修改，只不过这种“修改”实际上是创建了一个全新的提交记录。而引用（参见下文）则被更新为指向这些新的提交。</p>
+<h4 id="数据模型及其伪代码表示">数据模型及其伪代码表示</h4>
+<p>以伪代码的形式来学习 Git 的数据模型，可能更加清晰：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">// 文件就是一组数据</span><br><span class="line">type blob = array&lt;byte&gt;</span><br><span class="line"></span><br><span class="line">// 一个包含文件和目录的目录</span><br><span class="line">type tree = map&lt;string, tree | blob&gt;</span><br><span class="line"></span><br><span class="line">// 每个提交都包含一个父辈，元数据和顶层树</span><br><span class="line">type commit = struct &#123;</span><br><span class="line">    parent: array&lt;commit&gt;</span><br><span class="line">    author: string</span><br><span class="line">    message: string</span><br><span class="line">    snapshot: tree</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这是一种简洁的历史模型。</p>
+<h4 id="对象和内存寻址">对象和内存寻址</h4>
+<p>Git 中的对象可以是 blob、tree or commit：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">type object = blob | tree | commit</span><br></pre></td></tr></table></figure>
+<p>Git 在储存数据时，所有的对象都会基于它们的 <a
+href="https://en.wikipedia.org/wiki/SHA-1">SHA-1 哈希</a> 进行寻址。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">objects = map&lt;string, object&gt;</span><br><span class="line"></span><br><span class="line">def store(object):</span><br><span class="line">    id = sha1(object)</span><br><span class="line">    objects[id] = object</span><br><span class="line"></span><br><span class="line">def load(id):</span><br><span class="line">    return objects[id]</span><br></pre></td></tr></table></figure>
+<p>Blobs、树和提交都一样，它们都是对象。当它们引用其他对象时，它们并没有真正的在硬盘上保存这些对象，而是仅仅保存了它们的哈希值作为引用。</p>
+<p>例如，上面例子中的树（可以通过
+<code>git cat-file -p 698281bc680d1995c5f4caaf3359721a5a58d48d</code>
+来进行可视化），看上去是这样的：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">100644 blob 4448adbf7ecd394f42ae135bbeed9676e894af85    baz.txt</span><br><span class="line">040000 tree c68d233a33c5c06e0340e4c224f0afca87c8ce87    foo</span><br></pre></td></tr></table></figure>
+<p>树本身会包含一些指向其他内容的指针，例如 <code>baz.txt</code> (blob)
+和 <code>foo</code> (树)。如果我们用
+<code>git cat-file -p 4448adbf7ecd394f42ae135bbeed9676e894af85</code>，即通过哈希值查看
+baz.txt 的内容，会得到以下信息：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">git is wonderful</span><br></pre></td></tr></table></figure>
+<h4 id="引用references">引用(References)</h4>
+<p>Git
+给这些哈希值赋予人类可读的名字，也就是引用（references）。<strong>引用是指向提交的指针</strong>。与对象不同的是，它是可变的（引用可以被更新，指向新的提交）。例如，<code>master</code>
+引用通常会指向主分支的最新一次提交。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">references = map&lt;string, string&gt;</span><br><span class="line"></span><br><span class="line">def update_reference(name, id):</span><br><span class="line">    references[name] = id</span><br><span class="line"></span><br><span class="line">def read_reference(name):</span><br><span class="line">    return references[name]</span><br><span class="line"></span><br><span class="line">def load_reference(name_or_id):</span><br><span class="line">    if name_or_id in references:</span><br><span class="line">        return load(references[name_or_id])</span><br><span class="line">    else:</span><br><span class="line">        return load(name_or_id)</span><br></pre></td></tr></table></figure>
+<p>这样，Git 就可以使用诸如 “master”
+这样人类可读的名称来表示历史记录中某个特定的提交，而不需要在使用一长串十六进制字符了。</p>
+<p>有一个细节需要我们注意，
+通常情况下，我们会想要知道“我们当前所在位置”，并将其标记下来。这样当我们创建新的快照的时候，我们就可以知道它的相对位置（如何设置它的“父辈”）。在
+Git 中，我们当前的位置有一个特殊的索引，它就是 “HEAD”。</p>
+<h4 id="仓库repositories">仓库(Repositories)</h4>
+<p>最后，我们可以粗略地给出 Git 仓库的定义了：<code>对象</code> 和
+<code>引用</code>。</p>
+<p>在硬盘上，Git 仅存储对象和引用：因为其数据模型仅包含这些东西。所有的
+<code>git</code>
+命令都对应着对提交树的操作，例如增加对象，增加或删除引用。</p>
+<p>当你输入某个指令时，请思考一下这条命令是如何对底层的图数据结构进行操作的。另一方面，如果您希望修改提交树，例如“丢弃未提交的修改和将
+‘master’ 引用指向提交 <code>5d83f9e</code>
+时，有什么命令可以完成该操作（针对这个具体问题，您可以使用
+<code>git checkout master; git reset --hard 5d83f9e</code>）</p>
+<h1 id="staging-area">staging area</h1>
+<p>Git
+中还包括一个和数据模型完全不相关的概念，但它确是创建提交的接口的一部分。</p>
+<p>就上面介绍的快照系统来说，您也许会期望它的实现里包括一个 “创建快照”
+的命令，该命令能够基于当前工作目录的当前状态创建一个全新的快照。有些版本控制系统确实是这样工作的，但
+Git
+不是。我们希望简洁的快照，而且每次从当前状态创建快照可能效果并不理想。例如，考虑如下场景，您开发了两个独立的特性，然后您希望创建两个独立的提交，其中第一个提交仅包含第一个特性，而第二个提交仅包含第二个特性。或者，假设您在调试代码时添加了很多打印语句，然后您仅仅希望提交和修复
+bug 相关的代码而丢弃所有的打印语句。</p>
+<p>Git 处理这些场景的方法是使用一种叫做 “暂存区（staging
+area）”的机制，它允许您指定下次快照中要包括那些改动。</p>
+<h1 id="git-的命令行接口">Git 的命令行接口</h1>
+<p>为了避免重复信息，我们将不会详细解释以下命令行。强烈推荐您阅读 <a
+href="https://git-scm.com/book/zh/v2">Pro Git
+中文版</a>或可以观看本讲座的视频来学习。</p>
+<h4 id="基础">基础</h4>
+<ul>
+<li><p><code>git help &lt;command&gt;</code>: 获取 git
+命令的帮助信息</p></li>
+<li><p><code>git init</code>: 创建一个新的 git
+仓库，其数据会存放在一个名为 <code>.git</code> 的目录下</p></li>
+<li><p><code>git status</code>: 显示当前的仓库状态</p></li>
+<li><p><code>git add &lt;filename&gt;</code>: 添加文件到暂存区</p></li>
+<li><p>```plaintext git commit <figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">  : 创建一个新的提交</span><br><span class="line"></span><br><span class="line">  - 如何编写 [良好的提交信息](https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html)!</span><br><span class="line">  - 为何要 [编写良好的提交信息](https://chris.beams.io/posts/git-commit/)</span><br><span class="line"></span><br><span class="line">- `git log`: 显示历史日志</span><br><span class="line"></span><br><span class="line">- `git log --all --graph --decorate`: 可视化历史记录（有向无环图）</span><br><span class="line"></span><br><span class="line">- `git diff &lt;filename&gt;`: 显示与暂存区文件的差异</span><br><span class="line"></span><br><span class="line">- `git diff &lt;revision&gt; &lt;filename&gt;`: 显示某个文件两个版本之间的差异</span><br><span class="line"></span><br><span class="line">- `git checkout &lt;revision&gt;`: 更新 HEAD 和目前的分支</span><br><span class="line"></span><br><span class="line">#### 分支和合并</span><br><span class="line"></span><br><span class="line">- `git branch`: 显示分支</span><br><span class="line"></span><br><span class="line">- `git branch &lt;name&gt;`: 创建分支</span><br><span class="line"></span><br><span class="line">- ```plaintext</span><br><span class="line">  git checkout -b &lt;name&gt;</span><br></pre></td></tr></table></figure></p>
+<p>: 创建分支并切换到该分支</p>
+<ul>
+<li>相当于
+<code>git branch &lt;name&gt;; git checkout &lt;name&gt;</code></li>
+</ul></li>
+<li><p><code>git merge &lt;revision&gt;</code>: 合并到当前分支</p></li>
+<li><p><code>git mergetool</code>: 使用工具来处理合并冲突</p></li>
+<li><p><code>git rebase</code>:
+将一系列补丁变基（rebase）为新的基线</p></li>
+</ul>
+<h4 id="远端操作">远端操作</h4>
+<ul>
+<li><code>git remote</code>: 列出远端</li>
+<li><code>git remote add &lt;name&gt; &lt;url&gt;</code>:
+添加一个远端</li>
+<li><code>git push &lt;remote&gt; &lt;local branch&gt;:&lt;remote branch&gt;</code>:
+将对象传送至远端并更新远端引用</li>
+<li><code>git branch --set-upstream-to=&lt;remote&gt;/&lt;remote branch&gt;</code>:
+创建本地和远端分支的关联关系</li>
+<li><code>git fetch</code>: 从远端获取对象/索引</li>
+<li><code>git pull</code>: 相当于 <code>git fetch; git merge</code></li>
+<li><code>git clone</code>: 从远端下载仓库</li>
+</ul>
+<h4 id="撤销">撤销</h4>
+<ul>
+<li><code>git commit --amend</code>: 编辑提交的内容或信息</li>
+<li><code>git reset HEAD &lt;file&gt;</code>: 恢复暂存的文件</li>
+<li><code>git checkout -- &lt;file&gt;</code>: 丢弃修改</li>
+<li><code>git restore</code>: git2.32版本后取代git reset
+进行许多撤销操作</li>
+</ul>
+<h1 id="git-高级操作">Git 高级操作</h1>
+<ul>
+<li><code>git config</code>: Git 是一个 <a
+href="https://git-scm.com/docs/git-config">高度可定制的</a> 工具</li>
+<li><code>git clone --depth=1</code>: 浅克隆（shallow
+clone），不包括完整的版本历史信息</li>
+<li><code>git add -p</code>: 交互式暂存</li>
+<li><code>git rebase -i</code>: 交互式变基</li>
+<li><code>git blame</code>: 查看最后修改某行的人</li>
+<li><code>git stash</code>: 暂时移除工作目录下的修改内容</li>
+<li><code>git bisect</code>: 通过二分查找搜索历史记录</li>
+<li><code>.gitignore</code>: <a
+href="https://git-scm.com/docs/gitignore">指定</a> 故意不追踪的文件</li>
+</ul>
+<h1 id="bonus">Bonus</h1>
+<ul>
+<li><p><strong>图形用户界面</strong>: Git 的 <a
+href="https://git-scm.com/downloads/guis">图形用户界面客户端</a>
+有很多，但是我们自己并不使用这些图形用户界面的客户端，我们选择使用命令行接口</p></li>
+<li><p><strong>Shell 集成</strong>: 将 Git 状态集成到您的 shell
+中会非常方便。(<a
+href="https://github.com/olivierverdier/zsh-git-prompt">zsh</a>, <a
+href="https://github.com/magicmonty/bash-git-prompt">bash</a>)。<a
+href="https://github.com/ohmyzsh/ohmyzsh">Oh My
+Zsh</a>这样的框架中一般以及集成了这一功能</p></li>
+<li><p><strong>编辑器集成</strong>: 和上面一条类似，将 Git
+集成到编辑器中好处多多。<a
+href="https://github.com/tpope/vim-fugitive">fugitive.vim</a> 是 Vim
+中集成 GIt 的常用插件</p></li>
+<li><p><strong>工作流</strong>:
+我们已经讲解了数据模型与一些基础命令，但还没讨论到进行大型项目时的一些惯例
+( 有<a
+href="https://nvie.com/posts/a-successful-git-branching-model/">很多</a>
+<a
+href="https://www.endoflineblog.com/gitflow-considered-harmful">不同的</a>
+<a
+href="https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow">处理方法</a>)</p></li>
+<li><p><strong>GitHub</strong>: Git 并不等同于 GitHub。 在 GitHub
+中您需要使用一个被称作<a
+href="https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/about-pull-requests">拉取请求（pull
+request）</a>的方法来向其他项目贡献代码</p></li>
+<li><p><strong>其他 Git 提供商</strong>: GitHub 并不是唯一的。还有像 <a
+href="https://about.gitlab.com/">GitLab</a> 和 <a
+href="https://bitbucket.org/">BitBucket</a> 这样的平台。</p></li>
+<li><p>良好的git提交消息(设置用于git的编辑器)</p>
+<ul>
+<li><p><a
+href="https://cbea.ms/git-commit/#separate">用空行将主题与正文分开</a>:</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">git log --oneline #只打印出主题行</span><br><span class="line">git shortlog #按用户提交哪些组，再次仅显示主题行以简洁明了</span><br></pre></td></tr></table></figure></li>
+<li><p><a href="https://cbea.ms/git-commit/#limit-50">将主题行限制为 50
+个字符</a>（make sure less than 72 characters）</p></li>
+<li><p><a
+href="https://cbea.ms/git-commit/#capitalize">将主题行大写</a></p></li>
+<li><p><a
+href="https://cbea.ms/git-commit/#end">不要以句点结束主题行</a></p></li>
+<li><p><a
+href="https://cbea.ms/git-commit/#imperative">在主题行中使用命令式语气</a>:祈使句</p></li>
+<li><p><a href="https://cbea.ms/git-commit/#wrap-72">将正文包装为 72
+个字符</a>：It`s easy to configure Vim</p></li>
+<li><p><a
+href="https://cbea.ms/git-commit/#why-not-how">使用正文来解释什么和为什么与如何</a></p></li>
+</ul></li>
+</ul>
+<h1 id="resources">Resources</h1>
+<ul>
+<li><a href="https://git-scm.com/book/en/v2">Pro Git</a>
+，<strong>强烈推荐</strong>！学习前五章的内容可以教会您流畅使用 Git
+的绝大多数技巧，因为您已经理解了 Git
+的数据模型。后面的章节提供了很多有趣的高级主题。（<a
+href="https://git-scm.com/book/zh/v2">Pro Git 中文版</a>）；</li>
+<li><a href="https://ohshitgit.com/">Oh Shit, Git!?!</a>
+，简短的介绍了如何从 Git 错误中恢复；</li>
+<li><a
+href="https://eagain.net/articles/git-for-computer-scientists/">Git for
+Computer Scientists</a> ，简短的介绍了 Git
+的数据模型，与本文相比包含较少量的伪代码以及大量的精美图片；</li>
+<li><a href="https://jwiegley.github.io/git-from-the-bottom-up/">Git
+from the Bottom Up</a>详细的介绍了 Git
+的实现细节，而不仅仅局限于数据模型。好奇的同学可以看看；</li>
+<li><a
+href="https://smusamashah.github.io/blog/2017/10/14/explain-git-in-simple-words">How
+to explain git in simple words</a>；</li>
+<li><a href="https://learngitbranching.js.org/">Learn Git Branching</a>
+通过基于浏览器的游戏来学习 Git ；</li>
+</ul>
+<h1 id="references">References</h1>
+<ul>
+<li><a
+href="https://missing-semester-cn.github.io/2020/version-control/">版本控制(Git)
+· the missing semester of your cs education
+(missing-semester-cn.github.io)</a></li>
+<li><a
+href="https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html">tbaggery
+- A Note About Git Commit Messages</a></li>
+<li><a href="https://cbea.ms/git-commit/">How to Write a Git Commit
+Message (cbea.ms)</a></li>
+<li><a href="https://learngitbranching.js.org/?locale=zh_CN">Learn Git
+Branching</a></li>
+</ul>
+]]></content>
+      <categories>
+        <category>CS</category>
+      </categories>
+      <tags>
+        <tag>CS</tag>
+        <tag>Git</tag>
       </tags>
   </entry>
   <entry>
@@ -2512,282 +2788,6 @@ Branching</a></li>
       </tags>
   </entry>
   <entry>
-    <title>Git入门</title>
-    <url>/2023/08/05/Git%E5%85%A5%E9%97%A8/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>following <a
-href="https://missing-semester-cn.github.io/2020/version-control/">版本控制(Git)
-· the missing semester of your cs education
-(missing-semester-cn.github.io)</a>来学习git的相关知识</p>
-<p>希望通过<a href="https://git-scm.com/book/zh/v2">Git - Book
-(git-scm.com)</a>+<a
-href="https://learngitbranching.js.org/?locale=zh_CN">Learn Git
-Branching</a>来进一步掌握Git</p>
-<p><strong>Learn to love the command line. Leave the IDE
-behind.</strong></p>
-<span id="more"></span>
-<h1 id="version-controlgit">Version control(Git)</h1>
-<p>版本控制系统version control
-system(VCS)是一类用于追踪源代码（或其他文件、文件夹）改动的工具</p>
-<h4 id="好处">好处：</h4>
-<ul>
-<li>这些工具可以帮助我们管理代码的修改历史</li>
-<li>可以让协作编码变得更方便</li>
-</ul>
-<h4 id="工作方式">工作方式</h4>
-<p>VCS通过一系列的快照将某个文件夹及其内容保存了起来，每个快照都包含了文件或文件夹的完整状态。同时它还维护了快照创建者的信息以及每个快照的相关信息等等。</p>
-<figure>
-<img
-src="https://cdn.jsdelivr.net/gh/Immortal-Fates/figure_Bed@main/blog/git.png"
-alt="git" />
-<figcaption aria-hidden="true">git</figcaption>
-</figure>
-<h4 id="dvcs">DVCS</h4>
-<p>分布式版本控制系统（Distributed Version Control System，简称
-DVCS）</p>
-<p>客户端并不只提取最新版本的文件快照，
-而是把代码仓库完整地镜像下来，包括完整的历史记录。
-这么一来，任何一处协同工作用的服务器发生故障，事后都可以用任何一个镜像出来的本地仓库恢复。
-因为每一次的克隆操作，实际上都是一次对代码仓库的完整备份。</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/distributed.png"
-alt="distributed" />
-<figcaption aria-hidden="true">distributed</figcaption>
-</figure>
-<p>许多这类系统都可以指定和若干不同的远端代码仓库进行交互。籍此，你就可以在同一个项目中，分别和不同工作小组的人相互协作。
-你可以根据需要设定不同的协作流程，比如层次模型式的工作流，而这在以前的集中式系统中是无法实现的。</p>
-<h1 id="git-的数据模型">Git 的数据模型</h1>
-<p>进行版本控制的方法很多。Git
-拥有一个经过精心设计的模型，这使其能够支持版本控制所需的所有特性，例如维护历史记录、支持分支和促进协作。</p>
-<h4 id="快照snapshots">快照（snapshots）</h4>
-<p>Git
-将顶级目录中的文件和文件夹作为集合，并通过一系列快照来管理其历史记录。在Git的术语里，文件被称作Blob对象（数据对象），也就是一组数据。目录则被称之为“树”，它将名字与
-Blob
-对象或树对象进行映射（使得目录中可以包含其他目录）。快照则是被追踪的最顶层的树。例如，一个树看起来可能是这样的：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&lt;root&gt; (tree)</span><br><span class="line">|</span><br><span class="line">+- foo (tree)</span><br><span class="line">|  |</span><br><span class="line">|  + bar.txt (blob, contents = &quot;hello world&quot;)</span><br><span class="line">|</span><br><span class="line">+- baz.txt (blob, contents = &quot;git is wonderful&quot;)</span><br></pre></td></tr></table></figure>
-<p>这个顶层的树包含了两个元素，一个名为 “foo”
-的tree（它本身包含了一个blob对象 “bar.txt”），以及一个 blob 对象
-“baz.txt”。</p>
-<h4 id="历史记录建模关联快照">历史记录建模：关联快照</h4>
-<p>版本控制系统和快照有什么关系呢？线性历史记录是一种最简单的模型，它包含了一组按照时间顺序线性排列的快照。</p>
-<p>在 Git 中，历史记录是一个由快照组成的有向无环图(directed acyclic
-graph (DAG))。有向无环图，这代表 Git
-中的每个快照都有一系列的“父辈”，也就是其之前的一系列快照。</p>
-<blockquote>
-<p>notes：快照具有多个“父辈”而非一个，因为某个快照可能由多个父辈而来。例如，经过合并后的两条分支。</p>
-</blockquote>
-<p>在 Git
-中，这些快照被称为“提交commit”。通过可视化的方式来表示这些历史提交记录时，看起来差不多是这样的：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">o &lt;-- o &lt;-- o &lt;-- o</span><br><span class="line">            ^  </span><br><span class="line">             \</span><br><span class="line">              --- o &lt;-- o</span><br></pre></td></tr></table></figure>
-<p>其中的 <code>o</code> 表示一次提交（快照）。</p>
-<p>箭头指向了当前提交的父辈（这是一种“在…之前”，而不是“在…之后”的关系）。在第三次提交之后，历史记录分岔成了两条独立的分支。这可能因为此时需要同时开发两个不同的特性，它们之间是相互独立的。开发完成后，这些分支可能会被合并并创建一个新的提交，这个新的提交会同时包含这些特性。新的提交会创建一个新的历史记录，看上去像这样（最新的合并提交用粗体标记）：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">o &lt;-- o &lt;-- o &lt;-- o &lt;---- o</span><br><span class="line">            ^            /</span><br><span class="line">             \          v</span><br><span class="line">              --- o &lt;-- o</span><br></pre></td></tr></table></figure>
-<p>Git
-中的提交是不可改变的。但这并不代表错误不能被修改，只不过这种“修改”实际上是创建了一个全新的提交记录。而引用（参见下文）则被更新为指向这些新的提交。</p>
-<h4 id="数据模型及其伪代码表示">数据模型及其伪代码表示</h4>
-<p>以伪代码的形式来学习 Git 的数据模型，可能更加清晰：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">// 文件就是一组数据</span><br><span class="line">type blob = array&lt;byte&gt;</span><br><span class="line"></span><br><span class="line">// 一个包含文件和目录的目录</span><br><span class="line">type tree = map&lt;string, tree | blob&gt;</span><br><span class="line"></span><br><span class="line">// 每个提交都包含一个父辈，元数据和顶层树</span><br><span class="line">type commit = struct &#123;</span><br><span class="line">    parent: array&lt;commit&gt;</span><br><span class="line">    author: string</span><br><span class="line">    message: string</span><br><span class="line">    snapshot: tree</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>这是一种简洁的历史模型。</p>
-<h4 id="对象和内存寻址">对象和内存寻址</h4>
-<p>Git 中的对象可以是 blob、tree or commit：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">type object = blob | tree | commit</span><br></pre></td></tr></table></figure>
-<p>Git 在储存数据时，所有的对象都会基于它们的 <a
-href="https://en.wikipedia.org/wiki/SHA-1">SHA-1 哈希</a> 进行寻址。</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">objects = map&lt;string, object&gt;</span><br><span class="line"></span><br><span class="line">def store(object):</span><br><span class="line">    id = sha1(object)</span><br><span class="line">    objects[id] = object</span><br><span class="line"></span><br><span class="line">def load(id):</span><br><span class="line">    return objects[id]</span><br></pre></td></tr></table></figure>
-<p>Blobs、树和提交都一样，它们都是对象。当它们引用其他对象时，它们并没有真正的在硬盘上保存这些对象，而是仅仅保存了它们的哈希值作为引用。</p>
-<p>例如，上面例子中的树（可以通过
-<code>git cat-file -p 698281bc680d1995c5f4caaf3359721a5a58d48d</code>
-来进行可视化），看上去是这样的：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">100644 blob 4448adbf7ecd394f42ae135bbeed9676e894af85    baz.txt</span><br><span class="line">040000 tree c68d233a33c5c06e0340e4c224f0afca87c8ce87    foo</span><br></pre></td></tr></table></figure>
-<p>树本身会包含一些指向其他内容的指针，例如 <code>baz.txt</code> (blob)
-和 <code>foo</code> (树)。如果我们用
-<code>git cat-file -p 4448adbf7ecd394f42ae135bbeed9676e894af85</code>，即通过哈希值查看
-baz.txt 的内容，会得到以下信息：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">git is wonderful</span><br></pre></td></tr></table></figure>
-<h4 id="引用references">引用(References)</h4>
-<p>Git
-给这些哈希值赋予人类可读的名字，也就是引用（references）。<strong>引用是指向提交的指针</strong>。与对象不同的是，它是可变的（引用可以被更新，指向新的提交）。例如，<code>master</code>
-引用通常会指向主分支的最新一次提交。</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">references = map&lt;string, string&gt;</span><br><span class="line"></span><br><span class="line">def update_reference(name, id):</span><br><span class="line">    references[name] = id</span><br><span class="line"></span><br><span class="line">def read_reference(name):</span><br><span class="line">    return references[name]</span><br><span class="line"></span><br><span class="line">def load_reference(name_or_id):</span><br><span class="line">    if name_or_id in references:</span><br><span class="line">        return load(references[name_or_id])</span><br><span class="line">    else:</span><br><span class="line">        return load(name_or_id)</span><br></pre></td></tr></table></figure>
-<p>这样，Git 就可以使用诸如 “master”
-这样人类可读的名称来表示历史记录中某个特定的提交，而不需要在使用一长串十六进制字符了。</p>
-<p>有一个细节需要我们注意，
-通常情况下，我们会想要知道“我们当前所在位置”，并将其标记下来。这样当我们创建新的快照的时候，我们就可以知道它的相对位置（如何设置它的“父辈”）。在
-Git 中，我们当前的位置有一个特殊的索引，它就是 “HEAD”。</p>
-<h4 id="仓库repositories">仓库(Repositories)</h4>
-<p>最后，我们可以粗略地给出 Git 仓库的定义了：<code>对象</code> 和
-<code>引用</code>。</p>
-<p>在硬盘上，Git 仅存储对象和引用：因为其数据模型仅包含这些东西。所有的
-<code>git</code>
-命令都对应着对提交树的操作，例如增加对象，增加或删除引用。</p>
-<p>当你输入某个指令时，请思考一下这条命令是如何对底层的图数据结构进行操作的。另一方面，如果您希望修改提交树，例如“丢弃未提交的修改和将
-‘master’ 引用指向提交 <code>5d83f9e</code>
-时，有什么命令可以完成该操作（针对这个具体问题，您可以使用
-<code>git checkout master; git reset --hard 5d83f9e</code>）</p>
-<h1 id="staging-area">staging area</h1>
-<p>Git
-中还包括一个和数据模型完全不相关的概念，但它确是创建提交的接口的一部分。</p>
-<p>就上面介绍的快照系统来说，您也许会期望它的实现里包括一个 “创建快照”
-的命令，该命令能够基于当前工作目录的当前状态创建一个全新的快照。有些版本控制系统确实是这样工作的，但
-Git
-不是。我们希望简洁的快照，而且每次从当前状态创建快照可能效果并不理想。例如，考虑如下场景，您开发了两个独立的特性，然后您希望创建两个独立的提交，其中第一个提交仅包含第一个特性，而第二个提交仅包含第二个特性。或者，假设您在调试代码时添加了很多打印语句，然后您仅仅希望提交和修复
-bug 相关的代码而丢弃所有的打印语句。</p>
-<p>Git 处理这些场景的方法是使用一种叫做 “暂存区（staging
-area）”的机制，它允许您指定下次快照中要包括那些改动。</p>
-<h1 id="git-的命令行接口">Git 的命令行接口</h1>
-<p>为了避免重复信息，我们将不会详细解释以下命令行。强烈推荐您阅读 <a
-href="https://git-scm.com/book/zh/v2">Pro Git
-中文版</a>或可以观看本讲座的视频来学习。</p>
-<h4 id="基础">基础</h4>
-<ul>
-<li><p><code>git help &lt;command&gt;</code>: 获取 git
-命令的帮助信息</p></li>
-<li><p><code>git init</code>: 创建一个新的 git
-仓库，其数据会存放在一个名为 <code>.git</code> 的目录下</p></li>
-<li><p><code>git status</code>: 显示当前的仓库状态</p></li>
-<li><p><code>git add &lt;filename&gt;</code>: 添加文件到暂存区</p></li>
-<li><p>```plaintext git commit <figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">  : 创建一个新的提交</span><br><span class="line"></span><br><span class="line">  - 如何编写 [良好的提交信息](https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html)!</span><br><span class="line">  - 为何要 [编写良好的提交信息](https://chris.beams.io/posts/git-commit/)</span><br><span class="line"></span><br><span class="line">- `git log`: 显示历史日志</span><br><span class="line"></span><br><span class="line">- `git log --all --graph --decorate`: 可视化历史记录（有向无环图）</span><br><span class="line"></span><br><span class="line">- `git diff &lt;filename&gt;`: 显示与暂存区文件的差异</span><br><span class="line"></span><br><span class="line">- `git diff &lt;revision&gt; &lt;filename&gt;`: 显示某个文件两个版本之间的差异</span><br><span class="line"></span><br><span class="line">- `git checkout &lt;revision&gt;`: 更新 HEAD 和目前的分支</span><br><span class="line"></span><br><span class="line">#### 分支和合并</span><br><span class="line"></span><br><span class="line">- `git branch`: 显示分支</span><br><span class="line"></span><br><span class="line">- `git branch &lt;name&gt;`: 创建分支</span><br><span class="line"></span><br><span class="line">- ```plaintext</span><br><span class="line">  git checkout -b &lt;name&gt;</span><br></pre></td></tr></table></figure></p>
-<p>: 创建分支并切换到该分支</p>
-<ul>
-<li>相当于
-<code>git branch &lt;name&gt;; git checkout &lt;name&gt;</code></li>
-</ul></li>
-<li><p><code>git merge &lt;revision&gt;</code>: 合并到当前分支</p></li>
-<li><p><code>git mergetool</code>: 使用工具来处理合并冲突</p></li>
-<li><p><code>git rebase</code>:
-将一系列补丁变基（rebase）为新的基线</p></li>
-</ul>
-<h4 id="远端操作">远端操作</h4>
-<ul>
-<li><code>git remote</code>: 列出远端</li>
-<li><code>git remote add &lt;name&gt; &lt;url&gt;</code>:
-添加一个远端</li>
-<li><code>git push &lt;remote&gt; &lt;local branch&gt;:&lt;remote branch&gt;</code>:
-将对象传送至远端并更新远端引用</li>
-<li><code>git branch --set-upstream-to=&lt;remote&gt;/&lt;remote branch&gt;</code>:
-创建本地和远端分支的关联关系</li>
-<li><code>git fetch</code>: 从远端获取对象/索引</li>
-<li><code>git pull</code>: 相当于 <code>git fetch; git merge</code></li>
-<li><code>git clone</code>: 从远端下载仓库</li>
-</ul>
-<h4 id="撤销">撤销</h4>
-<ul>
-<li><code>git commit --amend</code>: 编辑提交的内容或信息</li>
-<li><code>git reset HEAD &lt;file&gt;</code>: 恢复暂存的文件</li>
-<li><code>git checkout -- &lt;file&gt;</code>: 丢弃修改</li>
-<li><code>git restore</code>: git2.32版本后取代git reset
-进行许多撤销操作</li>
-</ul>
-<h1 id="git-高级操作">Git 高级操作</h1>
-<ul>
-<li><code>git config</code>: Git 是一个 <a
-href="https://git-scm.com/docs/git-config">高度可定制的</a> 工具</li>
-<li><code>git clone --depth=1</code>: 浅克隆（shallow
-clone），不包括完整的版本历史信息</li>
-<li><code>git add -p</code>: 交互式暂存</li>
-<li><code>git rebase -i</code>: 交互式变基</li>
-<li><code>git blame</code>: 查看最后修改某行的人</li>
-<li><code>git stash</code>: 暂时移除工作目录下的修改内容</li>
-<li><code>git bisect</code>: 通过二分查找搜索历史记录</li>
-<li><code>.gitignore</code>: <a
-href="https://git-scm.com/docs/gitignore">指定</a> 故意不追踪的文件</li>
-</ul>
-<h1 id="bonus">Bonus</h1>
-<ul>
-<li><p><strong>图形用户界面</strong>: Git 的 <a
-href="https://git-scm.com/downloads/guis">图形用户界面客户端</a>
-有很多，但是我们自己并不使用这些图形用户界面的客户端，我们选择使用命令行接口</p></li>
-<li><p><strong>Shell 集成</strong>: 将 Git 状态集成到您的 shell
-中会非常方便。(<a
-href="https://github.com/olivierverdier/zsh-git-prompt">zsh</a>, <a
-href="https://github.com/magicmonty/bash-git-prompt">bash</a>)。<a
-href="https://github.com/ohmyzsh/ohmyzsh">Oh My
-Zsh</a>这样的框架中一般以及集成了这一功能</p></li>
-<li><p><strong>编辑器集成</strong>: 和上面一条类似，将 Git
-集成到编辑器中好处多多。<a
-href="https://github.com/tpope/vim-fugitive">fugitive.vim</a> 是 Vim
-中集成 GIt 的常用插件</p></li>
-<li><p><strong>工作流</strong>:
-我们已经讲解了数据模型与一些基础命令，但还没讨论到进行大型项目时的一些惯例
-( 有<a
-href="https://nvie.com/posts/a-successful-git-branching-model/">很多</a>
-<a
-href="https://www.endoflineblog.com/gitflow-considered-harmful">不同的</a>
-<a
-href="https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow">处理方法</a>)</p></li>
-<li><p><strong>GitHub</strong>: Git 并不等同于 GitHub。 在 GitHub
-中您需要使用一个被称作<a
-href="https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/about-pull-requests">拉取请求（pull
-request）</a>的方法来向其他项目贡献代码</p></li>
-<li><p><strong>其他 Git 提供商</strong>: GitHub 并不是唯一的。还有像 <a
-href="https://about.gitlab.com/">GitLab</a> 和 <a
-href="https://bitbucket.org/">BitBucket</a> 这样的平台。</p></li>
-<li><p>良好的git提交消息(设置用于git的编辑器)</p>
-<ul>
-<li><p><a
-href="https://cbea.ms/git-commit/#separate">用空行将主题与正文分开</a>:</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">git log --oneline #只打印出主题行</span><br><span class="line">git shortlog #按用户提交哪些组，再次仅显示主题行以简洁明了</span><br></pre></td></tr></table></figure></li>
-<li><p><a href="https://cbea.ms/git-commit/#limit-50">将主题行限制为 50
-个字符</a>（make sure less than 72 characters）</p></li>
-<li><p><a
-href="https://cbea.ms/git-commit/#capitalize">将主题行大写</a></p></li>
-<li><p><a
-href="https://cbea.ms/git-commit/#end">不要以句点结束主题行</a></p></li>
-<li><p><a
-href="https://cbea.ms/git-commit/#imperative">在主题行中使用命令式语气</a>:祈使句</p></li>
-<li><p><a href="https://cbea.ms/git-commit/#wrap-72">将正文包装为 72
-个字符</a>：It`s easy to configure Vim</p></li>
-<li><p><a
-href="https://cbea.ms/git-commit/#why-not-how">使用正文来解释什么和为什么与如何</a></p></li>
-</ul></li>
-</ul>
-<h1 id="resources">Resources</h1>
-<ul>
-<li><a href="https://git-scm.com/book/en/v2">Pro Git</a>
-，<strong>强烈推荐</strong>！学习前五章的内容可以教会您流畅使用 Git
-的绝大多数技巧，因为您已经理解了 Git
-的数据模型。后面的章节提供了很多有趣的高级主题。（<a
-href="https://git-scm.com/book/zh/v2">Pro Git 中文版</a>）；</li>
-<li><a href="https://ohshitgit.com/">Oh Shit, Git!?!</a>
-，简短的介绍了如何从 Git 错误中恢复；</li>
-<li><a
-href="https://eagain.net/articles/git-for-computer-scientists/">Git for
-Computer Scientists</a> ，简短的介绍了 Git
-的数据模型，与本文相比包含较少量的伪代码以及大量的精美图片；</li>
-<li><a href="https://jwiegley.github.io/git-from-the-bottom-up/">Git
-from the Bottom Up</a>详细的介绍了 Git
-的实现细节，而不仅仅局限于数据模型。好奇的同学可以看看；</li>
-<li><a
-href="https://smusamashah.github.io/blog/2017/10/14/explain-git-in-simple-words">How
-to explain git in simple words</a>；</li>
-<li><a href="https://learngitbranching.js.org/">Learn Git Branching</a>
-通过基于浏览器的游戏来学习 Git ；</li>
-</ul>
-<h1 id="references">References</h1>
-<ul>
-<li><a
-href="https://missing-semester-cn.github.io/2020/version-control/">版本控制(Git)
-· the missing semester of your cs education
-(missing-semester-cn.github.io)</a></li>
-<li><a
-href="https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html">tbaggery
-- A Note About Git Commit Messages</a></li>
-<li><a href="https://cbea.ms/git-commit/">How to Write a Git Commit
-Message (cbea.ms)</a></li>
-<li><a href="https://learngitbranching.js.org/?locale=zh_CN">Learn Git
-Branching</a></li>
-</ul>
-]]></content>
-      <categories>
-        <category>CS</category>
-      </categories>
-      <tags>
-        <tag>CS</tag>
-        <tag>Git</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Git进阶（2）</title>
     <url>/2023/08/10/Git%E8%BF%9B%E9%98%B6%EF%BC%882%EF%BC%89/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
@@ -3229,6 +3229,51 @@ aria-hidden="true">8ac1b2bfcbb5ae20585d19c6a70c64d</figcaption>
       </tags>
   </entry>
   <entry>
+    <title>Linear_algebra</title>
+    <url>/2023/09/08/Linear-algebra/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>学习过程中遇到了伪逆的问题，于是我重新看了MIT的网课并且发现了一份好的学习资料：<a
+href="https://www.yuque.com/alexman/so5y8g">线性代数 (yuque.com)</a></p>
+<p>本想总结一下左右逆和伪逆，但别人写得已经足够好了，仅在此放下链接——感谢分享！</p>
+<span id="more"></span>
+<h1 id="四个基本空间">四个基本空间</h1>
+<p><a
+href="https://zhuanlan.zhihu.com/p/454870189">线性代数中四个基本子空间
+(The Four Fundamental Subspaces) - 知乎 (zhihu.com)</a></p>
+<h1 id="svd">SVD</h1>
+<p>SVD：singular value decomposition奇异值分解</p>
+<p><a href="https://www.yuque.com/alexman/so5y8g/psybsc">3.5
+奇异值分解(SVD) (yuque.com)</a></p>
+<h2 id="奇异值是什么">奇异值是什么</h2>
+<p><a href="https://zhuanlan.zhihu.com/p/629013736">12.3 奇异值是什么 -
+知乎 (zhihu.com)</a></p>
+<h1 id="左右逆伪逆">左右逆，伪逆</h1>
+<p><a href="https://www.yuque.com/alexman/so5y8g/lr3tqw">3.8 左逆,
+右逆和伪逆&amp;极分解 (yuque.com)</a></p>
+<p><span class="math inline">\(A^TA\)</span>对于长方形矩阵<span
+class="math inline">\(A\)</span>是一个很好的研究i对象</p>
+<p>列满秩：<span class="math inline">\(A\)</span>的左逆<span
+class="math inline">\((A^TA)^{-1}A^T,r=n&lt;m\)</span></p>
+<p>行满秩：<span class="math inline">\(A\)</span>的右逆<span
+class="math inline">\(A^T(AA^T)^{-1},r=m&lt;n\)</span></p>
+<p>伪逆：Pseudo-inverses，<span class="math inline">\(A^+\)</span></p>
+<h1 id="references">References</h1>
+<ul>
+<li><p><a
+href="https://zhuanlan.zhihu.com/p/454870189">线性代数中四个基本子空间
+(The Four Fundamental Subspaces) - 知乎 (zhihu.com)</a></p></li>
+<li><p><a href="https://www.yuque.com/alexman/so5y8g">线性代数
+(yuque.com)</a></p></li>
+</ul>
+]]></content>
+      <categories>
+        <category>Linear_algebra</category>
+      </categories>
+      <tags>
+        <tag>Linear_algebra</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>IIC-EEPROM入门</title>
     <url>/2023/08/23/IIC-EEPROM%E5%85%A5%E9%97%A8/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
@@ -3551,298 +3596,125 @@ host，利用PicGo作为上传工具，再连接Typora，实现一条龙服务</
       </tags>
   </entry>
   <entry>
-    <title>USART入门</title>
-    <url>/2023/08/22/USART%E5%85%A5%E9%97%A8/</url>
+    <title>PID</title>
+    <url>/2023/09/09/PID/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>Following
-哈工深上传到B站的电控组培训来入门robomaster电控组，我购买了普中科技玄武套餐开发板作为硬件。</p>
-<p>本篇介绍我学习USART的见闻——实验仍有一些问题未解决</p>
+<p>Following<a href="https://zhuanlan.zhihu.com/p/39573490">PID控制算法原理（抛弃公式，从本质上真正理解PID控制）
+- 知乎
+(zhihu.com)</a>来学习PID，并且在simulink上搭建第一个PID工程（太酷啦！）</p>
+<blockquote>
+<p>虽然拉式变换、系统稳态等都还不了解，以后填坑</p>
+</blockquote>
 <span id="more"></span>
-<h1 id="usart">USART</h1>
-<h2 id="简介">简介</h2>
+<h1 id="拉普拉斯变换">拉普拉斯变换</h1>
+<p>了解拉式变换和傅里叶变换的联系：</p>
 <ul>
-<li><p>USART(Universal Synchronous/Asynchronous
-Receiver/Transmitter)，通用同步(CLK同步接收和发送，数据量大选择)/异步串行接收/发送器</p>
-<blockquote>
-<p>Tips:UART仅有异步通信</p>
-</blockquote></li>
-<li><p>USART是异步串口通信<strong>协议</strong>的一种，工作原理是将传输数据的每个字符一位接一位地传输，它能将要传输的资料在串行通信与并行通信之间加以转换，能够灵活地与外部设备进行全双工数据交换（并行转串行）</p></li>
-<li><p>USART有两个引脚用于传输数据，RX和TX，接线的时候应使用交叉线，此外如果是不同设备之间通信还必须有一个GND线，VCC线为可选项。</p>
-<p>TX(transmitter)：发送数据</p>
-<p>RX(receiver)：接收数据</p></li>
-<li><p>全双工：两条线互不干扰，可同时进行发送和接收
-半双工：一次只能进行发送/接收</p></li>
-<li><p>异步：只需频率一样，相位可以不一样（常用）
-同步：还需时钟线CLK（数据量很大时）</p></li>
-<li><p>支持最基本的</p>
-<ul>
-<li>通用串口同步、异步通讯</li>
-<li>LIN总线功能（局域互联网）</li>
-<li>IRDA功能（红外通讯）</li>
-<li>SmartCard功能</li>
-</ul></li>
-<li><p>UART：只有异步通讯</p></li>
-</ul>
-<h2 id="usart的通信协议"><strong>USART</strong>的通信协议</h2>
-<p>一帧一帧地发送</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230608114952821.png"
-alt="USART时序图" />
-<figcaption aria-hidden="true">USART时序图</figcaption>
-</figure>
-<ul>
-<li><p>起始位：当未有数据发送时，数据线处于逻辑“1”状态；先发出一个逻辑“0”信号，表示开始传输字符。</p></li>
-<li><p>数据位：紧接着起始位之后。数据位的个数可以是4、5、6、7、8等，构成一个字符。通常采用ASCII码。从最低位开始传送，靠时钟定位。</p>
-<blockquote>
-<p>eg:00010001,先发送1</p>
-</blockquote></li>
-<li><p>奇偶校验位：数据为加上这一位后，使得“1”的位数应为偶数（偶校验）或奇数（奇校验），以此来校验资料传送的正确性。(弱校验)</p></li>
-<li><p>停止位：它是一个字符数据的结束标志。可以是1位、1.5位、2位的高电平。
-由于数据是在传输线上定时的，并且每一个设备有其自己的时钟，很可能在通信中两台设备间出现了小小的不同步。因此停止位不仅仅是<strong>表示传输的结束</strong>，并且<strong>提供计算机校正时钟同步的机会</strong>。适用于停止位的位数越多，不同时钟同步的容忍程度越大，但是数据传输率同时也越慢。</p></li>
-<li><p>空闲位或起始位：处于逻辑“1”状态，表示当前线路上没有资料传送，进入空闲状态。处于逻辑“0”状态，表示开始传送下一数据段(起始位)。</p></li>
-<li><p>波特率：即每秒传输的二进制位数， 用 b/s
-(bps)表示，通过对时钟的控制可以改变波特率。USART具有<strong>独立</strong>的高精度波特率发生器，不占用定时/计数器。常用的波特率有：9600、115200……</p>
-<blockquote>
-<p>Notes:奇偶校验是弱校验，115200最常用，发送/接收的FIFO（CPU太快了
-）</p>
-</blockquote></li>
-</ul>
-<h2 id="usart工作原理"><strong>USART</strong>工作原理</h2>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230608115210441.png"
-alt="image-20230608115210441" />
-<figcaption aria-hidden="true">image-20230608115210441</figcaption>
-</figure>
-<h3 id="fifo-操作">FIFO 操作</h3>
-<ul>
-<li><p><strong>INTRO</strong>:FIFO 是“First-In
-First-Out”的缩写，意为“先进先出”，是一种常见的队列操作。Stellaris
-系列ARM 的UART 模块包含有2 个16
-字节的FIFO：一个用于发送，另一个用于接收。可以将两个FIFO
-分别配置为以不同深度触发中断。可供选择的配置包括：1/8、 1/4、1/2、3/4
-和7/8 深度。</p>
-<blockquote>
-<p>Tips:例如，如果接收FIFO选择1/4，则在UART 接收到4
-个数据时产生接收中断</p>
-</blockquote></li>
-<li><p>目的：收发FIFO 主要是为了解决UART 收发中断过于频繁而导致CPU
-效率不高的问题而引入的。</p>
-<p>在进行UART通信时，中断方式比轮询方式(polling)要简便且效率高。但是，如果没有收发
-FIFO，则每收发一个数据都要中断处理一次，效率仍然不够高。如果有了收发FIFO，则可以在连续收发若干个数据（可多至14
-个）后才产生一次中断然后一并处理，这就大大提高了收发效率。</p></li>
-<li><p>发送FIFO的基本工作过程：</p>
-<ul>
-<li><p>只要有数据填充到发送FIFO 里，就会立即启动发送过程。</p></li>
-<li><p>由于发送本身是个相对缓慢的过程，因此在发送的同时其它需要发送的数据还可以继续填充到发送
-FIFO 里。</p>
-<blockquote>
-<p>Tips:当发送 FIFO
-被填满时就不能再继续填充了，否则会造成数据丢失，此时只能等待。</p>
-</blockquote></li>
-<li><p>发送 FIFO 会按照填入数据的先后顺序把数据一个个发送出去，直到发送
-FIFO 全空时为止。已发送完毕的数据会被自动清除，在发送FIFO
-里同时会多出一个空位。</p></li>
-</ul></li>
-<li><p>接收FIFO的基本工作过程：</p>
-<ul>
-<li><p>当硬件逻辑接收到数据时，就会往接收FIFO
-里填充接收到的数据。</p></li>
-<li><p>程序应当及时取走这些数据，数据被取走也是在接收FIFO
-里被自动删除的过程，因此在接收 FIFO 里同时会多出一个空位。</p>
-<blockquote>
-<p>Tips:如果在接收 FIFO 里的数据未被及时取走而造成接收FIFO
-已满，则以后再接收到数据时因无空位可以填充而造成数据丢失。</p>
-</blockquote></li>
-</ul></li>
-<li><p><strong>Notes:</strong>完全不必要担心FIFO
-机制可能带来的数据丢失或得不到及时处理的问题，因为它已经帮你想到了收发过程中存在的任何问题，只要在初始化配置UART
-后，就可以放心收发了， FIFO 和中断例程会自动搞定一切。</p></li>
-</ul>
-<h3 id="发送接收">发送接收</h3>
-<ul>
-<li>发送逻辑：从发送FIFO
-读取的数据执行“并→串”转换。控制逻辑输出起始位在先的串行位流，并且根据控制寄存器中已编程的配置，后面紧跟着数据位（注意：最低位
-LSB 先输出）、奇偶校验位和停止位。</li>
-<li>接收逻辑：在检测到一个有效的起始脉冲后，对接收到的位流执行“串→并”转换。此外还会对溢出错误、奇偶校验错误、帧错误和线中止（line-break）错误进行检测，并将检测到的状态附加到被写入接收FIFO
-的数据中。</li>
-</ul>
-<h3 id="数据收发过程">数据收发过程</h3>
-<ul>
-<li>发送时，数据被写入发送FIFO。如果USART
-被使能，则会按照预先设置好的参数（波特率、数据位、停止位、校验位等）开始发送数据，一直到发送FIFO
-中没有数据。一旦向发送FIFO 写数据（如果FIFO 未空），UART 的忙标志位BUSY
-就有效，并且在发送数据期间一直保持有效。BUSY 位仅在发送FIFO
-为空，且已从移位寄存器发送最后一个字符，包括停止位时才变无效。即 USART
-不再使能，它也可以指示忙状态。</li>
-<li>在USART
-接收器空闲时，如果数据输入变成“低电平”，即接收到了起始位，则接收计数器开始运行，若起始位持续时间达到阈值，则起始位有效，否则会被认为是错误的起始位并将其忽略。</li>
-<li>如果起始位有效，则根据数据字符被编程的长度，对连续的数据位进行采样。如果奇偶校验模式使能，则还会检测奇偶校验位。</li>
-<li>最后，如果Rx
-为高电平，则有效的停止位被确认，否则发生帧错误。当接收到一个完整的字符时，将数据存放在接收FIFO
-中。</li>
-</ul>
-<h3 id="波特率">波特率</h3>
-<ul>
-<li><p>波特率除数（baud-rate divisor）是一个22 位数，它由16 位整数和6
-位小数组成，<strong>是一个用来设置USART的通信速度的参数</strong>。波特率发生器使用这两个值组成的数字来决定位周期，决定发送、接收的波特率。</p>
-<p>通过带有小数波特率的除法器，在足够高的系统时钟速率下，UART
-可以产生所有标准的波特率，而误差很小。</p></li>
+<li><p>Youtube视频地址：<a href="https://link.zhihu.com/?target=https%3A//youtu.be/n2y7n6jw5d0">https://youtu.be/n2y7n6jw5d0</a></p></li>
+<li><p>有中文翻译：【【Zach数学系列】拉普拉斯和傅里叶变换告诉了我们什么？（合集于视频列表）】https://www.bilibili.com/video/BV1Jv411G7B1?vd_source=93bb338120537438ee9180881deab9c1</p></li>
 </ul>
 <blockquote>
-<p>Tips:根据距离的远近设置波特率的大小</p>
+<p>Tips:虽然我还是不知道为什么下面系统要用这些。。。以后填坑</p>
 </blockquote>
-<h3 id="中断控制">中断控制</h3>
-<p>出现以下情况时，可使UART产生中断：</p>
+<h1 id="pid">PID</h1>
+<h2 id="理解">理解</h2>
+<p>proportion——integral——derivative</p>
+<p>p是控制现在，i是纠正曾经，d是管控未来！只有不忘过往，把握当前，规划未来才能让人生的轨迹按照既定的目标前进。</p>
 <figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230608120340707.png"
-alt="image-20230608120340707" />
-<figcaption aria-hidden="true">image-20230608120340707</figcaption>
+<img src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230908142239626.png" alt="image-20230908142239626">
+<figcaption aria-hidden="true">image-20230908142239626</figcaption>
+</figure>
+<p>PID中三个参数，大体对应于控制系统的三个最重要的方面：</p>
+<p>P对应“快”，对误差进行预判、做出快速反应；I对应“准”，消除稳态误差；D对应“稳”，即稳定性，放大控制作用。</p>
+<blockquote>
+<p>Tips:也许理x解了弹性阻尼系统（还不理解），对pid的内涵会更加深刻</p>
+</blockquote>
+<p>很多情况下，仅仅需要在离散的时候使用，则控制可以化为： <span class="math display"><mjx-container class="MathJax" jax="SVG" display="true"><svg style="vertical-align: -2.819ex;" xmlns="http://www.w3.org/2000/svg" width="56.069ex" height="6.757ex" role="img" focusable="false" viewBox="0 -1740.7 24782.4 2986.6"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mi"><path data-c="1D462" d="M21 287Q21 295 30 318T55 370T99 420T158 442Q204 442 227 417T250 358Q250 340 216 246T182 105Q182 62 196 45T238 27T291 44T328 78L339 95Q341 99 377 247Q407 367 413 387T427 416Q444 431 463 431Q480 431 488 421T496 402L420 84Q419 79 419 68Q419 43 426 35T447 26Q469 29 482 57T512 145Q514 153 532 153Q551 153 551 144Q550 139 549 130T540 98T523 55T498 17T462 -8Q454 -10 438 -10Q372 -10 347 46Q345 45 336 36T318 21T296 6T267 -6T233 -11Q189 -11 155 7Q103 38 103 113Q103 170 138 262T173 379Q173 380 173 381Q173 390 173 393T169 400T158 404H154Q131 404 112 385T82 344T65 302T57 280Q55 278 41 278H27Q21 284 21 287Z"></path></g><g data-mml-node="mo" transform="translate(572,0)"><path data-c="28" d="M94 250Q94 319 104 381T127 488T164 576T202 643T244 695T277 729T302 750H315H319Q333 750 333 741Q333 738 316 720T275 667T226 581T184 443T167 250T184 58T225 -81T274 -167T316 -220T333 -241Q333 -250 318 -250H315H302L274 -226Q180 -141 137 -14T94 250Z"></path></g><g data-mml-node="mi" transform="translate(961,0)"><path data-c="1D458" d="M121 647Q121 657 125 670T137 683Q138 683 209 688T282 694Q294 694 294 686Q294 679 244 477Q194 279 194 272Q213 282 223 291Q247 309 292 354T362 415Q402 442 438 442Q468 442 485 423T503 369Q503 344 496 327T477 302T456 291T438 288Q418 288 406 299T394 328Q394 353 410 369T442 390L458 393Q446 405 434 405H430Q398 402 367 380T294 316T228 255Q230 254 243 252T267 246T293 238T320 224T342 206T359 180T365 147Q365 130 360 106T354 66Q354 26 381 26Q429 26 459 145Q461 153 479 153H483Q499 153 499 144Q499 139 496 130Q455 -11 378 -11Q333 -11 305 15T277 90Q277 108 280 121T283 145Q283 167 269 183T234 206T200 217T182 220H180Q168 178 159 139T145 81T136 44T129 20T122 7T111 -2Q98 -11 83 -11Q66 -11 57 -1T48 16Q48 26 85 176T158 471L195 616Q196 629 188 632T149 637H144Q134 637 131 637T124 640T121 647Z"></path></g><g data-mml-node="mo" transform="translate(1482,0)"><path data-c="29" d="M60 749L64 750Q69 750 74 750H86L114 726Q208 641 251 514T294 250Q294 182 284 119T261 12T224 -76T186 -143T145 -194T113 -227T90 -246Q87 -249 86 -250H74Q66 -250 63 -250T58 -247T55 -238Q56 -237 66 -225Q221 -64 221 250T66 725Q56 737 55 738Q55 746 60 749Z"></path></g><g data-mml-node="mo" transform="translate(2148.8,0)"><path data-c="3D" d="M56 347Q56 360 70 367H707Q722 359 722 347Q722 336 708 328L390 327H72Q56 332 56 347ZM56 153Q56 168 72 173H708Q722 163 722 153Q722 140 707 133H70Q56 140 56 153Z"></path></g><g data-mml-node="msub" transform="translate(3204.6,0)"><g data-mml-node="mi"><path data-c="1D43E" d="M285 628Q285 635 228 637Q205 637 198 638T191 647Q191 649 193 661Q199 681 203 682Q205 683 214 683H219Q260 681 355 681Q389 681 418 681T463 682T483 682Q500 682 500 674Q500 669 497 660Q496 658 496 654T495 648T493 644T490 641T486 639T479 638T470 637T456 637Q416 636 405 634T387 623L306 305Q307 305 490 449T678 597Q692 611 692 620Q692 635 667 637Q651 637 651 648Q651 650 654 662T659 677Q662 682 676 682Q680 682 711 681T791 680Q814 680 839 681T869 682Q889 682 889 672Q889 650 881 642Q878 637 862 637Q787 632 726 586Q710 576 656 534T556 455L509 418L518 396Q527 374 546 329T581 244Q656 67 661 61Q663 59 666 57Q680 47 717 46H738Q744 38 744 37T741 19Q737 6 731 0H720Q680 3 625 3Q503 3 488 0H478Q472 6 472 9T474 27Q478 40 480 43T491 46H494Q544 46 544 71Q544 75 517 141T485 216L427 354L359 301L291 248L268 155Q245 63 245 58Q245 51 253 49T303 46H334Q340 37 340 35Q340 19 333 5Q328 0 317 0Q314 0 280 1T180 2Q118 2 85 2T49 1Q31 1 31 11Q31 13 34 25Q38 41 42 43T65 46Q92 46 125 49Q139 52 144 61Q147 65 216 339T285 628Z"></path></g><g data-mml-node="mi" transform="translate(882,-150) scale(0.707)"><path data-c="1D45D" d="M23 287Q24 290 25 295T30 317T40 348T55 381T75 411T101 433T134 442Q209 442 230 378L240 387Q302 442 358 442Q423 442 460 395T497 281Q497 173 421 82T249 -10Q227 -10 210 -4Q199 1 187 11T168 28L161 36Q160 35 139 -51T118 -138Q118 -144 126 -145T163 -148H188Q194 -155 194 -157T191 -175Q188 -187 185 -190T172 -194Q170 -194 161 -194T127 -193T65 -192Q-5 -192 -24 -194H-32Q-39 -187 -39 -183Q-37 -156 -26 -148H-6Q28 -147 33 -136Q36 -130 94 103T155 350Q156 355 156 364Q156 405 131 405Q109 405 94 377T71 316T59 280Q57 278 43 278H29Q23 284 23 287ZM178 102Q200 26 252 26Q282 26 310 49T356 107Q374 141 392 215T411 325V331Q411 405 350 405Q339 405 328 402T306 393T286 380T269 365T254 350T243 336T235 326L232 322Q232 321 229 308T218 264T204 212Q178 106 178 102Z"></path></g></g><g data-mml-node="mi" transform="translate(4492.2,0)"><path data-c="1D452" d="M39 168Q39 225 58 272T107 350T174 402T244 433T307 442H310Q355 442 388 420T421 355Q421 265 310 237Q261 224 176 223Q139 223 138 221Q138 219 132 186T125 128Q125 81 146 54T209 26T302 45T394 111Q403 121 406 121Q410 121 419 112T429 98T420 82T390 55T344 24T281 -1T205 -11Q126 -11 83 42T39 168ZM373 353Q367 405 305 405Q272 405 244 391T199 357T170 316T154 280T149 261Q149 260 169 260Q282 260 327 284T373 353Z"></path></g><g data-mml-node="mo" transform="translate(4958.2,0)"><path data-c="28" d="M94 250Q94 319 104 381T127 488T164 576T202 643T244 695T277 729T302 750H315H319Q333 750 333 741Q333 738 316 720T275 667T226 581T184 443T167 250T184 58T225 -81T274 -167T316 -220T333 -241Q333 -250 318 -250H315H302L274 -226Q180 -141 137 -14T94 250Z"></path></g><g data-mml-node="mi" transform="translate(5347.2,0)"><path data-c="1D458" d="M121 647Q121 657 125 670T137 683Q138 683 209 688T282 694Q294 694 294 686Q294 679 244 477Q194 279 194 272Q213 282 223 291Q247 309 292 354T362 415Q402 442 438 442Q468 442 485 423T503 369Q503 344 496 327T477 302T456 291T438 288Q418 288 406 299T394 328Q394 353 410 369T442 390L458 393Q446 405 434 405H430Q398 402 367 380T294 316T228 255Q230 254 243 252T267 246T293 238T320 224T342 206T359 180T365 147Q365 130 360 106T354 66Q354 26 381 26Q429 26 459 145Q461 153 479 153H483Q499 153 499 144Q499 139 496 130Q455 -11 378 -11Q333 -11 305 15T277 90Q277 108 280 121T283 145Q283 167 269 183T234 206T200 217T182 220H180Q168 178 159 139T145 81T136 44T129 20T122 7T111 -2Q98 -11 83 -11Q66 -11 57 -1T48 16Q48 26 85 176T158 471L195 616Q196 629 188 632T149 637H144Q134 637 131 637T124 640T121 647Z"></path></g><g data-mml-node="mo" transform="translate(5868.2,0)"><path data-c="29" d="M60 749L64 750Q69 750 74 750H86L114 726Q208 641 251 514T294 250Q294 182 284 119T261 12T224 -76T186 -143T145 -194T113 -227T90 -246Q87 -249 86 -250H74Q66 -250 63 -250T58 -247T55 -238Q56 -237 66 -225Q221 -64 221 250T66 725Q56 737 55 738Q55 746 60 749Z"></path></g><g data-mml-node="mo" transform="translate(6479.5,0)"><path data-c="2B" d="M56 237T56 250T70 270H369V420L370 570Q380 583 389 583Q402 583 409 568V270H707Q722 262 722 250T707 230H409V-68Q401 -82 391 -82H389H387Q375 -82 369 -68V230H70Q56 237 56 250Z"></path></g><g data-mml-node="mfrac" transform="translate(7479.7,0)"><g data-mml-node="mrow" transform="translate(220,747.2)"><g data-mml-node="msub"><g data-mml-node="mi"><path data-c="1D43E" d="M285 628Q285 635 228 637Q205 637 198 638T191 647Q191 649 193 661Q199 681 203 682Q205 683 214 683H219Q260 681 355 681Q389 681 418 681T463 682T483 682Q500 682 500 674Q500 669 497 660Q496 658 496 654T495 648T493 644T490 641T486 639T479 638T470 637T456 637Q416 636 405 634T387 623L306 305Q307 305 490 449T678 597Q692 611 692 620Q692 635 667 637Q651 637 651 648Q651 650 654 662T659 677Q662 682 676 682Q680 682 711 681T791 680Q814 680 839 681T869 682Q889 682 889 672Q889 650 881 642Q878 637 862 637Q787 632 726 586Q710 576 656 534T556 455L509 418L518 396Q527 374 546 329T581 244Q656 67 661 61Q663 59 666 57Q680 47 717 46H738Q744 38 744 37T741 19Q737 6 731 0H720Q680 3 625 3Q503 3 488 0H478Q472 6 472 9T474 27Q478 40 480 43T491 46H494Q544 46 544 71Q544 75 517 141T485 216L427 354L359 301L291 248L268 155Q245 63 245 58Q245 51 253 49T303 46H334Q340 37 340 35Q340 19 333 5Q328 0 317 0Q314 0 280 1T180 2Q118 2 85 2T49 1Q31 1 31 11Q31 13 34 25Q38 41 42 43T65 46Q92 46 125 49Q139 52 144 61Q147 65 216 339T285 628Z"></path></g><g data-mml-node="mi" transform="translate(882,-150) scale(0.707)"><path data-c="1D45D" d="M23 287Q24 290 25 295T30 317T40 348T55 381T75 411T101 433T134 442Q209 442 230 378L240 387Q302 442 358 442Q423 442 460 395T497 281Q497 173 421 82T249 -10Q227 -10 210 -4Q199 1 187 11T168 28L161 36Q160 35 139 -51T118 -138Q118 -144 126 -145T163 -148H188Q194 -155 194 -157T191 -175Q188 -187 185 -190T172 -194Q170 -194 161 -194T127 -193T65 -192Q-5 -192 -24 -194H-32Q-39 -187 -39 -183Q-37 -156 -26 -148H-6Q28 -147 33 -136Q36 -130 94 103T155 350Q156 355 156 364Q156 405 131 405Q109 405 94 377T71 316T59 280Q57 278 43 278H29Q23 284 23 287ZM178 102Q200 26 252 26Q282 26 310 49T356 107Q374 141 392 215T411 325V331Q411 405 350 405Q339 405 328 402T306 393T286 380T269 365T254 350T243 336T235 326L232 322Q232 321 229 308T218 264T204 212Q178 106 178 102Z"></path></g></g><g data-mml-node="mi" transform="translate(1287.7,0)"><path data-c="1D447" d="M40 437Q21 437 21 445Q21 450 37 501T71 602L88 651Q93 669 101 677H569H659Q691 677 697 676T704 667Q704 661 687 553T668 444Q668 437 649 437Q640 437 637 437T631 442L629 445Q629 451 635 490T641 551Q641 586 628 604T573 629Q568 630 515 631Q469 631 457 630T439 622Q438 621 368 343T298 60Q298 48 386 46Q418 46 427 45T436 36Q436 31 433 22Q429 4 424 1L422 0Q419 0 415 0Q410 0 363 1T228 2Q99 2 64 0H49Q43 6 43 9T45 27Q49 40 55 46H83H94Q174 46 189 55Q190 56 191 56Q196 59 201 76T241 233Q258 301 269 344Q339 619 339 625Q339 630 310 630H279Q212 630 191 624Q146 614 121 583T67 467Q60 445 57 441T43 437H40Z"></path></g></g><g data-mml-node="msub" transform="translate(760.4,-686)"><g data-mml-node="mi"><path data-c="1D447" d="M40 437Q21 437 21 445Q21 450 37 501T71 602L88 651Q93 669 101 677H569H659Q691 677 697 676T704 667Q704 661 687 553T668 444Q668 437 649 437Q640 437 637 437T631 442L629 445Q629 451 635 490T641 551Q641 586 628 604T573 629Q568 630 515 631Q469 631 457 630T439 622Q438 621 368 343T298 60Q298 48 386 46Q418 46 427 45T436 36Q436 31 433 22Q429 4 424 1L422 0Q419 0 415 0Q410 0 363 1T228 2Q99 2 64 0H49Q43 6 43 9T45 27Q49 40 55 46H83H94Q174 46 189 55Q190 56 191 56Q196 59 201 76T241 233Q258 301 269 344Q339 619 339 625Q339 630 310 630H279Q212 630 191 624Q146 614 121 583T67 467Q60 445 57 441T43 437H40Z"></path></g><g data-mml-node="mi" transform="translate(617,-150) scale(0.707)"><path data-c="1D456" d="M184 600Q184 624 203 642T247 661Q265 661 277 649T290 619Q290 596 270 577T226 557Q211 557 198 567T184 600ZM21 287Q21 295 30 318T54 369T98 420T158 442Q197 442 223 419T250 357Q250 340 236 301T196 196T154 83Q149 61 149 51Q149 26 166 26Q175 26 185 29T208 43T235 78T260 137Q263 149 265 151T282 153Q302 153 302 143Q302 135 293 112T268 61T223 11T161 -11Q129 -11 102 10T74 74Q74 91 79 106T122 220Q160 321 166 341T173 380Q173 404 156 404H154Q124 404 99 371T61 287Q60 286 59 284T58 281T56 279T53 278T49 278T41 278H27Q21 284 21 287Z"></path></g></g><rect width="2191.7" height="60" x="120" y="220"></rect></g><g data-mml-node="munderover" transform="translate(10078,0)"><g data-mml-node="mo"><path data-c="2211" d="M60 948Q63 950 665 950H1267L1325 815Q1384 677 1388 669H1348L1341 683Q1320 724 1285 761Q1235 809 1174 838T1033 881T882 898T699 902H574H543H251L259 891Q722 258 724 252Q725 250 724 246Q721 243 460 -56L196 -356Q196 -357 407 -357Q459 -357 548 -357T676 -358Q812 -358 896 -353T1063 -332T1204 -283T1307 -196Q1328 -170 1348 -124H1388Q1388 -125 1381 -145T1356 -210T1325 -294L1267 -449L666 -450Q64 -450 61 -448Q55 -446 55 -439Q55 -437 57 -433L590 177Q590 178 557 222T452 366T322 544L56 909L55 924Q55 945 60 948Z"></path></g><g data-mml-node="TeXAtom" transform="translate(58,-1087.9) scale(0.707)" data-mjx-texclass="ORD"><g data-mml-node="mi"><path data-c="1D45B" d="M21 287Q22 293 24 303T36 341T56 388T89 425T135 442Q171 442 195 424T225 390T231 369Q231 367 232 367L243 378Q304 442 382 442Q436 442 469 415T503 336T465 179T427 52Q427 26 444 26Q450 26 453 27Q482 32 505 65T540 145Q542 153 560 153Q580 153 580 145Q580 144 576 130Q568 101 554 73T508 17T439 -10Q392 -10 371 17T350 73Q350 92 386 193T423 345Q423 404 379 404H374Q288 404 229 303L222 291L189 157Q156 26 151 16Q138 -11 108 -11Q95 -11 87 -5T76 7T74 17Q74 30 112 180T152 343Q153 348 153 366Q153 405 129 405Q91 405 66 305Q60 285 60 284Q58 278 41 278H27Q21 284 21 287Z"></path></g><g data-mml-node="mo" transform="translate(600,0)"><path data-c="3D" d="M56 347Q56 360 70 367H707Q722 359 722 347Q722 336 708 328L390 327H72Q56 332 56 347ZM56 153Q56 168 72 173H708Q722 163 722 153Q722 140 707 133H70Q56 140 56 153Z"></path></g><g data-mml-node="mn" transform="translate(1378,0)"><path data-c="30" d="M96 585Q152 666 249 666Q297 666 345 640T423 548Q460 465 460 320Q460 165 417 83Q397 41 362 16T301 -15T250 -22Q224 -22 198 -16T137 16T82 83Q39 165 39 320Q39 494 96 585ZM321 597Q291 629 250 629Q208 629 178 597Q153 571 145 525T137 333Q137 175 145 125T181 46Q209 16 250 16Q290 16 318 46Q347 76 354 130T362 333Q362 478 354 524T321 597Z"></path></g></g><g data-mml-node="TeXAtom" transform="translate(537.8,1150) scale(0.707)" data-mjx-texclass="ORD"><g data-mml-node="mi"><path data-c="1D458" d="M121 647Q121 657 125 670T137 683Q138 683 209 688T282 694Q294 694 294 686Q294 679 244 477Q194 279 194 272Q213 282 223 291Q247 309 292 354T362 415Q402 442 438 442Q468 442 485 423T503 369Q503 344 496 327T477 302T456 291T438 288Q418 288 406 299T394 328Q394 353 410 369T442 390L458 393Q446 405 434 405H430Q398 402 367 380T294 316T228 255Q230 254 243 252T267 246T293 238T320 224T342 206T359 180T365 147Q365 130 360 106T354 66Q354 26 381 26Q429 26 459 145Q461 153 479 153H483Q499 153 499 144Q499 139 496 130Q455 -11 378 -11Q333 -11 305 15T277 90Q277 108 280 121T283 145Q283 167 269 183T234 206T200 217T182 220H180Q168 178 159 139T145 81T136 44T129 20T122 7T111 -2Q98 -11 83 -11Q66 -11 57 -1T48 16Q48 26 85 176T158 471L195 616Q196 629 188 632T149 637H144Q134 637 131 637T124 640T121 647Z"></path></g></g></g><g data-mml-node="mi" transform="translate(11688.7,0)"><path data-c="1D452" d="M39 168Q39 225 58 272T107 350T174 402T244 433T307 442H310Q355 442 388 420T421 355Q421 265 310 237Q261 224 176 223Q139 223 138 221Q138 219 132 186T125 128Q125 81 146 54T209 26T302 45T394 111Q403 121 406 121Q410 121 419 112T429 98T420 82T390 55T344 24T281 -1T205 -11Q126 -11 83 42T39 168ZM373 353Q367 405 305 405Q272 405 244 391T199 357T170 316T154 280T149 261Q149 260 169 260Q282 260 327 284T373 353Z"></path></g><g data-mml-node="mo" transform="translate(12154.7,0)"><path data-c="28" d="M94 250Q94 319 104 381T127 488T164 576T202 643T244 695T277 729T302 750H315H319Q333 750 333 741Q333 738 316 720T275 667T226 581T184 443T167 250T184 58T225 -81T274 -167T316 -220T333 -241Q333 -250 318 -250H315H302L274 -226Q180 -141 137 -14T94 250Z"></path></g><g data-mml-node="mi" transform="translate(12543.7,0)"><path data-c="1D45B" d="M21 287Q22 293 24 303T36 341T56 388T89 425T135 442Q171 442 195 424T225 390T231 369Q231 367 232 367L243 378Q304 442 382 442Q436 442 469 415T503 336T465 179T427 52Q427 26 444 26Q450 26 453 27Q482 32 505 65T540 145Q542 153 560 153Q580 153 580 145Q580 144 576 130Q568 101 554 73T508 17T439 -10Q392 -10 371 17T350 73Q350 92 386 193T423 345Q423 404 379 404H374Q288 404 229 303L222 291L189 157Q156 26 151 16Q138 -11 108 -11Q95 -11 87 -5T76 7T74 17Q74 30 112 180T152 343Q153 348 153 366Q153 405 129 405Q91 405 66 305Q60 285 60 284Q58 278 41 278H27Q21 284 21 287Z"></path></g><g data-mml-node="mo" transform="translate(13143.7,0)"><path data-c="29" d="M60 749L64 750Q69 750 74 750H86L114 726Q208 641 251 514T294 250Q294 182 284 119T261 12T224 -76T186 -143T145 -194T113 -227T90 -246Q87 -249 86 -250H74Q66 -250 63 -250T58 -247T55 -238Q56 -237 66 -225Q221 -64 221 250T66 725Q56 737 55 738Q55 746 60 749Z"></path></g><g data-mml-node="mo" transform="translate(13754.9,0)"><path data-c="2B" d="M56 237T56 250T70 270H369V420L370 570Q380 583 389 583Q402 583 409 568V270H707Q722 262 722 250T707 230H409V-68Q401 -82 391 -82H389H387Q375 -82 369 -68V230H70Q56 237 56 250Z"></path></g><g data-mml-node="mfrac" transform="translate(14755.1,0)"><g data-mml-node="mrow" transform="translate(220,676)"><g data-mml-node="msub"><g data-mml-node="mi"><path data-c="1D43E" d="M285 628Q285 635 228 637Q205 637 198 638T191 647Q191 649 193 661Q199 681 203 682Q205 683 214 683H219Q260 681 355 681Q389 681 418 681T463 682T483 682Q500 682 500 674Q500 669 497 660Q496 658 496 654T495 648T493 644T490 641T486 639T479 638T470 637T456 637Q416 636 405 634T387 623L306 305Q307 305 490 449T678 597Q692 611 692 620Q692 635 667 637Q651 637 651 648Q651 650 654 662T659 677Q662 682 676 682Q680 682 711 681T791 680Q814 680 839 681T869 682Q889 682 889 672Q889 650 881 642Q878 637 862 637Q787 632 726 586Q710 576 656 534T556 455L509 418L518 396Q527 374 546 329T581 244Q656 67 661 61Q663 59 666 57Q680 47 717 46H738Q744 38 744 37T741 19Q737 6 731 0H720Q680 3 625 3Q503 3 488 0H478Q472 6 472 9T474 27Q478 40 480 43T491 46H494Q544 46 544 71Q544 75 517 141T485 216L427 354L359 301L291 248L268 155Q245 63 245 58Q245 51 253 49T303 46H334Q340 37 340 35Q340 19 333 5Q328 0 317 0Q314 0 280 1T180 2Q118 2 85 2T49 1Q31 1 31 11Q31 13 34 25Q38 41 42 43T65 46Q92 46 125 49Q139 52 144 61Q147 65 216 339T285 628Z"></path></g><g data-mml-node="mi" transform="translate(882,-150) scale(0.707)"><path data-c="1D451" d="M366 683Q367 683 438 688T511 694Q523 694 523 686Q523 679 450 384T375 83T374 68Q374 26 402 26Q411 27 422 35Q443 55 463 131Q469 151 473 152Q475 153 483 153H487H491Q506 153 506 145Q506 140 503 129Q490 79 473 48T445 8T417 -8Q409 -10 393 -10Q359 -10 336 5T306 36L300 51Q299 52 296 50Q294 48 292 46Q233 -10 172 -10Q117 -10 75 30T33 157Q33 205 53 255T101 341Q148 398 195 420T280 442Q336 442 364 400Q369 394 369 396Q370 400 396 505T424 616Q424 629 417 632T378 637H357Q351 643 351 645T353 664Q358 683 366 683ZM352 326Q329 405 277 405Q242 405 210 374T160 293Q131 214 119 129Q119 126 119 118T118 106Q118 61 136 44T179 26Q233 26 290 98L298 109L352 326Z"></path></g></g><g data-mml-node="msub" transform="translate(1299.7,0)"><g data-mml-node="mi"><path data-c="1D447" d="M40 437Q21 437 21 445Q21 450 37 501T71 602L88 651Q93 669 101 677H569H659Q691 677 697 676T704 667Q704 661 687 553T668 444Q668 437 649 437Q640 437 637 437T631 442L629 445Q629 451 635 490T641 551Q641 586 628 604T573 629Q568 630 515 631Q469 631 457 630T439 622Q438 621 368 343T298 60Q298 48 386 46Q418 46 427 45T436 36Q436 31 433 22Q429 4 424 1L422 0Q419 0 415 0Q410 0 363 1T228 2Q99 2 64 0H49Q43 6 43 9T45 27Q49 40 55 46H83H94Q174 46 189 55Q190 56 191 56Q196 59 201 76T241 233Q258 301 269 344Q339 619 339 625Q339 630 310 630H279Q212 630 191 624Q146 614 121 583T67 467Q60 445 57 441T43 437H40Z"></path></g><g data-mml-node="mi" transform="translate(617,-150) scale(0.707)"><path data-c="1D451" d="M366 683Q367 683 438 688T511 694Q523 694 523 686Q523 679 450 384T375 83T374 68Q374 26 402 26Q411 27 422 35Q443 55 463 131Q469 151 473 152Q475 153 483 153H487H491Q506 153 506 145Q506 140 503 129Q490 79 473 48T445 8T417 -8Q409 -10 393 -10Q359 -10 336 5T306 36L300 51Q299 52 296 50Q294 48 292 46Q233 -10 172 -10Q117 -10 75 30T33 157Q33 205 53 255T101 341Q148 398 195 420T280 442Q336 442 364 400Q369 394 369 396Q370 400 396 505T424 616Q424 629 417 632T378 637H357Q351 643 351 645T353 664Q358 683 366 683ZM352 326Q329 405 277 405Q242 405 210 374T160 293Q131 214 119 129Q119 126 119 118T118 106Q118 61 136 44T179 26Q233 26 290 98L298 109L352 326Z"></path></g></g></g><g data-mml-node="mi" transform="translate(1035.2,-686)"><path data-c="1D447" d="M40 437Q21 437 21 445Q21 450 37 501T71 602L88 651Q93 669 101 677H569H659Q691 677 697 676T704 667Q704 661 687 553T668 444Q668 437 649 437Q640 437 637 437T631 442L629 445Q629 451 635 490T641 551Q641 586 628 604T573 629Q568 630 515 631Q469 631 457 630T439 622Q438 621 368 343T298 60Q298 48 386 46Q418 46 427 45T436 36Q436 31 433 22Q429 4 424 1L422 0Q419 0 415 0Q410 0 363 1T228 2Q99 2 64 0H49Q43 6 43 9T45 27Q49 40 55 46H83H94Q174 46 189 55Q190 56 191 56Q196 59 201 76T241 233Q258 301 269 344Q339 619 339 625Q339 630 310 630H279Q212 630 191 624Q146 614 121 583T67 467Q60 445 57 441T43 437H40Z"></path></g><rect width="2534.4" height="60" x="120" y="220"></rect></g><g data-mml-node="mo" transform="translate(17529.5,0)"><path data-c="28" d="M94 250Q94 319 104 381T127 488T164 576T202 643T244 695T277 729T302 750H315H319Q333 750 333 741Q333 738 316 720T275 667T226 581T184 443T167 250T184 58T225 -81T274 -167T316 -220T333 -241Q333 -250 318 -250H315H302L274 -226Q180 -141 137 -14T94 250Z"></path></g><g data-mml-node="mi" transform="translate(17918.5,0)"><path data-c="1D452" d="M39 168Q39 225 58 272T107 350T174 402T244 433T307 442H310Q355 442 388 420T421 355Q421 265 310 237Q261 224 176 223Q139 223 138 221Q138 219 132 186T125 128Q125 81 146 54T209 26T302 45T394 111Q403 121 406 121Q410 121 419 112T429 98T420 82T390 55T344 24T281 -1T205 -11Q126 -11 83 42T39 168ZM373 353Q367 405 305 405Q272 405 244 391T199 357T170 316T154 280T149 261Q149 260 169 260Q282 260 327 284T373 353Z"></path></g><g data-mml-node="mo" transform="translate(18384.5,0)"><path data-c="28" d="M94 250Q94 319 104 381T127 488T164 576T202 643T244 695T277 729T302 750H315H319Q333 750 333 741Q333 738 316 720T275 667T226 581T184 443T167 250T184 58T225 -81T274 -167T316 -220T333 -241Q333 -250 318 -250H315H302L274 -226Q180 -141 137 -14T94 250Z"></path></g><g data-mml-node="mi" transform="translate(18773.5,0)"><path data-c="1D458" d="M121 647Q121 657 125 670T137 683Q138 683 209 688T282 694Q294 694 294 686Q294 679 244 477Q194 279 194 272Q213 282 223 291Q247 309 292 354T362 415Q402 442 438 442Q468 442 485 423T503 369Q503 344 496 327T477 302T456 291T438 288Q418 288 406 299T394 328Q394 353 410 369T442 390L458 393Q446 405 434 405H430Q398 402 367 380T294 316T228 255Q230 254 243 252T267 246T293 238T320 224T342 206T359 180T365 147Q365 130 360 106T354 66Q354 26 381 26Q429 26 459 145Q461 153 479 153H483Q499 153 499 144Q499 139 496 130Q455 -11 378 -11Q333 -11 305 15T277 90Q277 108 280 121T283 145Q283 167 269 183T234 206T200 217T182 220H180Q168 178 159 139T145 81T136 44T129 20T122 7T111 -2Q98 -11 83 -11Q66 -11 57 -1T48 16Q48 26 85 176T158 471L195 616Q196 629 188 632T149 637H144Q134 637 131 637T124 640T121 647Z"></path></g><g data-mml-node="mo" transform="translate(19294.5,0)"><path data-c="29" d="M60 749L64 750Q69 750 74 750H86L114 726Q208 641 251 514T294 250Q294 182 284 119T261 12T224 -76T186 -143T145 -194T113 -227T90 -246Q87 -249 86 -250H74Q66 -250 63 -250T58 -247T55 -238Q56 -237 66 -225Q221 -64 221 250T66 725Q56 737 55 738Q55 746 60 749Z"></path></g><g data-mml-node="mo" transform="translate(19905.7,0)"><path data-c="2212" d="M84 237T84 250T98 270H679Q694 262 694 250T679 230H98Q84 237 84 250Z"></path></g><g data-mml-node="mi" transform="translate(20906,0)"><path data-c="1D452" d="M39 168Q39 225 58 272T107 350T174 402T244 433T307 442H310Q355 442 388 420T421 355Q421 265 310 237Q261 224 176 223Q139 223 138 221Q138 219 132 186T125 128Q125 81 146 54T209 26T302 45T394 111Q403 121 406 121Q410 121 419 112T429 98T420 82T390 55T344 24T281 -1T205 -11Q126 -11 83 42T39 168ZM373 353Q367 405 305 405Q272 405 244 391T199 357T170 316T154 280T149 261Q149 260 169 260Q282 260 327 284T373 353Z"></path></g><g data-mml-node="mo" transform="translate(21372,0)"><path data-c="28" d="M94 250Q94 319 104 381T127 488T164 576T202 643T244 695T277 729T302 750H315H319Q333 750 333 741Q333 738 316 720T275 667T226 581T184 443T167 250T184 58T225 -81T274 -167T316 -220T333 -241Q333 -250 318 -250H315H302L274 -226Q180 -141 137 -14T94 250Z"></path></g><g data-mml-node="mi" transform="translate(21761,0)"><path data-c="1D458" d="M121 647Q121 657 125 670T137 683Q138 683 209 688T282 694Q294 694 294 686Q294 679 244 477Q194 279 194 272Q213 282 223 291Q247 309 292 354T362 415Q402 442 438 442Q468 442 485 423T503 369Q503 344 496 327T477 302T456 291T438 288Q418 288 406 299T394 328Q394 353 410 369T442 390L458 393Q446 405 434 405H430Q398 402 367 380T294 316T228 255Q230 254 243 252T267 246T293 238T320 224T342 206T359 180T365 147Q365 130 360 106T354 66Q354 26 381 26Q429 26 459 145Q461 153 479 153H483Q499 153 499 144Q499 139 496 130Q455 -11 378 -11Q333 -11 305 15T277 90Q277 108 280 121T283 145Q283 167 269 183T234 206T200 217T182 220H180Q168 178 159 139T145 81T136 44T129 20T122 7T111 -2Q98 -11 83 -11Q66 -11 57 -1T48 16Q48 26 85 176T158 471L195 616Q196 629 188 632T149 637H144Q134 637 131 637T124 640T121 647Z"></path></g><g data-mml-node="mo" transform="translate(22504.2,0)"><path data-c="2212" d="M84 237T84 250T98 270H679Q694 262 694 250T679 230H98Q84 237 84 250Z"></path></g><g data-mml-node="mn" transform="translate(23504.4,0)"><path data-c="31" d="M213 578L200 573Q186 568 160 563T102 556H83V602H102Q149 604 189 617T245 641T273 663Q275 666 285 666Q294 666 302 660V361L303 61Q310 54 315 52T339 48T401 46H427V0H416Q395 3 257 3Q121 3 100 0H88V46H114Q136 46 152 46T177 47T193 50T201 52T207 57T213 61V578Z"></path></g><g data-mml-node="mo" transform="translate(24004.4,0)"><path data-c="29" d="M60 749L64 750Q69 750 74 750H86L114 726Q208 641 251 514T294 250Q294 182 284 119T261 12T224 -76T186 -143T145 -194T113 -227T90 -246Q87 -249 86 -250H74Q66 -250 63 -250T58 -247T55 -238Q56 -237 66 -225Q221 -64 221 250T66 725Q56 737 55 738Q55 746 60 749Z"></path></g><g data-mml-node="mo" transform="translate(24393.4,0)"><path data-c="29" d="M60 749L64 750Q69 750 74 750H86L114 726Q208 641 251 514T294 250Q294 182 284 119T261 12T224 -76T186 -143T145 -194T113 -227T90 -246Q87 -249 86 -250H74Q66 -250 63 -250T58 -247T55 -238Q56 -237 66 -225Q221 -64 221 250T66 725Q56 737 55 738Q55 746 60 749Z"></path></g></g></g></svg></mjx-container></span>
+每一项前面都有系数，这些系数都是需要实验中去尝试然后确定的，为了方便起见，将这些系数进行统一一下：
+<span class="math display"><mjx-container class="MathJax" jax="SVG" display="true"><svg style="vertical-align: -2.819ex;" xmlns="http://www.w3.org/2000/svg" width="49.891ex" height="6.757ex" role="img" focusable="false" viewBox="0 -1740.7 22052 2986.6"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mi"><path data-c="1D462" d="M21 287Q21 295 30 318T55 370T99 420T158 442Q204 442 227 417T250 358Q250 340 216 246T182 105Q182 62 196 45T238 27T291 44T328 78L339 95Q341 99 377 247Q407 367 413 387T427 416Q444 431 463 431Q480 431 488 421T496 402L420 84Q419 79 419 68Q419 43 426 35T447 26Q469 29 482 57T512 145Q514 153 532 153Q551 153 551 144Q550 139 549 130T540 98T523 55T498 17T462 -8Q454 -10 438 -10Q372 -10 347 46Q345 45 336 36T318 21T296 6T267 -6T233 -11Q189 -11 155 7Q103 38 103 113Q103 170 138 262T173 379Q173 380 173 381Q173 390 173 393T169 400T158 404H154Q131 404 112 385T82 344T65 302T57 280Q55 278 41 278H27Q21 284 21 287Z"></path></g><g data-mml-node="mo" transform="translate(572,0)"><path data-c="28" d="M94 250Q94 319 104 381T127 488T164 576T202 643T244 695T277 729T302 750H315H319Q333 750 333 741Q333 738 316 720T275 667T226 581T184 443T167 250T184 58T225 -81T274 -167T316 -220T333 -241Q333 -250 318 -250H315H302L274 -226Q180 -141 137 -14T94 250Z"></path></g><g data-mml-node="mi" transform="translate(961,0)"><path data-c="1D458" d="M121 647Q121 657 125 670T137 683Q138 683 209 688T282 694Q294 694 294 686Q294 679 244 477Q194 279 194 272Q213 282 223 291Q247 309 292 354T362 415Q402 442 438 442Q468 442 485 423T503 369Q503 344 496 327T477 302T456 291T438 288Q418 288 406 299T394 328Q394 353 410 369T442 390L458 393Q446 405 434 405H430Q398 402 367 380T294 316T228 255Q230 254 243 252T267 246T293 238T320 224T342 206T359 180T365 147Q365 130 360 106T354 66Q354 26 381 26Q429 26 459 145Q461 153 479 153H483Q499 153 499 144Q499 139 496 130Q455 -11 378 -11Q333 -11 305 15T277 90Q277 108 280 121T283 145Q283 167 269 183T234 206T200 217T182 220H180Q168 178 159 139T145 81T136 44T129 20T122 7T111 -2Q98 -11 83 -11Q66 -11 57 -1T48 16Q48 26 85 176T158 471L195 616Q196 629 188 632T149 637H144Q134 637 131 637T124 640T121 647Z"></path></g><g data-mml-node="mo" transform="translate(1482,0)"><path data-c="29" d="M60 749L64 750Q69 750 74 750H86L114 726Q208 641 251 514T294 250Q294 182 284 119T261 12T224 -76T186 -143T145 -194T113 -227T90 -246Q87 -249 86 -250H74Q66 -250 63 -250T58 -247T55 -238Q56 -237 66 -225Q221 -64 221 250T66 725Q56 737 55 738Q55 746 60 749Z"></path></g><g data-mml-node="mo" transform="translate(2148.8,0)"><path data-c="3D" d="M56 347Q56 360 70 367H707Q722 359 722 347Q722 336 708 328L390 327H72Q56 332 56 347ZM56 153Q56 168 72 173H708Q722 163 722 153Q722 140 707 133H70Q56 140 56 153Z"></path></g><g data-mml-node="msub" transform="translate(3204.6,0)"><g data-mml-node="mi"><path data-c="1D43E" d="M285 628Q285 635 228 637Q205 637 198 638T191 647Q191 649 193 661Q199 681 203 682Q205 683 214 683H219Q260 681 355 681Q389 681 418 681T463 682T483 682Q500 682 500 674Q500 669 497 660Q496 658 496 654T495 648T493 644T490 641T486 639T479 638T470 637T456 637Q416 636 405 634T387 623L306 305Q307 305 490 449T678 597Q692 611 692 620Q692 635 667 637Q651 637 651 648Q651 650 654 662T659 677Q662 682 676 682Q680 682 711 681T791 680Q814 680 839 681T869 682Q889 682 889 672Q889 650 881 642Q878 637 862 637Q787 632 726 586Q710 576 656 534T556 455L509 418L518 396Q527 374 546 329T581 244Q656 67 661 61Q663 59 666 57Q680 47 717 46H738Q744 38 744 37T741 19Q737 6 731 0H720Q680 3 625 3Q503 3 488 0H478Q472 6 472 9T474 27Q478 40 480 43T491 46H494Q544 46 544 71Q544 75 517 141T485 216L427 354L359 301L291 248L268 155Q245 63 245 58Q245 51 253 49T303 46H334Q340 37 340 35Q340 19 333 5Q328 0 317 0Q314 0 280 1T180 2Q118 2 85 2T49 1Q31 1 31 11Q31 13 34 25Q38 41 42 43T65 46Q92 46 125 49Q139 52 144 61Q147 65 216 339T285 628Z"></path></g><g data-mml-node="mi" transform="translate(882,-150) scale(0.707)"><path data-c="1D45D" d="M23 287Q24 290 25 295T30 317T40 348T55 381T75 411T101 433T134 442Q209 442 230 378L240 387Q302 442 358 442Q423 442 460 395T497 281Q497 173 421 82T249 -10Q227 -10 210 -4Q199 1 187 11T168 28L161 36Q160 35 139 -51T118 -138Q118 -144 126 -145T163 -148H188Q194 -155 194 -157T191 -175Q188 -187 185 -190T172 -194Q170 -194 161 -194T127 -193T65 -192Q-5 -192 -24 -194H-32Q-39 -187 -39 -183Q-37 -156 -26 -148H-6Q28 -147 33 -136Q36 -130 94 103T155 350Q156 355 156 364Q156 405 131 405Q109 405 94 377T71 316T59 280Q57 278 43 278H29Q23 284 23 287ZM178 102Q200 26 252 26Q282 26 310 49T356 107Q374 141 392 215T411 325V331Q411 405 350 405Q339 405 328 402T306 393T286 380T269 365T254 350T243 336T235 326L232 322Q232 321 229 308T218 264T204 212Q178 106 178 102Z"></path></g></g><g data-mml-node="mi" transform="translate(4492.2,0)"><path data-c="1D452" d="M39 168Q39 225 58 272T107 350T174 402T244 433T307 442H310Q355 442 388 420T421 355Q421 265 310 237Q261 224 176 223Q139 223 138 221Q138 219 132 186T125 128Q125 81 146 54T209 26T302 45T394 111Q403 121 406 121Q410 121 419 112T429 98T420 82T390 55T344 24T281 -1T205 -11Q126 -11 83 42T39 168ZM373 353Q367 405 305 405Q272 405 244 391T199 357T170 316T154 280T149 261Q149 260 169 260Q282 260 327 284T373 353Z"></path></g><g data-mml-node="mo" transform="translate(4958.2,0)"><path data-c="28" d="M94 250Q94 319 104 381T127 488T164 576T202 643T244 695T277 729T302 750H315H319Q333 750 333 741Q333 738 316 720T275 667T226 581T184 443T167 250T184 58T225 -81T274 -167T316 -220T333 -241Q333 -250 318 -250H315H302L274 -226Q180 -141 137 -14T94 250Z"></path></g><g data-mml-node="mi" transform="translate(5347.2,0)"><path data-c="1D458" d="M121 647Q121 657 125 670T137 683Q138 683 209 688T282 694Q294 694 294 686Q294 679 244 477Q194 279 194 272Q213 282 223 291Q247 309 292 354T362 415Q402 442 438 442Q468 442 485 423T503 369Q503 344 496 327T477 302T456 291T438 288Q418 288 406 299T394 328Q394 353 410 369T442 390L458 393Q446 405 434 405H430Q398 402 367 380T294 316T228 255Q230 254 243 252T267 246T293 238T320 224T342 206T359 180T365 147Q365 130 360 106T354 66Q354 26 381 26Q429 26 459 145Q461 153 479 153H483Q499 153 499 144Q499 139 496 130Q455 -11 378 -11Q333 -11 305 15T277 90Q277 108 280 121T283 145Q283 167 269 183T234 206T200 217T182 220H180Q168 178 159 139T145 81T136 44T129 20T122 7T111 -2Q98 -11 83 -11Q66 -11 57 -1T48 16Q48 26 85 176T158 471L195 616Q196 629 188 632T149 637H144Q134 637 131 637T124 640T121 647Z"></path></g><g data-mml-node="mo" transform="translate(5868.2,0)"><path data-c="29" d="M60 749L64 750Q69 750 74 750H86L114 726Q208 641 251 514T294 250Q294 182 284 119T261 12T224 -76T186 -143T145 -194T113 -227T90 -246Q87 -249 86 -250H74Q66 -250 63 -250T58 -247T55 -238Q56 -237 66 -225Q221 -64 221 250T66 725Q56 737 55 738Q55 746 60 749Z"></path></g><g data-mml-node="mo" transform="translate(6479.5,0)"><path data-c="2B" d="M56 237T56 250T70 270H369V420L370 570Q380 583 389 583Q402 583 409 568V270H707Q722 262 722 250T707 230H409V-68Q401 -82 391 -82H389H387Q375 -82 369 -68V230H70Q56 237 56 250Z"></path></g><g data-mml-node="msub" transform="translate(7479.7,0)"><g data-mml-node="mi"><path data-c="1D43E" d="M285 628Q285 635 228 637Q205 637 198 638T191 647Q191 649 193 661Q199 681 203 682Q205 683 214 683H219Q260 681 355 681Q389 681 418 681T463 682T483 682Q500 682 500 674Q500 669 497 660Q496 658 496 654T495 648T493 644T490 641T486 639T479 638T470 637T456 637Q416 636 405 634T387 623L306 305Q307 305 490 449T678 597Q692 611 692 620Q692 635 667 637Q651 637 651 648Q651 650 654 662T659 677Q662 682 676 682Q680 682 711 681T791 680Q814 680 839 681T869 682Q889 682 889 672Q889 650 881 642Q878 637 862 637Q787 632 726 586Q710 576 656 534T556 455L509 418L518 396Q527 374 546 329T581 244Q656 67 661 61Q663 59 666 57Q680 47 717 46H738Q744 38 744 37T741 19Q737 6 731 0H720Q680 3 625 3Q503 3 488 0H478Q472 6 472 9T474 27Q478 40 480 43T491 46H494Q544 46 544 71Q544 75 517 141T485 216L427 354L359 301L291 248L268 155Q245 63 245 58Q245 51 253 49T303 46H334Q340 37 340 35Q340 19 333 5Q328 0 317 0Q314 0 280 1T180 2Q118 2 85 2T49 1Q31 1 31 11Q31 13 34 25Q38 41 42 43T65 46Q92 46 125 49Q139 52 144 61Q147 65 216 339T285 628Z"></path></g><g data-mml-node="mi" transform="translate(882,-150) scale(0.707)"><path data-c="1D456" d="M184 600Q184 624 203 642T247 661Q265 661 277 649T290 619Q290 596 270 577T226 557Q211 557 198 567T184 600ZM21 287Q21 295 30 318T54 369T98 420T158 442Q197 442 223 419T250 357Q250 340 236 301T196 196T154 83Q149 61 149 51Q149 26 166 26Q175 26 185 29T208 43T235 78T260 137Q263 149 265 151T282 153Q302 153 302 143Q302 135 293 112T268 61T223 11T161 -11Q129 -11 102 10T74 74Q74 91 79 106T122 220Q160 321 166 341T173 380Q173 404 156 404H154Q124 404 99 371T61 287Q60 286 59 284T58 281T56 279T53 278T49 278T41 278H27Q21 284 21 287Z"></path></g></g><g data-mml-node="munderover" transform="translate(8822.3,0)"><g data-mml-node="mo"><path data-c="2211" d="M60 948Q63 950 665 950H1267L1325 815Q1384 677 1388 669H1348L1341 683Q1320 724 1285 761Q1235 809 1174 838T1033 881T882 898T699 902H574H543H251L259 891Q722 258 724 252Q725 250 724 246Q721 243 460 -56L196 -356Q196 -357 407 -357Q459 -357 548 -357T676 -358Q812 -358 896 -353T1063 -332T1204 -283T1307 -196Q1328 -170 1348 -124H1388Q1388 -125 1381 -145T1356 -210T1325 -294L1267 -449L666 -450Q64 -450 61 -448Q55 -446 55 -439Q55 -437 57 -433L590 177Q590 178 557 222T452 366T322 544L56 909L55 924Q55 945 60 948Z"></path></g><g data-mml-node="TeXAtom" transform="translate(58,-1087.9) scale(0.707)" data-mjx-texclass="ORD"><g data-mml-node="mi"><path data-c="1D45B" d="M21 287Q22 293 24 303T36 341T56 388T89 425T135 442Q171 442 195 424T225 390T231 369Q231 367 232 367L243 378Q304 442 382 442Q436 442 469 415T503 336T465 179T427 52Q427 26 444 26Q450 26 453 27Q482 32 505 65T540 145Q542 153 560 153Q580 153 580 145Q580 144 576 130Q568 101 554 73T508 17T439 -10Q392 -10 371 17T350 73Q350 92 386 193T423 345Q423 404 379 404H374Q288 404 229 303L222 291L189 157Q156 26 151 16Q138 -11 108 -11Q95 -11 87 -5T76 7T74 17Q74 30 112 180T152 343Q153 348 153 366Q153 405 129 405Q91 405 66 305Q60 285 60 284Q58 278 41 278H27Q21 284 21 287Z"></path></g><g data-mml-node="mo" transform="translate(600,0)"><path data-c="3D" d="M56 347Q56 360 70 367H707Q722 359 722 347Q722 336 708 328L390 327H72Q56 332 56 347ZM56 153Q56 168 72 173H708Q722 163 722 153Q722 140 707 133H70Q56 140 56 153Z"></path></g><g data-mml-node="mn" transform="translate(1378,0)"><path data-c="30" d="M96 585Q152 666 249 666Q297 666 345 640T423 548Q460 465 460 320Q460 165 417 83Q397 41 362 16T301 -15T250 -22Q224 -22 198 -16T137 16T82 83Q39 165 39 320Q39 494 96 585ZM321 597Q291 629 250 629Q208 629 178 597Q153 571 145 525T137 333Q137 175 145 125T181 46Q209 16 250 16Q290 16 318 46Q347 76 354 130T362 333Q362 478 354 524T321 597Z"></path></g></g><g data-mml-node="TeXAtom" transform="translate(537.8,1150) scale(0.707)" data-mjx-texclass="ORD"><g data-mml-node="mi"><path data-c="1D458" d="M121 647Q121 657 125 670T137 683Q138 683 209 688T282 694Q294 694 294 686Q294 679 244 477Q194 279 194 272Q213 282 223 291Q247 309 292 354T362 415Q402 442 438 442Q468 442 485 423T503 369Q503 344 496 327T477 302T456 291T438 288Q418 288 406 299T394 328Q394 353 410 369T442 390L458 393Q446 405 434 405H430Q398 402 367 380T294 316T228 255Q230 254 243 252T267 246T293 238T320 224T342 206T359 180T365 147Q365 130 360 106T354 66Q354 26 381 26Q429 26 459 145Q461 153 479 153H483Q499 153 499 144Q499 139 496 130Q455 -11 378 -11Q333 -11 305 15T277 90Q277 108 280 121T283 145Q283 167 269 183T234 206T200 217T182 220H180Q168 178 159 139T145 81T136 44T129 20T122 7T111 -2Q98 -11 83 -11Q66 -11 57 -1T48 16Q48 26 85 176T158 471L195 616Q196 629 188 632T149 637H144Q134 637 131 637T124 640T121 647Z"></path></g></g></g><g data-mml-node="mi" transform="translate(10433,0)"><path data-c="1D452" d="M39 168Q39 225 58 272T107 350T174 402T244 433T307 442H310Q355 442 388 420T421 355Q421 265 310 237Q261 224 176 223Q139 223 138 221Q138 219 132 186T125 128Q125 81 146 54T209 26T302 45T394 111Q403 121 406 121Q410 121 419 112T429 98T420 82T390 55T344 24T281 -1T205 -11Q126 -11 83 42T39 168ZM373 353Q367 405 305 405Q272 405 244 391T199 357T170 316T154 280T149 261Q149 260 169 260Q282 260 327 284T373 353Z"></path></g><g data-mml-node="mo" transform="translate(10899,0)"><path data-c="28" d="M94 250Q94 319 104 381T127 488T164 576T202 643T244 695T277 729T302 750H315H319Q333 750 333 741Q333 738 316 720T275 667T226 581T184 443T167 250T184 58T225 -81T274 -167T316 -220T333 -241Q333 -250 318 -250H315H302L274 -226Q180 -141 137 -14T94 250Z"></path></g><g data-mml-node="mi" transform="translate(11288,0)"><path data-c="1D45B" d="M21 287Q22 293 24 303T36 341T56 388T89 425T135 442Q171 442 195 424T225 390T231 369Q231 367 232 367L243 378Q304 442 382 442Q436 442 469 415T503 336T465 179T427 52Q427 26 444 26Q450 26 453 27Q482 32 505 65T540 145Q542 153 560 153Q580 153 580 145Q580 144 576 130Q568 101 554 73T508 17T439 -10Q392 -10 371 17T350 73Q350 92 386 193T423 345Q423 404 379 404H374Q288 404 229 303L222 291L189 157Q156 26 151 16Q138 -11 108 -11Q95 -11 87 -5T76 7T74 17Q74 30 112 180T152 343Q153 348 153 366Q153 405 129 405Q91 405 66 305Q60 285 60 284Q58 278 41 278H27Q21 284 21 287Z"></path></g><g data-mml-node="mo" transform="translate(11888,0)"><path data-c="29" d="M60 749L64 750Q69 750 74 750H86L114 726Q208 641 251 514T294 250Q294 182 284 119T261 12T224 -76T186 -143T145 -194T113 -227T90 -246Q87 -249 86 -250H74Q66 -250 63 -250T58 -247T55 -238Q56 -237 66 -225Q221 -64 221 250T66 725Q56 737 55 738Q55 746 60 749Z"></path></g><g data-mml-node="mo" transform="translate(12499.2,0)"><path data-c="2B" d="M56 237T56 250T70 270H369V420L370 570Q380 583 389 583Q402 583 409 568V270H707Q722 262 722 250T707 230H409V-68Q401 -82 391 -82H389H387Q375 -82 369 -68V230H70Q56 237 56 250Z"></path></g><g data-mml-node="msub" transform="translate(13499.4,0)"><g data-mml-node="mi"><path data-c="1D43E" d="M285 628Q285 635 228 637Q205 637 198 638T191 647Q191 649 193 661Q199 681 203 682Q205 683 214 683H219Q260 681 355 681Q389 681 418 681T463 682T483 682Q500 682 500 674Q500 669 497 660Q496 658 496 654T495 648T493 644T490 641T486 639T479 638T470 637T456 637Q416 636 405 634T387 623L306 305Q307 305 490 449T678 597Q692 611 692 620Q692 635 667 637Q651 637 651 648Q651 650 654 662T659 677Q662 682 676 682Q680 682 711 681T791 680Q814 680 839 681T869 682Q889 682 889 672Q889 650 881 642Q878 637 862 637Q787 632 726 586Q710 576 656 534T556 455L509 418L518 396Q527 374 546 329T581 244Q656 67 661 61Q663 59 666 57Q680 47 717 46H738Q744 38 744 37T741 19Q737 6 731 0H720Q680 3 625 3Q503 3 488 0H478Q472 6 472 9T474 27Q478 40 480 43T491 46H494Q544 46 544 71Q544 75 517 141T485 216L427 354L359 301L291 248L268 155Q245 63 245 58Q245 51 253 49T303 46H334Q340 37 340 35Q340 19 333 5Q328 0 317 0Q314 0 280 1T180 2Q118 2 85 2T49 1Q31 1 31 11Q31 13 34 25Q38 41 42 43T65 46Q92 46 125 49Q139 52 144 61Q147 65 216 339T285 628Z"></path></g><g data-mml-node="mi" transform="translate(882,-150) scale(0.707)"><path data-c="1D451" d="M366 683Q367 683 438 688T511 694Q523 694 523 686Q523 679 450 384T375 83T374 68Q374 26 402 26Q411 27 422 35Q443 55 463 131Q469 151 473 152Q475 153 483 153H487H491Q506 153 506 145Q506 140 503 129Q490 79 473 48T445 8T417 -8Q409 -10 393 -10Q359 -10 336 5T306 36L300 51Q299 52 296 50Q294 48 292 46Q233 -10 172 -10Q117 -10 75 30T33 157Q33 205 53 255T101 341Q148 398 195 420T280 442Q336 442 364 400Q369 394 369 396Q370 400 396 505T424 616Q424 629 417 632T378 637H357Q351 643 351 645T353 664Q358 683 366 683ZM352 326Q329 405 277 405Q242 405 210 374T160 293Q131 214 119 129Q119 126 119 118T118 106Q118 61 136 44T179 26Q233 26 290 98L298 109L352 326Z"></path></g></g><g data-mml-node="mo" transform="translate(14799.1,0)"><path data-c="28" d="M94 250Q94 319 104 381T127 488T164 576T202 643T244 695T277 729T302 750H315H319Q333 750 333 741Q333 738 316 720T275 667T226 581T184 443T167 250T184 58T225 -81T274 -167T316 -220T333 -241Q333 -250 318 -250H315H302L274 -226Q180 -141 137 -14T94 250Z"></path></g><g data-mml-node="mi" transform="translate(15188.1,0)"><path data-c="1D452" d="M39 168Q39 225 58 272T107 350T174 402T244 433T307 442H310Q355 442 388 420T421 355Q421 265 310 237Q261 224 176 223Q139 223 138 221Q138 219 132 186T125 128Q125 81 146 54T209 26T302 45T394 111Q403 121 406 121Q410 121 419 112T429 98T420 82T390 55T344 24T281 -1T205 -11Q126 -11 83 42T39 168ZM373 353Q367 405 305 405Q272 405 244 391T199 357T170 316T154 280T149 261Q149 260 169 260Q282 260 327 284T373 353Z"></path></g><g data-mml-node="mo" transform="translate(15654.1,0)"><path data-c="28" d="M94 250Q94 319 104 381T127 488T164 576T202 643T244 695T277 729T302 750H315H319Q333 750 333 741Q333 738 316 720T275 667T226 581T184 443T167 250T184 58T225 -81T274 -167T316 -220T333 -241Q333 -250 318 -250H315H302L274 -226Q180 -141 137 -14T94 250Z"></path></g><g data-mml-node="mi" transform="translate(16043.1,0)"><path data-c="1D458" d="M121 647Q121 657 125 670T137 683Q138 683 209 688T282 694Q294 694 294 686Q294 679 244 477Q194 279 194 272Q213 282 223 291Q247 309 292 354T362 415Q402 442 438 442Q468 442 485 423T503 369Q503 344 496 327T477 302T456 291T438 288Q418 288 406 299T394 328Q394 353 410 369T442 390L458 393Q446 405 434 405H430Q398 402 367 380T294 316T228 255Q230 254 243 252T267 246T293 238T320 224T342 206T359 180T365 147Q365 130 360 106T354 66Q354 26 381 26Q429 26 459 145Q461 153 479 153H483Q499 153 499 144Q499 139 496 130Q455 -11 378 -11Q333 -11 305 15T277 90Q277 108 280 121T283 145Q283 167 269 183T234 206T200 217T182 220H180Q168 178 159 139T145 81T136 44T129 20T122 7T111 -2Q98 -11 83 -11Q66 -11 57 -1T48 16Q48 26 85 176T158 471L195 616Q196 629 188 632T149 637H144Q134 637 131 637T124 640T121 647Z"></path></g><g data-mml-node="mo" transform="translate(16564.1,0)"><path data-c="29" d="M60 749L64 750Q69 750 74 750H86L114 726Q208 641 251 514T294 250Q294 182 284 119T261 12T224 -76T186 -143T145 -194T113 -227T90 -246Q87 -249 86 -250H74Q66 -250 63 -250T58 -247T55 -238Q56 -237 66 -225Q221 -64 221 250T66 725Q56 737 55 738Q55 746 60 749Z"></path></g><g data-mml-node="mo" transform="translate(17175.3,0)"><path data-c="2212" d="M84 237T84 250T98 270H679Q694 262 694 250T679 230H98Q84 237 84 250Z"></path></g><g data-mml-node="mi" transform="translate(18175.5,0)"><path data-c="1D452" d="M39 168Q39 225 58 272T107 350T174 402T244 433T307 442H310Q355 442 388 420T421 355Q421 265 310 237Q261 224 176 223Q139 223 138 221Q138 219 132 186T125 128Q125 81 146 54T209 26T302 45T394 111Q403 121 406 121Q410 121 419 112T429 98T420 82T390 55T344 24T281 -1T205 -11Q126 -11 83 42T39 168ZM373 353Q367 405 305 405Q272 405 244 391T199 357T170 316T154 280T149 261Q149 260 169 260Q282 260 327 284T373 353Z"></path></g><g data-mml-node="mo" transform="translate(18641.5,0)"><path data-c="28" d="M94 250Q94 319 104 381T127 488T164 576T202 643T244 695T277 729T302 750H315H319Q333 750 333 741Q333 738 316 720T275 667T226 581T184 443T167 250T184 58T225 -81T274 -167T316 -220T333 -241Q333 -250 318 -250H315H302L274 -226Q180 -141 137 -14T94 250Z"></path></g><g data-mml-node="mi" transform="translate(19030.5,0)"><path data-c="1D458" d="M121 647Q121 657 125 670T137 683Q138 683 209 688T282 694Q294 694 294 686Q294 679 244 477Q194 279 194 272Q213 282 223 291Q247 309 292 354T362 415Q402 442 438 442Q468 442 485 423T503 369Q503 344 496 327T477 302T456 291T438 288Q418 288 406 299T394 328Q394 353 410 369T442 390L458 393Q446 405 434 405H430Q398 402 367 380T294 316T228 255Q230 254 243 252T267 246T293 238T320 224T342 206T359 180T365 147Q365 130 360 106T354 66Q354 26 381 26Q429 26 459 145Q461 153 479 153H483Q499 153 499 144Q499 139 496 130Q455 -11 378 -11Q333 -11 305 15T277 90Q277 108 280 121T283 145Q283 167 269 183T234 206T200 217T182 220H180Q168 178 159 139T145 81T136 44T129 20T122 7T111 -2Q98 -11 83 -11Q66 -11 57 -1T48 16Q48 26 85 176T158 471L195 616Q196 629 188 632T149 637H144Q134 637 131 637T124 640T121 647Z"></path></g><g data-mml-node="mo" transform="translate(19773.8,0)"><path data-c="2212" d="M84 237T84 250T98 270H679Q694 262 694 250T679 230H98Q84 237 84 250Z"></path></g><g data-mml-node="mn" transform="translate(20774,0)"><path data-c="31" d="M213 578L200 573Q186 568 160 563T102 556H83V602H102Q149 604 189 617T245 641T273 663Q275 666 285 666Q294 666 302 660V361L303 61Q310 54 315 52T339 48T401 46H427V0H416Q395 3 257 3Q121 3 100 0H88V46H114Q136 46 152 46T177 47T193 50T201 52T207 57T213 61V578Z"></path></g><g data-mml-node="mo" transform="translate(21274,0)"><path data-c="29" d="M60 749L64 750Q69 750 74 750H86L114 726Q208 641 251 514T294 250Q294 182 284 119T261 12T224 -76T186 -143T145 -194T113 -227T90 -246Q87 -249 86 -250H74Q66 -250 63 -250T58 -247T55 -238Q56 -237 66 -225Q221 -64 221 250T66 725Q56 737 55 738Q55 746 60 749Z"></path></g><g data-mml-node="mo" transform="translate(21663,0)"><path data-c="29" d="M60 749L64 750Q69 750 74 750H86L114 726Q208 641 251 514T294 250Q294 182 284 119T261 12T224 -76T186 -143T145 -194T113 -227T90 -246Q87 -249 86 -250H74Q66 -250 63 -250T58 -247T55 -238Q56 -237 66 -225Q221 -64 221 250T66 725Q56 737 55 738Q55 746 60 749Z"></path></g></g></g></svg></mjx-container></span></p>
+<blockquote>
+<p>Notes:在真正的工程实践中，各个分量的各个参数基本上都需要通过实验试出来的。某些情况下仅仅只有P或者只有PD，效果就达到要求了，所以也就不需要再考虑其他的了。PID三种分量的结合使用，加上大量的实验来确定合适的参数，基本上就能满足我们的需求了。偶觉得PD很好用。</p>
+</blockquote>
+<h2 id="比例控制算法">比例控制算法</h2>
+<p><span class="math inline"><mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: -0.65ex;" xmlns="http://www.w3.org/2000/svg" width="14.197ex" height="2.195ex" role="img" focusable="false" viewBox="0 -683 6275.2 970.2"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mi"><path data-c="1D462" d="M21 287Q21 295 30 318T55 370T99 420T158 442Q204 442 227 417T250 358Q250 340 216 246T182 105Q182 62 196 45T238 27T291 44T328 78L339 95Q341 99 377 247Q407 367 413 387T427 416Q444 431 463 431Q480 431 488 421T496 402L420 84Q419 79 419 68Q419 43 426 35T447 26Q469 29 482 57T512 145Q514 153 532 153Q551 153 551 144Q550 139 549 130T540 98T523 55T498 17T462 -8Q454 -10 438 -10Q372 -10 347 46Q345 45 336 36T318 21T296 6T267 -6T233 -11Q189 -11 155 7Q103 38 103 113Q103 170 138 262T173 379Q173 380 173 381Q173 390 173 393T169 400T158 404H154Q131 404 112 385T82 344T65 302T57 280Q55 278 41 278H27Q21 284 21 287Z"></path></g><g data-mml-node="mo" transform="translate(849.8,0)"><path data-c="3D" d="M56 347Q56 360 70 367H707Q722 359 722 347Q722 336 708 328L390 327H72Q56 332 56 347ZM56 153Q56 168 72 173H708Q722 163 722 153Q722 140 707 133H70Q56 140 56 153Z"></path></g><g data-mml-node="msub" transform="translate(1905.6,0)"><g data-mml-node="mi"><path data-c="1D43E" d="M285 628Q285 635 228 637Q205 637 198 638T191 647Q191 649 193 661Q199 681 203 682Q205 683 214 683H219Q260 681 355 681Q389 681 418 681T463 682T483 682Q500 682 500 674Q500 669 497 660Q496 658 496 654T495 648T493 644T490 641T486 639T479 638T470 637T456 637Q416 636 405 634T387 623L306 305Q307 305 490 449T678 597Q692 611 692 620Q692 635 667 637Q651 637 651 648Q651 650 654 662T659 677Q662 682 676 682Q680 682 711 681T791 680Q814 680 839 681T869 682Q889 682 889 672Q889 650 881 642Q878 637 862 637Q787 632 726 586Q710 576 656 534T556 455L509 418L518 396Q527 374 546 329T581 244Q656 67 661 61Q663 59 666 57Q680 47 717 46H738Q744 38 744 37T741 19Q737 6 731 0H720Q680 3 625 3Q503 3 488 0H478Q472 6 472 9T474 27Q478 40 480 43T491 46H494Q544 46 544 71Q544 75 517 141T485 216L427 354L359 301L291 248L268 155Q245 63 245 58Q245 51 253 49T303 46H334Q340 37 340 35Q340 19 333 5Q328 0 317 0Q314 0 280 1T180 2Q118 2 85 2T49 1Q31 1 31 11Q31 13 34 25Q38 41 42 43T65 46Q92 46 125 49Q139 52 144 61Q147 65 216 339T285 628Z"></path></g><g data-mml-node="mi" transform="translate(882,-150) scale(0.707)"><path data-c="1D45D" d="M23 287Q24 290 25 295T30 317T40 348T55 381T75 411T101 433T134 442Q209 442 230 378L240 387Q302 442 358 442Q423 442 460 395T497 281Q497 173 421 82T249 -10Q227 -10 210 -4Q199 1 187 11T168 28L161 36Q160 35 139 -51T118 -138Q118 -144 126 -145T163 -148H188Q194 -155 194 -157T191 -175Q188 -187 185 -190T172 -194Q170 -194 161 -194T127 -193T65 -192Q-5 -192 -24 -194H-32Q-39 -187 -39 -183Q-37 -156 -26 -148H-6Q28 -147 33 -136Q36 -130 94 103T155 350Q156 355 156 364Q156 405 131 405Q109 405 94 377T71 316T59 280Q57 278 43 278H29Q23 284 23 287ZM178 102Q200 26 252 26Q282 26 310 49T356 107Q374 141 392 215T411 325V331Q411 405 350 405Q339 405 328 402T306 393T286 380T269 365T254 350T243 336T235 326L232 322Q232 321 229 308T218 264T204 212Q178 106 178 102Z"></path></g></g><g data-mml-node="mi" transform="translate(3193.2,0)"><path data-c="D7" d="M630 29Q630 9 609 9Q604 9 587 25T493 118L389 222L284 117Q178 13 175 11Q171 9 168 9Q160 9 154 15T147 29Q147 36 161 51T255 146L359 250L255 354Q174 435 161 449T147 471Q147 480 153 485T168 490Q173 490 175 489Q178 487 284 383L389 278L493 382Q570 459 587 475T609 491Q630 491 630 471Q630 464 620 453T522 355L418 250L522 145Q606 61 618 48T630 29Z"></path></g><g data-mml-node="mi" transform="translate(3971.2,0)"><path data-c="1D452" d="M39 168Q39 225 58 272T107 350T174 402T244 433T307 442H310Q355 442 388 420T421 355Q421 265 310 237Q261 224 176 223Q139 223 138 221Q138 219 132 186T125 128Q125 81 146 54T209 26T302 45T394 111Q403 121 406 121Q410 121 419 112T429 98T420 82T390 55T344 24T281 -1T205 -11Q126 -11 83 42T39 168ZM373 353Q367 405 305 405Q272 405 244 391T199 357T170 316T154 280T149 261Q149 260 169 260Q282 260 327 284T373 353Z"></path></g><g data-mml-node="mi" transform="translate(4437.2,0)"><path data-c="1D45F" d="M21 287Q22 290 23 295T28 317T38 348T53 381T73 411T99 433T132 442Q161 442 183 430T214 408T225 388Q227 382 228 382T236 389Q284 441 347 441H350Q398 441 422 400Q430 381 430 363Q430 333 417 315T391 292T366 288Q346 288 334 299T322 328Q322 376 378 392Q356 405 342 405Q286 405 239 331Q229 315 224 298T190 165Q156 25 151 16Q138 -11 108 -11Q95 -11 87 -5T76 7T74 17Q74 30 114 189T154 366Q154 405 128 405Q107 405 92 377T68 316T57 280Q55 278 41 278H27Q21 284 21 287Z"></path></g><g data-mml-node="mi" transform="translate(4888.2,0)"><path data-c="1D45F" d="M21 287Q22 290 23 295T28 317T38 348T53 381T73 411T99 433T132 442Q161 442 183 430T214 408T225 388Q227 382 228 382T236 389Q284 441 347 441H350Q398 441 422 400Q430 381 430 363Q430 333 417 315T391 292T366 288Q346 288 334 299T322 328Q322 376 378 392Q356 405 342 405Q286 405 239 331Q229 315 224 298T190 165Q156 25 151 16Q138 -11 108 -11Q95 -11 87 -5T76 7T74 17Q74 30 114 189T154 366Q154 405 128 405Q107 405 92 377T68 316T57 280Q55 278 41 278H27Q21 284 21 287Z"></path></g><g data-mml-node="mi" transform="translate(5339.2,0)"><path data-c="1D45C" d="M201 -11Q126 -11 80 38T34 156Q34 221 64 279T146 380Q222 441 301 441Q333 441 341 440Q354 437 367 433T402 417T438 387T464 338T476 268Q476 161 390 75T201 -11ZM121 120Q121 70 147 48T206 26Q250 26 289 58T351 142Q360 163 374 216T388 308Q388 352 370 375Q346 405 306 405Q243 405 195 347Q158 303 140 230T121 120Z"></path></g><g data-mml-node="mi" transform="translate(5824.2,0)"><path data-c="1D45F" d="M21 287Q22 290 23 295T28 317T38 348T53 381T73 411T99 433T132 442Q161 442 183 430T214 408T225 388Q227 382 228 382T236 389Q284 441 347 441H350Q398 441 422 400Q430 381 430 363Q430 333 417 315T391 292T366 288Q346 288 334 299T322 328Q322 376 378 392Q356 405 342 405Q286 405 239 331Q229 315 224 298T190 165Q156 25 151 16Q138 -11 108 -11Q95 -11 87 -5T76 7T74 17Q74 30 114 189T154 366Q154 405 128 405Q107 405 92 377T68 316T57 280Q55 278 41 278H27Q21 284 21 287Z"></path></g></g></g></svg></mjx-container></span>,但是有稳态误差的存在</p>
+<blockquote>
+<p>Tips:稳态误差就是水缸漏水产生的（通过Kp的调节与漏水速度一致达到稳态但并未达到我们想要的目标），比如控制汽车运动，摩擦阻力就相当于是“漏水”，控制机械臂、无人机的飞行，各类阻力和消耗都可以理解为本例中的“漏水</p>
+</blockquote>
+<figure>
+<img src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230908144827896.png" alt="image-20230908144827896">
+<figcaption aria-hidden="true">image-20230908144827896</figcaption>
+</figure>
+<p>稳态误差的体现：</p>
+<figure>
+<img src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230908144757063.png" alt="P">
+<figcaption aria-hidden="true">P</figcaption>
+</figure>
+<figure>
+<img src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230908150111881.png" alt="image-20230908150111881">
+<figcaption aria-hidden="true">image-20230908150111881</figcaption>
+</figure>
+<h2 id="积分控制算法">积分控制算法</h2>
+<p><span class="math inline"><mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: -0.691ex;" xmlns="http://www.w3.org/2000/svg" width="28.731ex" height="2.514ex" role="img" focusable="false" viewBox="0 -805.5 12699 1111"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mi"><path data-c="1D462" d="M21 287Q21 295 30 318T55 370T99 420T158 442Q204 442 227 417T250 358Q250 340 216 246T182 105Q182 62 196 45T238 27T291 44T328 78L339 95Q341 99 377 247Q407 367 413 387T427 416Q444 431 463 431Q480 431 488 421T496 402L420 84Q419 79 419 68Q419 43 426 35T447 26Q469 29 482 57T512 145Q514 153 532 153Q551 153 551 144Q550 139 549 130T540 98T523 55T498 17T462 -8Q454 -10 438 -10Q372 -10 347 46Q345 45 336 36T318 21T296 6T267 -6T233 -11Q189 -11 155 7Q103 38 103 113Q103 170 138 262T173 379Q173 380 173 381Q173 390 173 393T169 400T158 404H154Q131 404 112 385T82 344T65 302T57 280Q55 278 41 278H27Q21 284 21 287Z"></path></g><g data-mml-node="mo" transform="translate(849.8,0)"><path data-c="3D" d="M56 347Q56 360 70 367H707Q722 359 722 347Q722 336 708 328L390 327H72Q56 332 56 347ZM56 153Q56 168 72 173H708Q722 163 722 153Q722 140 707 133H70Q56 140 56 153Z"></path></g><g data-mml-node="msub" transform="translate(1905.6,0)"><g data-mml-node="mi"><path data-c="1D43E" d="M285 628Q285 635 228 637Q205 637 198 638T191 647Q191 649 193 661Q199 681 203 682Q205 683 214 683H219Q260 681 355 681Q389 681 418 681T463 682T483 682Q500 682 500 674Q500 669 497 660Q496 658 496 654T495 648T493 644T490 641T486 639T479 638T470 637T456 637Q416 636 405 634T387 623L306 305Q307 305 490 449T678 597Q692 611 692 620Q692 635 667 637Q651 637 651 648Q651 650 654 662T659 677Q662 682 676 682Q680 682 711 681T791 680Q814 680 839 681T869 682Q889 682 889 672Q889 650 881 642Q878 637 862 637Q787 632 726 586Q710 576 656 534T556 455L509 418L518 396Q527 374 546 329T581 244Q656 67 661 61Q663 59 666 57Q680 47 717 46H738Q744 38 744 37T741 19Q737 6 731 0H720Q680 3 625 3Q503 3 488 0H478Q472 6 472 9T474 27Q478 40 480 43T491 46H494Q544 46 544 71Q544 75 517 141T485 216L427 354L359 301L291 248L268 155Q245 63 245 58Q245 51 253 49T303 46H334Q340 37 340 35Q340 19 333 5Q328 0 317 0Q314 0 280 1T180 2Q118 2 85 2T49 1Q31 1 31 11Q31 13 34 25Q38 41 42 43T65 46Q92 46 125 49Q139 52 144 61Q147 65 216 339T285 628Z"></path></g><g data-mml-node="mi" transform="translate(882,-150) scale(0.707)"><path data-c="1D45D" d="M23 287Q24 290 25 295T30 317T40 348T55 381T75 411T101 433T134 442Q209 442 230 378L240 387Q302 442 358 442Q423 442 460 395T497 281Q497 173 421 82T249 -10Q227 -10 210 -4Q199 1 187 11T168 28L161 36Q160 35 139 -51T118 -138Q118 -144 126 -145T163 -148H188Q194 -155 194 -157T191 -175Q188 -187 185 -190T172 -194Q170 -194 161 -194T127 -193T65 -192Q-5 -192 -24 -194H-32Q-39 -187 -39 -183Q-37 -156 -26 -148H-6Q28 -147 33 -136Q36 -130 94 103T155 350Q156 355 156 364Q156 405 131 405Q109 405 94 377T71 316T59 280Q57 278 43 278H29Q23 284 23 287ZM178 102Q200 26 252 26Q282 26 310 49T356 107Q374 141 392 215T411 325V331Q411 405 350 405Q339 405 328 402T306 393T286 380T269 365T254 350T243 336T235 326L232 322Q232 321 229 308T218 264T204 212Q178 106 178 102Z"></path></g></g><g data-mml-node="mi" transform="translate(3193.2,0)"><path data-c="D7" d="M630 29Q630 9 609 9Q604 9 587 25T493 118L389 222L284 117Q178 13 175 11Q171 9 168 9Q160 9 154 15T147 29Q147 36 161 51T255 146L359 250L255 354Q174 435 161 449T147 471Q147 480 153 485T168 490Q173 490 175 489Q178 487 284 383L389 278L493 382Q570 459 587 475T609 491Q630 491 630 471Q630 464 620 453T522 355L418 250L522 145Q606 61 618 48T630 29Z"></path></g><g data-mml-node="mi" transform="translate(3971.2,0)"><path data-c="1D452" d="M39 168Q39 225 58 272T107 350T174 402T244 433T307 442H310Q355 442 388 420T421 355Q421 265 310 237Q261 224 176 223Q139 223 138 221Q138 219 132 186T125 128Q125 81 146 54T209 26T302 45T394 111Q403 121 406 121Q410 121 419 112T429 98T420 82T390 55T344 24T281 -1T205 -11Q126 -11 83 42T39 168ZM373 353Q367 405 305 405Q272 405 244 391T199 357T170 316T154 280T149 261Q149 260 169 260Q282 260 327 284T373 353Z"></path></g><g data-mml-node="mi" transform="translate(4437.2,0)"><path data-c="1D45F" d="M21 287Q22 290 23 295T28 317T38 348T53 381T73 411T99 433T132 442Q161 442 183 430T214 408T225 388Q227 382 228 382T236 389Q284 441 347 441H350Q398 441 422 400Q430 381 430 363Q430 333 417 315T391 292T366 288Q346 288 334 299T322 328Q322 376 378 392Q356 405 342 405Q286 405 239 331Q229 315 224 298T190 165Q156 25 151 16Q138 -11 108 -11Q95 -11 87 -5T76 7T74 17Q74 30 114 189T154 366Q154 405 128 405Q107 405 92 377T68 316T57 280Q55 278 41 278H27Q21 284 21 287Z"></path></g><g data-mml-node="mi" transform="translate(4888.2,0)"><path data-c="1D45F" d="M21 287Q22 290 23 295T28 317T38 348T53 381T73 411T99 433T132 442Q161 442 183 430T214 408T225 388Q227 382 228 382T236 389Q284 441 347 441H350Q398 441 422 400Q430 381 430 363Q430 333 417 315T391 292T366 288Q346 288 334 299T322 328Q322 376 378 392Q356 405 342 405Q286 405 239 331Q229 315 224 298T190 165Q156 25 151 16Q138 -11 108 -11Q95 -11 87 -5T76 7T74 17Q74 30 114 189T154 366Q154 405 128 405Q107 405 92 377T68 316T57 280Q55 278 41 278H27Q21 284 21 287Z"></path></g><g data-mml-node="mi" transform="translate(5339.2,0)"><path data-c="1D45C" d="M201 -11Q126 -11 80 38T34 156Q34 221 64 279T146 380Q222 441 301 441Q333 441 341 440Q354 437 367 433T402 417T438 387T464 338T476 268Q476 161 390 75T201 -11ZM121 120Q121 70 147 48T206 26Q250 26 289 58T351 142Q360 163 374 216T388 308Q388 352 370 375Q346 405 306 405Q243 405 195 347Q158 303 140 230T121 120Z"></path></g><g data-mml-node="mi" transform="translate(5824.2,0)"><path data-c="1D45F" d="M21 287Q22 290 23 295T28 317T38 348T53 381T73 411T99 433T132 442Q161 442 183 430T214 408T225 388Q227 382 228 382T236 389Q284 441 347 441H350Q398 441 422 400Q430 381 430 363Q430 333 417 315T391 292T366 288Q346 288 334 299T322 328Q322 376 378 392Q356 405 342 405Q286 405 239 331Q229 315 224 298T190 165Q156 25 151 16Q138 -11 108 -11Q95 -11 87 -5T76 7T74 17Q74 30 114 189T154 366Q154 405 128 405Q107 405 92 377T68 316T57 280Q55 278 41 278H27Q21 284 21 287Z"></path></g><g data-mml-node="mo" transform="translate(6497.5,0)"><path data-c="2B" d="M56 237T56 250T70 270H369V420L370 570Q380 583 389 583Q402 583 409 568V270H707Q722 262 722 250T707 230H409V-68Q401 -82 391 -82H389H387Q375 -82 369 -68V230H70Q56 237 56 250Z"></path></g><g data-mml-node="msub" transform="translate(7497.7,0)"><g data-mml-node="mi"><path data-c="1D43E" d="M285 628Q285 635 228 637Q205 637 198 638T191 647Q191 649 193 661Q199 681 203 682Q205 683 214 683H219Q260 681 355 681Q389 681 418 681T463 682T483 682Q500 682 500 674Q500 669 497 660Q496 658 496 654T495 648T493 644T490 641T486 639T479 638T470 637T456 637Q416 636 405 634T387 623L306 305Q307 305 490 449T678 597Q692 611 692 620Q692 635 667 637Q651 637 651 648Q651 650 654 662T659 677Q662 682 676 682Q680 682 711 681T791 680Q814 680 839 681T869 682Q889 682 889 672Q889 650 881 642Q878 637 862 637Q787 632 726 586Q710 576 656 534T556 455L509 418L518 396Q527 374 546 329T581 244Q656 67 661 61Q663 59 666 57Q680 47 717 46H738Q744 38 744 37T741 19Q737 6 731 0H720Q680 3 625 3Q503 3 488 0H478Q472 6 472 9T474 27Q478 40 480 43T491 46H494Q544 46 544 71Q544 75 517 141T485 216L427 354L359 301L291 248L268 155Q245 63 245 58Q245 51 253 49T303 46H334Q340 37 340 35Q340 19 333 5Q328 0 317 0Q314 0 280 1T180 2Q118 2 85 2T49 1Q31 1 31 11Q31 13 34 25Q38 41 42 43T65 46Q92 46 125 49Q139 52 144 61Q147 65 216 339T285 628Z"></path></g><g data-mml-node="mi" transform="translate(882,-150) scale(0.707)"><path data-c="1D456" d="M184 600Q184 624 203 642T247 661Q265 661 277 649T290 619Q290 596 270 577T226 557Q211 557 198 567T184 600ZM21 287Q21 295 30 318T54 369T98 420T158 442Q197 442 223 419T250 357Q250 340 236 301T196 196T154 83Q149 61 149 51Q149 26 166 26Q175 26 185 29T208 43T235 78T260 137Q263 149 265 151T282 153Q302 153 302 143Q302 135 293 112T268 61T223 11T161 -11Q129 -11 102 10T74 74Q74 91 79 106T122 220Q160 321 166 341T173 380Q173 404 156 404H154Q124 404 99 371T61 287Q60 286 59 284T58 281T56 279T53 278T49 278T41 278H27Q21 284 21 287Z"></path></g></g><g data-mml-node="mi" transform="translate(8673.6,0)"><path data-c="D7" d="M630 29Q630 9 609 9Q604 9 587 25T493 118L389 222L284 117Q178 13 175 11Q171 9 168 9Q160 9 154 15T147 29Q147 36 161 51T255 146L359 250L255 354Q174 435 161 449T147 471Q147 480 153 485T168 490Q173 490 175 489Q178 487 284 383L389 278L493 382Q570 459 587 475T609 491Q630 491 630 471Q630 464 620 453T522 355L418 250L522 145Q606 61 618 48T630 29Z"></path></g><g data-mml-node="mo" transform="translate(9618.3,0) translate(0 0.5)"><path data-c="222B" d="M113 -244Q113 -246 119 -251T139 -263T167 -269Q186 -269 199 -260Q220 -247 232 -218T251 -133T262 -15T276 155T297 367Q300 390 305 438T314 512T325 580T340 647T361 703T390 751T428 784T479 804Q481 804 488 804T501 805Q552 802 581 769T610 695Q610 669 594 657T561 645Q542 645 527 658T512 694Q512 705 516 714T526 729T538 737T548 742L552 743Q552 745 545 751T525 762T498 768Q475 768 460 756T434 716T418 652T407 559T398 444T387 300T369 133Q349 -38 337 -102T303 -207Q256 -306 169 -306Q119 -306 87 -272T55 -196Q55 -170 71 -158T104 -146Q123 -146 138 -159T153 -195Q153 -206 149 -215T139 -230T127 -238T117 -242L113 -244Z"></path></g><g data-mml-node="mi" transform="translate(10395,0)"><path data-c="1D452" d="M39 168Q39 225 58 272T107 350T174 402T244 433T307 442H310Q355 442 388 420T421 355Q421 265 310 237Q261 224 176 223Q139 223 138 221Q138 219 132 186T125 128Q125 81 146 54T209 26T302 45T394 111Q403 121 406 121Q410 121 419 112T429 98T420 82T390 55T344 24T281 -1T205 -11Q126 -11 83 42T39 168ZM373 353Q367 405 305 405Q272 405 244 391T199 357T170 316T154 280T149 261Q149 260 169 260Q282 260 327 284T373 353Z"></path></g><g data-mml-node="mi" transform="translate(10861,0)"><path data-c="1D45F" d="M21 287Q22 290 23 295T28 317T38 348T53 381T73 411T99 433T132 442Q161 442 183 430T214 408T225 388Q227 382 228 382T236 389Q284 441 347 441H350Q398 441 422 400Q430 381 430 363Q430 333 417 315T391 292T366 288Q346 288 334 299T322 328Q322 376 378 392Q356 405 342 405Q286 405 239 331Q229 315 224 298T190 165Q156 25 151 16Q138 -11 108 -11Q95 -11 87 -5T76 7T74 17Q74 30 114 189T154 366Q154 405 128 405Q107 405 92 377T68 316T57 280Q55 278 41 278H27Q21 284 21 287Z"></path></g><g data-mml-node="mi" transform="translate(11312,0)"><path data-c="1D45F" d="M21 287Q22 290 23 295T28 317T38 348T53 381T73 411T99 433T132 442Q161 442 183 430T214 408T225 388Q227 382 228 382T236 389Q284 441 347 441H350Q398 441 422 400Q430 381 430 363Q430 333 417 315T391 292T366 288Q346 288 334 299T322 328Q322 376 378 392Q356 405 342 405Q286 405 239 331Q229 315 224 298T190 165Q156 25 151 16Q138 -11 108 -11Q95 -11 87 -5T76 7T74 17Q74 30 114 189T154 366Q154 405 128 405Q107 405 92 377T68 316T57 280Q55 278 41 278H27Q21 284 21 287Z"></path></g><g data-mml-node="mi" transform="translate(11763,0)"><path data-c="1D45C" d="M201 -11Q126 -11 80 38T34 156Q34 221 64 279T146 380Q222 441 301 441Q333 441 341 440Q354 437 367 433T402 417T438 387T464 338T476 268Q476 161 390 75T201 -11ZM121 120Q121 70 147 48T206 26Q250 26 289 58T351 142Q360 163 374 216T388 308Q388 352 370 375Q346 405 306 405Q243 405 195 347Q158 303 140 230T121 120Z"></path></g><g data-mml-node="mi" transform="translate(12248,0)"><path data-c="1D45F" d="M21 287Q22 290 23 295T28 317T38 348T53 381T73 411T99 433T132 442Q161 442 183 430T214 408T225 388Q227 382 228 382T236 389Q284 441 347 441H350Q398 441 422 400Q430 381 430 363Q430 333 417 315T391 292T366 288Q346 288 334 299T322 328Q322 376 378 392Q356 405 342 405Q286 405 239 331Q229 315 224 298T190 165Q156 25 151 16Q138 -11 108 -11Q95 -11 87 -5T76 7T74 17Q74 30 114 189T154 366Q154 405 128 405Q107 405 92 377T68 316T57 280Q55 278 41 278H27Q21 284 21 287Z"></path></g></g></g></svg></mjx-container></span>，积分项可以很好地消除稳态误差</p>
+<figure>
+<img src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230908151548756.png" alt="image-20230908151548756">
+<figcaption aria-hidden="true">image-20230908151548756</figcaption>
 </figure>
 <blockquote>
-<p>Tips:接收数据就绪可读</p>
+<p>Tips:加了I之后，系统升阶了</p>
 </blockquote>
-<p>由于所有中断事件在发送到中断控制器之前会一起进行“或运算”操作，所以<strong>任意时刻
-USART
-只能向中断产生一个中断请求</strong>。通过查询中断状态函数，软件可以在同一个中断服务函数里处理多个中断事件（多个并列的if
-语句）</p>
-<p><img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230608120555701.png" /></p>
-<h3 id="使用dma收发">使用DMA收发</h3>
-<ul>
-<li><p>DMA（Direct Memory
-Access，直接内存访问）是一种用于数据传输的技术，它可以绕过CPU直接在外设和内存之间进行数据传输。在DMA操作中，有两个重要的地址：外设基地址和内存基地址。</p>
-<ul>
-<li>外设基地址是指用于DMA传输的外设设备的起始地址。</li>
-<li>内存基地址是指用于DMA传输的内存区域的起始地址。</li>
-</ul>
-<p>DMA的优点是可以减少CPU的负担，提高系统的效率和性能。</p>
-<p>DMA的缺点是需要额外的硬件支持，如DMA控制器和总线仲裁器，以及额外的软件配置，如设置DMA通道、传输方向、数据量、优先级等参数。</p></li>
-</ul>
-<blockquote>
-<p>Tips:数据传输想象成快递，本来店家需要和快递员一个一个联系，DMA就是快递柜分好类，店家就不用一个一个联系了</p>
-</blockquote>
-<h2 id="usart重要寄存器">USART重要寄存器</h2>
-<h3 id="状态寄存器usart_sr">状态寄存器（USART_SR）</h3>
-<p>通过查询状态寄存器可查询状态</p>
+<p>加入I后消除了稳态误差</p>
 <figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230608120652738.png"
-alt="image-20230608120652738" />
-<figcaption aria-hidden="true">image-20230608120652738</figcaption>
+<img src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230908153731889.png" alt="PI">
+<figcaption aria-hidden="true">PI</figcaption>
 </figure>
-<ul>
-<li><p>TC：发送完成 (Transmission complete)</p>
-<p>当包含有数据的一帧发送完成后，并且TXE=1时，由硬件将该位置’1’。如果USART_CR1中的TCIE为’1’，则产生中断。由软件序列清除该位(先读USART_SR，然后写入USART_DR)。
-TC位也可以通过写入’0’来清除，只有在多缓存通讯中才推荐这种清除程序。</p>
-<p>0：发送还未完成；</p>
-<p>1：发送完成。</p></li>
-<li><p>IDLE：监测到总线空闲 (IDLE line detected)</p>
-<p>当检测到总线空闲时，该位被硬件置位。如果USART_CR1中的IDLEIE为’1’，则产生中断。由软件序列清除该位(先读USART_SR，然后读USART_DR)。</p>
-<p>0：没有检测到空闲总线；</p>
-<p>1：检测到空闲总线。</p>
-<blockquote>
-<p>Tips：
-IDLE用于不知道到底有多少个字节，IDLE位不会再次被置高,直到RXNE位被置起(即又检测到一次空闲总线)</p>
-</blockquote></li>
-</ul>
-<h3 id="控制寄存器-usart_crx">控制寄存器 （USART_CRx）</h3>
-<p>有CR1、CR2、CR3三个寄存器，具体的配置较复杂，具体的可以参考《STM32中文参考手册》。</p>
-<h2 id="usart-api"><strong>USART API</strong></h2>
-<h3 id="接收">接收</h3>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_StatusTypeDef HAL_UART_Receive(UART_HandleTypeDef *huart, uint8_t *pData,uint16_t Size, uint32_t Timeout)</span><br><span class="line">串口接收数据的库函数，阻塞的方式接收数据。</span><br><span class="line"></span><br><span class="line">huart :要发送数据的串口指针，pData:接收数据缓存地址，注意此处的指针形式，Size:接收数据的长度（字节数） Timeout：数据接收等待时间，CPU等待这个时间用来接收数据。</span><br></pre></td></tr></table></figure>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_StatusTypeDef HAL_UART_Receive_IT(UART_HandleTypeDef *huart, uint8_t *pData,uint16_t Size)</span><br></pre></td></tr></table></figure>
-<p>使用中断的方式进行接受数据，在这里需要注意的一个点是，使用中断的方式接收到数据之后，需要在中断里面在调用一次HAL_UART_Receive_IT函数，重新开启下一次数据接收，否则会导致，接收完一次数据之后，不会接收下一次数据。</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_UART_Receive_IT(&amp;huart2,&amp;usart2_rdata,1);  </span><br><span class="line">//IT：interrupt type control，中断</span><br><span class="line">void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)  </span><br><span class="line">&#123;</span><br><span class="line">	if(huart-&gt;Instance == USART2)  //串口屏，接收中断</span><br><span class="line">	&#123;</span><br><span class="line">	HAL_UART_Receive_IT(&amp;huart2,&amp;usart2_rdata,1);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line">//接收到指定长度就会产生一次中断</span><br></pre></td></tr></table></figure>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_StatusTypeDef HAL_UART_Receive_DMA(UART_HandleTypeDef *huart, uint8_t*pData, uint16_t Size)</span><br><span class="line">//接收到指定长度就会产生一次中断</span><br></pre></td></tr></table></figure>
-<h3 id="发送">发送</h3>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_StatusTypeDef HAL_UART_Transmit(UART_HandleTypeDef *huart, uint8_t *pData,uint16_t Size, uint32_t Timeout)</span><br><span class="line">在发送方面，使用HAL_UART_Transmit阻塞数据发送的时候，一定要计算好发送数据的时间。如果发送时间到了，但是数据还没有发送完成的话，会导致没有发送的数据丢失</span><br></pre></td></tr></table></figure>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_StatusTypeDef HAL_UART_Transmit_IT(UART_HandleTypeDef *huart, uint8_t*pData, uint16_t Size)</span><br></pre></td></tr></table></figure>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_StatusTypeDef HAL_UART_Transmit_DMA(UART_HandleTypeDef *huart, uint8_t*pData, uint16_t Size)</span><br></pre></td></tr></table></figure>
-<h3 id="中断">中断</h3>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">void USART1_IRQHandler(void)</span><br><span class="line">&#123;</span><br><span class="line">/* USER CODE BEGIN USART1_IRQn 0 */</span><br><span class="line">/* USER CODE END USART1_IRQn 0 */</span><br><span class="line">	HAL_UART_IRQHandler(&amp;huart1);</span><br><span class="line">/* USER CODE BEGIN USART1_IRQn 1 */</span><br><span class="line">/* USER CODE END USART1_IRQn 1 */</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">__weak void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)</span><br><span class="line">&#123;</span><br><span class="line">/* Prevent unused argument(s) compilation warning */</span><br><span class="line">	UNUSED(huart);</span><br><span class="line">/* NOTE: This function should not be modified, when the callback is needed,</span><br><span class="line">the HAL_UART_TxCpltCallback could be implemented in the user file*/</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">__weak void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)</span><br><span class="line">&#123;/* Prevent unused argument(s) compilation warning */</span><br><span class="line">	UNUSED(huart);</span><br><span class="line">/* NOTE: This function should not be modified, when the callback is needed,</span><br><span class="line">the HAL_UART_RxCpltCallback could be implemented in the user file*/</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>Tips:callback函数需要重定义</p>
-</blockquote>
-<h1 id="实验">实验</h1>
-<h2 id="cubemx">CubeMX：</h2>
-<ul>
-<li><p>串口在Connectivity</p></li>
-<li><p>Asynchronous <em>adj.</em>[电]
-异步的；不同时的；不同期的</p></li>
-<li><p>Parity 奇偶校验位</p></li>
-<li><p>NVIC Interrupt打开串口中断</p></li>
-<li><p>DMA setting当不知道要接收多少时用DMA空闲中断，ADD-&gt;Rx</p></li>
-</ul>
-<h2 id="keil">Keil</h2>
-<ul>
-<li>勾选<strong>use micro lib</strong></li>
-</ul>
-<blockquote>
-<p>Tips:KeilMDK配置项中Use
-MicroLIB是一个选项，用于选择是否使用microlib库。microlib库是一个简化的C标准库，它专门为需要在极少量内存中运行的深层嵌入式应用程序设计的。microlib库的优点是可以减少代码的大小，但缺点是功能有限，不符合ISO
-C标准和IEEE 754浮点算法标准。如果你想使用printf等函数，你可以选择Use
-MicroLIB选项，或者关闭半主机模式并重写相关的底层函数。</p>
-</blockquote>
-<ul>
-<li>DMA空闲中断</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">// 先打开串口空闲中断</span><br><span class="line">__HAL_UART_ENABLE_IT(&amp;huart1, UART_IT_IDLE);</span><br><span class="line">HAL_UART_Receive_DMA(&amp;huart1, receive_data, 100);</span><br><span class="line"></span><br><span class="line">//然后重写callback函数</span><br><span class="line">void UART_IDLE_Callback(UART_HandleTypeDef *huart)</span><br><span class="line"></span><br><span class="line">//最后在it.c中调用自己的中断，屏蔽默认的中断</span><br><span class="line">void USART1_IRQHandler(void)</span><br><span class="line">&#123;</span><br><span class="line">  /* USER CODE BEGIN USART1_IRQn 0 */</span><br><span class="line">	UART_IDLE_Callback(&amp;huart1);    //调用自己的中断</span><br><span class="line">	return;    //屏蔽默认的中断</span><br><span class="line">  /* USER CODE END USART1_IRQn 0 */</span><br><span class="line">  HAL_UART_IRQHandler(&amp;huart1);</span><br><span class="line">  /* USER CODE BEGIN USART1_IRQn 1 */</span><br><span class="line"></span><br><span class="line">  /* USER CODE END USART1_IRQn 1 */</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h2 id="串口调试助手">串口调试助手</h2>
-<p>我用了xcom和sscom串口调试助手</p>
-<ul>
-<li>Xcom.exe中可以监视数据传输</li>
-<li>DTR(Data Terminal
-Ready（数据终端准备好）)：由数据终端设备（如计算机）发出，表示它已经准备好接收数据了。当DTR为高电平时，表示数据终端设备已经打开了串口，并且可以接收数据。当DTR为低电平时，表示数据终端设备已经关闭了串口，或者不想接收数据了。</li>
-<li>RTS(Request To
-Send（请求发送）)：由数据终端设备发出，表示它想要发送数据了，并且请求对方的许可。当RTS为高电平时，表示数据终端设备有数据要发送，并且等待对方的应答。当RTS为低电平时，表示数据终端设备没有数据要发送，或者暂停发送数据。</li>
-</ul>
-<h2 id="一些经验">一些经验</h2>
-<p>总结下来就是遇到串口不能使用的情况应该检查以下问题：</p>
-<p>（1）看看串口有没有和其他串口冲突或者被占用</p>
-<p>（2）代码有没有问题，实在不行先烧官方例程看看</p>
-<p>（3）检查波特率，停止位，数据位，奇偶校验位这些什么的，一定要选对</p>
-<blockquote>
-<p>Tips:对照Cube MX中的设置检查</p>
-</blockquote>
-<p>（4）还有就是要勾选<strong>use micro lib</strong>。</p>
-<h2 id="bonus">BONUS</h2>
-<ul>
-<li><p>uint8_t_16_t_t_t</p>
-<ul>
-<li><p>这些类型的来源：这些数据类型中都带有_t, _t
-表示这些数据类型是通过typedef定义的，而不是新的数据类型。也就是说，它们其实是我们已知的类型的别名。</p></li>
-<li><p>使用这些类型的原因：方便代码的维护。比如，在C中没有bool型，于是在一个软件中，一个程序员使用int，一个程序员使用short，会比较混乱。最好用一个typedef来定义一个统一的bool</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">typedef char bool;</span><br><span class="line">typedef unsigned char           uint8_t;</span><br></pre></td></tr></table></figure></li>
-<li><p>uint8_t实际上是一个char。所以输出uint8_t类型的变量实际上输出其对应的字符，而不是数值。</p></li>
-</ul></li>
-<li><p>句柄与普通指针的区别在于，指针包含的是引用对象的内存地址，而句柄则是由系统所管理的引用标识，该标识可以被系统重新定位到一个内存地址上。这种间接访问对象的模式增强了系统对引用对象的控制。句柄本质就是对底层硬件的指针的使用。句柄是针对内核的。大家可以理解为句柄是一个指向指针的指针。</p></li>
-</ul>
-<h1 id="problem">Problem</h1>
-<p>在前面两个使用EXTI中断的projects中没能收到USART传来的消息？？？</p>
-<p>在最后的DMA中断中收到了</p>
+<p>使用PID自动调参后的效果展示</p>
 <figure>
-<img
-src="C:\Users\Immortal\AppData\Local\Temp\WeChat%20Files\88a583cc4036de8ace38c8517d0075d.jpg"
-alt="88a583cc4036de8ace38c8517d0075d" />
-<figcaption
-aria-hidden="true">88a583cc4036de8ace38c8517d0075d</figcaption>
+<img src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230908160106933.png" alt="image-20230908160106933">
+<figcaption aria-hidden="true">image-20230908160106933</figcaption>
 </figure>
+<h2 id="微分控制算法">微分控制算法</h2>
+<p><span class="math inline"><mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: -0.566ex;" xmlns="http://www.w3.org/2000/svg" width="33.014ex" height="2.262ex" role="img" focusable="false" viewBox="0 -750 14592.1 1000"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mi"><path data-c="1D462" d="M21 287Q21 295 30 318T55 370T99 420T158 442Q204 442 227 417T250 358Q250 340 216 246T182 105Q182 62 196 45T238 27T291 44T328 78L339 95Q341 99 377 247Q407 367 413 387T427 416Q444 431 463 431Q480 431 488 421T496 402L420 84Q419 79 419 68Q419 43 426 35T447 26Q469 29 482 57T512 145Q514 153 532 153Q551 153 551 144Q550 139 549 130T540 98T523 55T498 17T462 -8Q454 -10 438 -10Q372 -10 347 46Q345 45 336 36T318 21T296 6T267 -6T233 -11Q189 -11 155 7Q103 38 103 113Q103 170 138 262T173 379Q173 380 173 381Q173 390 173 393T169 400T158 404H154Q131 404 112 385T82 344T65 302T57 280Q55 278 41 278H27Q21 284 21 287Z"></path></g><g data-mml-node="mo" transform="translate(849.8,0)"><path data-c="3D" d="M56 347Q56 360 70 367H707Q722 359 722 347Q722 336 708 328L390 327H72Q56 332 56 347ZM56 153Q56 168 72 173H708Q722 163 722 153Q722 140 707 133H70Q56 140 56 153Z"></path></g><g data-mml-node="msub" transform="translate(1905.6,0)"><g data-mml-node="mi"><path data-c="1D43E" d="M285 628Q285 635 228 637Q205 637 198 638T191 647Q191 649 193 661Q199 681 203 682Q205 683 214 683H219Q260 681 355 681Q389 681 418 681T463 682T483 682Q500 682 500 674Q500 669 497 660Q496 658 496 654T495 648T493 644T490 641T486 639T479 638T470 637T456 637Q416 636 405 634T387 623L306 305Q307 305 490 449T678 597Q692 611 692 620Q692 635 667 637Q651 637 651 648Q651 650 654 662T659 677Q662 682 676 682Q680 682 711 681T791 680Q814 680 839 681T869 682Q889 682 889 672Q889 650 881 642Q878 637 862 637Q787 632 726 586Q710 576 656 534T556 455L509 418L518 396Q527 374 546 329T581 244Q656 67 661 61Q663 59 666 57Q680 47 717 46H738Q744 38 744 37T741 19Q737 6 731 0H720Q680 3 625 3Q503 3 488 0H478Q472 6 472 9T474 27Q478 40 480 43T491 46H494Q544 46 544 71Q544 75 517 141T485 216L427 354L359 301L291 248L268 155Q245 63 245 58Q245 51 253 49T303 46H334Q340 37 340 35Q340 19 333 5Q328 0 317 0Q314 0 280 1T180 2Q118 2 85 2T49 1Q31 1 31 11Q31 13 34 25Q38 41 42 43T65 46Q92 46 125 49Q139 52 144 61Q147 65 216 339T285 628Z"></path></g><g data-mml-node="mi" transform="translate(882,-150) scale(0.707)"><path data-c="1D451" d="M366 683Q367 683 438 688T511 694Q523 694 523 686Q523 679 450 384T375 83T374 68Q374 26 402 26Q411 27 422 35Q443 55 463 131Q469 151 473 152Q475 153 483 153H487H491Q506 153 506 145Q506 140 503 129Q490 79 473 48T445 8T417 -8Q409 -10 393 -10Q359 -10 336 5T306 36L300 51Q299 52 296 50Q294 48 292 46Q233 -10 172 -10Q117 -10 75 30T33 157Q33 205 53 255T101 341Q148 398 195 420T280 442Q336 442 364 400Q369 394 369 396Q370 400 396 505T424 616Q424 629 417 632T378 637H357Q351 643 351 645T353 664Q358 683 366 683ZM352 326Q329 405 277 405Q242 405 210 374T160 293Q131 214 119 129Q119 126 119 118T118 106Q118 61 136 44T179 26Q233 26 290 98L298 109L352 326Z"></path></g></g><g data-mml-node="mi" transform="translate(3205.3,0)"><path data-c="D7" d="M630 29Q630 9 609 9Q604 9 587 25T493 118L389 222L284 117Q178 13 175 11Q171 9 168 9Q160 9 154 15T147 29Q147 36 161 51T255 146L359 250L255 354Q174 435 161 449T147 471Q147 480 153 485T168 490Q173 490 175 489Q178 487 284 383L389 278L493 382Q570 459 587 475T609 491Q630 491 630 471Q630 464 620 453T522 355L418 250L522 145Q606 61 618 48T630 29Z"></path></g><g data-mml-node="mo" transform="translate(3983.3,0)"><path data-c="28" d="M94 250Q94 319 104 381T127 488T164 576T202 643T244 695T277 729T302 750H315H319Q333 750 333 741Q333 738 316 720T275 667T226 581T184 443T167 250T184 58T225 -81T274 -167T316 -220T333 -241Q333 -250 318 -250H315H302L274 -226Q180 -141 137 -14T94 250Z"></path></g><g data-mml-node="mi" transform="translate(4372.3,0)"><path data-c="1D452" d="M39 168Q39 225 58 272T107 350T174 402T244 433T307 442H310Q355 442 388 420T421 355Q421 265 310 237Q261 224 176 223Q139 223 138 221Q138 219 132 186T125 128Q125 81 146 54T209 26T302 45T394 111Q403 121 406 121Q410 121 419 112T429 98T420 82T390 55T344 24T281 -1T205 -11Q126 -11 83 42T39 168ZM373 353Q367 405 305 405Q272 405 244 391T199 357T170 316T154 280T149 261Q149 260 169 260Q282 260 327 284T373 353Z"></path></g><g data-mml-node="mi" transform="translate(4838.3,0)"><path data-c="1D45F" d="M21 287Q22 290 23 295T28 317T38 348T53 381T73 411T99 433T132 442Q161 442 183 430T214 408T225 388Q227 382 228 382T236 389Q284 441 347 441H350Q398 441 422 400Q430 381 430 363Q430 333 417 315T391 292T366 288Q346 288 334 299T322 328Q322 376 378 392Q356 405 342 405Q286 405 239 331Q229 315 224 298T190 165Q156 25 151 16Q138 -11 108 -11Q95 -11 87 -5T76 7T74 17Q74 30 114 189T154 366Q154 405 128 405Q107 405 92 377T68 316T57 280Q55 278 41 278H27Q21 284 21 287Z"></path></g><g data-mml-node="mi" transform="translate(5289.3,0)"><path data-c="1D45F" d="M21 287Q22 290 23 295T28 317T38 348T53 381T73 411T99 433T132 442Q161 442 183 430T214 408T225 388Q227 382 228 382T236 389Q284 441 347 441H350Q398 441 422 400Q430 381 430 363Q430 333 417 315T391 292T366 288Q346 288 334 299T322 328Q322 376 378 392Q356 405 342 405Q286 405 239 331Q229 315 224 298T190 165Q156 25 151 16Q138 -11 108 -11Q95 -11 87 -5T76 7T74 17Q74 30 114 189T154 366Q154 405 128 405Q107 405 92 377T68 316T57 280Q55 278 41 278H27Q21 284 21 287Z"></path></g><g data-mml-node="mi" transform="translate(5740.3,0)"><path data-c="1D45C" d="M201 -11Q126 -11 80 38T34 156Q34 221 64 279T146 380Q222 441 301 441Q333 441 341 440Q354 437 367 433T402 417T438 387T464 338T476 268Q476 161 390 75T201 -11ZM121 120Q121 70 147 48T206 26Q250 26 289 58T351 142Q360 163 374 216T388 308Q388 352 370 375Q346 405 306 405Q243 405 195 347Q158 303 140 230T121 120Z"></path></g><g data-mml-node="mi" transform="translate(6225.3,0)"><path data-c="1D45F" d="M21 287Q22 290 23 295T28 317T38 348T53 381T73 411T99 433T132 442Q161 442 183 430T214 408T225 388Q227 382 228 382T236 389Q284 441 347 441H350Q398 441 422 400Q430 381 430 363Q430 333 417 315T391 292T366 288Q346 288 334 299T322 328Q322 376 378 392Q356 405 342 405Q286 405 239 331Q229 315 224 298T190 165Q156 25 151 16Q138 -11 108 -11Q95 -11 87 -5T76 7T74 17Q74 30 114 189T154 366Q154 405 128 405Q107 405 92 377T68 316T57 280Q55 278 41 278H27Q21 284 21 287Z"></path></g><g data-mml-node="mo" transform="translate(6676.3,0)"><path data-c="28" d="M94 250Q94 319 104 381T127 488T164 576T202 643T244 695T277 729T302 750H315H319Q333 750 333 741Q333 738 316 720T275 667T226 581T184 443T167 250T184 58T225 -81T274 -167T316 -220T333 -241Q333 -250 318 -250H315H302L274 -226Q180 -141 137 -14T94 250Z"></path></g><g data-mml-node="mi" transform="translate(7065.3,0)"><path data-c="1D461" d="M26 385Q19 392 19 395Q19 399 22 411T27 425Q29 430 36 430T87 431H140L159 511Q162 522 166 540T173 566T179 586T187 603T197 615T211 624T229 626Q247 625 254 615T261 596Q261 589 252 549T232 470L222 433Q222 431 272 431H323Q330 424 330 420Q330 398 317 385H210L174 240Q135 80 135 68Q135 26 162 26Q197 26 230 60T283 144Q285 150 288 151T303 153H307Q322 153 322 145Q322 142 319 133Q314 117 301 95T267 48T216 6T155 -11Q125 -11 98 4T59 56Q57 64 57 83V101L92 241Q127 382 128 383Q128 385 77 385H26Z"></path></g><g data-mml-node="mo" transform="translate(7426.3,0)"><path data-c="29" d="M60 749L64 750Q69 750 74 750H86L114 726Q208 641 251 514T294 250Q294 182 284 119T261 12T224 -76T186 -143T145 -194T113 -227T90 -246Q87 -249 86 -250H74Q66 -250 63 -250T58 -247T55 -238Q56 -237 66 -225Q221 -64 221 250T66 725Q56 737 55 738Q55 746 60 749Z"></path></g><g data-mml-node="mo" transform="translate(8037.5,0)"><path data-c="2212" d="M84 237T84 250T98 270H679Q694 262 694 250T679 230H98Q84 237 84 250Z"></path></g><g data-mml-node="mi" transform="translate(9037.7,0)"><path data-c="1D452" d="M39 168Q39 225 58 272T107 350T174 402T244 433T307 442H310Q355 442 388 420T421 355Q421 265 310 237Q261 224 176 223Q139 223 138 221Q138 219 132 186T125 128Q125 81 146 54T209 26T302 45T394 111Q403 121 406 121Q410 121 419 112T429 98T420 82T390 55T344 24T281 -1T205 -11Q126 -11 83 42T39 168ZM373 353Q367 405 305 405Q272 405 244 391T199 357T170 316T154 280T149 261Q149 260 169 260Q282 260 327 284T373 353Z"></path></g><g data-mml-node="mi" transform="translate(9503.7,0)"><path data-c="1D45F" d="M21 287Q22 290 23 295T28 317T38 348T53 381T73 411T99 433T132 442Q161 442 183 430T214 408T225 388Q227 382 228 382T236 389Q284 441 347 441H350Q398 441 422 400Q430 381 430 363Q430 333 417 315T391 292T366 288Q346 288 334 299T322 328Q322 376 378 392Q356 405 342 405Q286 405 239 331Q229 315 224 298T190 165Q156 25 151 16Q138 -11 108 -11Q95 -11 87 -5T76 7T74 17Q74 30 114 189T154 366Q154 405 128 405Q107 405 92 377T68 316T57 280Q55 278 41 278H27Q21 284 21 287Z"></path></g><g data-mml-node="mi" transform="translate(9954.7,0)"><path data-c="1D45F" d="M21 287Q22 290 23 295T28 317T38 348T53 381T73 411T99 433T132 442Q161 442 183 430T214 408T225 388Q227 382 228 382T236 389Q284 441 347 441H350Q398 441 422 400Q430 381 430 363Q430 333 417 315T391 292T366 288Q346 288 334 299T322 328Q322 376 378 392Q356 405 342 405Q286 405 239 331Q229 315 224 298T190 165Q156 25 151 16Q138 -11 108 -11Q95 -11 87 -5T76 7T74 17Q74 30 114 189T154 366Q154 405 128 405Q107 405 92 377T68 316T57 280Q55 278 41 278H27Q21 284 21 287Z"></path></g><g data-mml-node="mi" transform="translate(10405.7,0)"><path data-c="1D45C" d="M201 -11Q126 -11 80 38T34 156Q34 221 64 279T146 380Q222 441 301 441Q333 441 341 440Q354 437 367 433T402 417T438 387T464 338T476 268Q476 161 390 75T201 -11ZM121 120Q121 70 147 48T206 26Q250 26 289 58T351 142Q360 163 374 216T388 308Q388 352 370 375Q346 405 306 405Q243 405 195 347Q158 303 140 230T121 120Z"></path></g><g data-mml-node="mi" transform="translate(10890.7,0)"><path data-c="1D45F" d="M21 287Q22 290 23 295T28 317T38 348T53 381T73 411T99 433T132 442Q161 442 183 430T214 408T225 388Q227 382 228 382T236 389Q284 441 347 441H350Q398 441 422 400Q430 381 430 363Q430 333 417 315T391 292T366 288Q346 288 334 299T322 328Q322 376 378 392Q356 405 342 405Q286 405 239 331Q229 315 224 298T190 165Q156 25 151 16Q138 -11 108 -11Q95 -11 87 -5T76 7T74 17Q74 30 114 189T154 366Q154 405 128 405Q107 405 92 377T68 316T57 280Q55 278 41 278H27Q21 284 21 287Z"></path></g><g data-mml-node="mo" transform="translate(11341.7,0)"><path data-c="28" d="M94 250Q94 319 104 381T127 488T164 576T202 643T244 695T277 729T302 750H315H319Q333 750 333 741Q333 738 316 720T275 667T226 581T184 443T167 250T184 58T225 -81T274 -167T316 -220T333 -241Q333 -250 318 -250H315H302L274 -226Q180 -141 137 -14T94 250Z"></path></g><g data-mml-node="mi" transform="translate(11730.7,0)"><path data-c="1D461" d="M26 385Q19 392 19 395Q19 399 22 411T27 425Q29 430 36 430T87 431H140L159 511Q162 522 166 540T173 566T179 586T187 603T197 615T211 624T229 626Q247 625 254 615T261 596Q261 589 252 549T232 470L222 433Q222 431 272 431H323Q330 424 330 420Q330 398 317 385H210L174 240Q135 80 135 68Q135 26 162 26Q197 26 230 60T283 144Q285 150 288 151T303 153H307Q322 153 322 145Q322 142 319 133Q314 117 301 95T267 48T216 6T155 -11Q125 -11 98 4T59 56Q57 64 57 83V101L92 241Q127 382 128 383Q128 385 77 385H26Z"></path></g><g data-mml-node="mo" transform="translate(12313.9,0)"><path data-c="2212" d="M84 237T84 250T98 270H679Q694 262 694 250T679 230H98Q84 237 84 250Z"></path></g><g data-mml-node="mn" transform="translate(13314.1,0)"><path data-c="31" d="M213 578L200 573Q186 568 160 563T102 556H83V602H102Q149 604 189 617T245 641T273 663Q275 666 285 666Q294 666 302 660V361L303 61Q310 54 315 52T339 48T401 46H427V0H416Q395 3 257 3Q121 3 100 0H88V46H114Q136 46 152 46T177 47T193 50T201 52T207 57T213 61V578Z"></path></g><g data-mml-node="mo" transform="translate(13814.1,0)"><path data-c="29" d="M60 749L64 750Q69 750 74 750H86L114 726Q208 641 251 514T294 250Q294 182 284 119T261 12T224 -76T186 -143T145 -194T113 -227T90 -246Q87 -249 86 -250H74Q66 -250 63 -250T58 -247T55 -238Q56 -237 66 -225Q221 -64 221 250T66 725Q56 737 55 738Q55 746 60 749Z"></path></g><g data-mml-node="mo" transform="translate(14203.1,0)"><path data-c="29" d="M60 749L64 750Q69 750 74 750H86L114 726Q208 641 251 514T294 250Q294 182 284 119T261 12T224 -76T186 -143T145 -194T113 -227T90 -246Q87 -249 86 -250H74Q66 -250 63 -250T58 -247T55 -238Q56 -237 66 -225Q221 -64 221 250T66 725Q56 737 55 738Q55 746 60 749Z"></path></g></g></g></svg></mjx-container></span>，为分享可以减少控制过程中的震荡</p>
+<p>这个微分项的作用，就可以理解为刹车，当车离停车线很近并且车速还很快时，这个微分项的绝对值（实际上是一个负数）就会很大，从而表示应该用力踩刹车才能让车停下来。</p>
+<p>二阶系统</p>
+<figure>
+<img src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230908160804615.png" alt="image-20230908160804615">
+<figcaption aria-hidden="true">image-20230908160804615</figcaption>
+</figure>
+<blockquote>
+<p>Tips:simulink中的PID中D的系数不一样：<img src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230909102812741.png" alt="image-20230909102812741"><a href="https://zhidao.baidu.com/question/488483471742574492.html">simulink自带的那个PID模块我打开看了怎么和标准的公式不一样呢？_百度知道
+(baidu.com)</a></p>
+<p>这时因为纯微分项物理是不可实现的，所有的传函分母的阶次必须要大于等于分子的阶次才行。</p>
+<p>而从原表达式可以看出，当N比较大时，分母中的1可以忽略，这时系统就会变成常规的PID了。</p>
+<p>matlab是考虑到了PID单独各个环节的物理实现，所以才对原有的公式进行了改进</p>
+</blockquote>
+<h2 id="系统稳定">系统稳定</h2>
+<ul>
+<li>过阻尼系统</li>
+<li>临界阻尼系统</li>
+<li>欠阻尼系统</li>
+</ul>
+<figure>
+<img src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230908154928075.png" alt="image-20230908154928075">
+<figcaption aria-hidden="true">image-20230908154928075</figcaption>
+</figure>
+<h3 id="劳斯判据">劳斯判据</h3>
+<p>判断系统稳定，系统稳定的充分必要条件是劳斯表中第一列系数都大于0</p>
+<figure>
+<img src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230908154157451.png" alt="image-20230908154157451">
+<figcaption aria-hidden="true">image-20230908154157451</figcaption>
+</figure>
+<blockquote>
+<p>Tips: 也不太懂，以后填坑！</p>
+</blockquote>
 <h1 id="references">References</h1>
 <ul>
-<li><p>哈工深电控内训</p></li>
-<li><p><a
-href="https://blog.csdn.net/weixin_56321457/article/details/124206957">STM32用XCOM调试助手打印不出数据_xcom串口调试助手_山野的风.的博客-CSDN博客</a></p></li>
-<li><p><a
-href="https://www.cnblogs.com/ChurF-Lin/p/10793111.html">基于STM32之UART串口通信协议（一）详解
-- LLLIN000 - 博客园 (cnblogs.com)</a></p></li>
-<li><p><a
-href="https://blog.csdn.net/weixin_43281206/article/details/116279189">STM32串口通信详解以及通信异常或者卡死常见问题分析_stm32
-串口传数据互相 干扰_“星云-视界”的博客-CSDN博客</a></p></li>
+<li><p><a href="https://zhuanlan.zhihu.com/p/39573490">PID控制算法原理（抛弃公式，从本质上真正理解PID控制）
+- 知乎 (zhihu.com)</a></p></li>
+<li><p>【PID原理讲解与Matlab/Simulink仿真，初中生就能看的懂】https://www.bilibili.com/video/BV1Ad4y1g7hq?vd_source=93bb338120537438ee9180881deab9c1</p></li>
+<li><p>【PID原理讲解与Matlab/Simulink仿真(下)】https://www.bilibili.com/video/BV1ye41137od?vd_source=93bb338120537438ee9180881deab9c1</p></li>
+<li><p><a href="https://zhidao.baidu.com/question/488483471742574492.html">simulink自带的那个PID模块我打开看了怎么和标准的公式不一样呢？_百度知道
+(baidu.com)</a></p></li>
+<li><p>Youtube视频地址：<a href="https://link.zhihu.com/?target=https%3A//youtu.be/n2y7n6jw5d0">https://youtu.be/n2y7n6jw5d0</a></p></li>
+<li><p>有中文翻译：【【Zach数学系列】拉普拉斯和傅里叶变换告诉了我们什么？（合集于视频列表）】https://www.bilibili.com/video/BV1Jv411G7B1?vd_source=93bb338120537438ee9180881deab9c1</p></li>
 </ul>
 ]]></content>
       <categories>
@@ -4281,124 +4153,306 @@ vim插件_皛心的博客-CSDN博客</a></p></li>
       </tags>
   </entry>
   <entry>
-    <title>Vim（3）</title>
-    <url>/2023/08/14/Vim%EF%BC%883%EF%BC%89/</url>
+    <title>USART入门</title>
+    <url>/2023/08/22/USART%E5%85%A5%E9%97%A8/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>Following missing semester of MIT to learn Vim.</p>
-<p>希望通过<a
-href="https://learnvimscriptthehardway.stevelosh.com/">Learn Vimscript
-the Hard Way (stevelosh.com)</a>+<a
-href="https://vim-adventures.com/">Vim Adventures</a>
-来进一步练习Vim的使用</p>
-<p>Vim（3）——Vim在其他应用上的应用</p>
-<blockquote>
-<p>双手离开鼠标！</p>
-</blockquote>
+<p>Following
+哈工深上传到B站的电控组培训来入门robomaster电控组，我购买了普中科技玄武套餐开发板作为硬件。</p>
+<p>本篇介绍我学习USART的见闻——实验仍有一些问题未解决</p>
 <span id="more"></span>
-<h1 id="vim-in-other-programs">Vim in other programs</h1>
-<p>很多工具提供了 Vim 模式。这些 Vim
-模式的质量参差不齐；取决于具体工具，有的提供了很多酷炫的 Vim
-功能，但是大多数对基本功能支持的很好。</p>
-<h2 id="shell">Shell</h2>
-<p>如果你是一个 Bash 用户，用 <code>set -o vi</code>。如果你用
-Zsh：<code>bindkey -v</code>。Fish 用
-<code>fish_vi_key_bindings</code>。另外，不管利用什么 shell，你可以
-<code>export EDITOR=vim</code>。
-这是一个用来决定当一个程序需要启动编辑时启动哪个的环境变量。
-例如，<code>git</code> 会使用这个编辑器来编辑 commit 信息。</p>
-<h2 id="readline">Readline</h2>
-<p>很多程序使用 <a
-href="https://tiswww.case.edu/php/chet/readline/rltop.html">GNU
-Readline</a> 库来作为 它们的命令控制行界面。Readline 也支持基本的 Vim
-模式， 可以通过在 <code>~/.inputrc</code> 添加如下行开启：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">set editing-mode vi</span><br></pre></td></tr></table></figure>
-<p>比如，在这个设置下，Python REPL 会支持 Vim 快捷键。</p>
-<h2 id="vscode">VSCode</h2>
-<p>add extention——vim,enable</p>
-<p>Vim有些功能在VSCode中不能用，例如宏录制</p>
-<h3 id="导入vimrc">导入vimrc</h3>
-<p>再vscode的setting中enable vimrc配置方式，并填写vimrc文件地址</p>
-<p>用 vscode 打开 my.vimrc 文件，输入
-<code>set clipboard=unnamedplusset</code>。或者，直接在设置中搜索
-<code>vim.useSystemClipboard</code> ，打钩。默认使用的 vim
-无名缓存器已经与系统剪切板连通了。</p>
-<h3 id="vscode常用快捷键">VSCode常用快捷键</h3>
+<h1 id="usart">USART</h1>
+<h2 id="简介">简介</h2>
 <ul>
-<li><p>ctrl+B:侧边栏隐藏/显示</p></li>
-<li><p>ctrl+J:终端显示</p></li>
-<li><p>ctrl+Tab:切换tab</p></li>
-<li><p>ctrl+<number>：切换分屏，没有就创建</p></li>
-<li><p>ctrl+\:水平分屏</p></li>
-<li><p>ctrl+k+ctrl+\:竖直分屏;我改为:ctrl+&lt;]+\&gt;</p></li>
-<li><p>ctrl+w:删除当前屏幕（当当前屏幕无tab时）or tab</p></li>
-<li><p>ctrl+P:搜索文件,加上&gt;等价于ctrl+shift+P</p></li>
-<li><p>ctrl+shift+P:VSCode中的，命令:open folder</p></li>
-<li><p>ctrl+,:打开settings:配置一些json文件+vim</p></li>
+<li><p>USART(Universal Synchronous/Asynchronous
+Receiver/Transmitter)，通用同步(CLK同步接收和发送，数据量大选择)/异步串行接收/发送器</p>
+<blockquote>
+<p>Tips:UART仅有异步通信</p>
+</blockquote></li>
+<li><p>USART是异步串口通信<strong>协议</strong>的一种，工作原理是将传输数据的每个字符一位接一位地传输，它能将要传输的资料在串行通信与并行通信之间加以转换，能够灵活地与外部设备进行全双工数据交换（并行转串行）</p></li>
+<li><p>USART有两个引脚用于传输数据，RX和TX，接线的时候应使用交叉线，此外如果是不同设备之间通信还必须有一个GND线，VCC线为可选项。</p>
+<p>TX(transmitter)：发送数据</p>
+<p>RX(receiver)：接收数据</p></li>
+<li><p>全双工：两条线互不干扰，可同时进行发送和接收
+半双工：一次只能进行发送/接收</p></li>
+<li><p>异步：只需频率一样，相位可以不一样（常用）
+同步：还需时钟线CLK（数据量很大时）</p></li>
+<li><p>支持最基本的</p>
+<ul>
+<li>通用串口同步、异步通讯</li>
+<li>LIN总线功能（局域互联网）</li>
+<li>IRDA功能（红外通讯）</li>
+<li>SmartCard功能</li>
+</ul></li>
+<li><p>UART：只有异步通讯</p></li>
 </ul>
-<p>函数定义之类：</p>
+<h2 id="usart的通信协议"><strong>USART</strong>的通信协议</h2>
+<p>一帧一帧地发送</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230608114952821.png"
+alt="USART时序图" />
+<figcaption aria-hidden="true">USART时序图</figcaption>
+</figure>
 <ul>
-<li><code>gd</code> : 进入函数定义</li>
-<li><code>Ctrl+o</code> : 从函数定义中返回</li>
-<li><code>gh</code> : 查看函数参数等信息</li>
+<li><p>起始位：当未有数据发送时，数据线处于逻辑“1”状态；先发出一个逻辑“0”信号，表示开始传输字符。</p></li>
+<li><p>数据位：紧接着起始位之后。数据位的个数可以是4、5、6、7、8等，构成一个字符。通常采用ASCII码。从最低位开始传送，靠时钟定位。</p>
+<blockquote>
+<p>eg:00010001,先发送1</p>
+</blockquote></li>
+<li><p>奇偶校验位：数据为加上这一位后，使得“1”的位数应为偶数（偶校验）或奇数（奇校验），以此来校验资料传送的正确性。(弱校验)</p></li>
+<li><p>停止位：它是一个字符数据的结束标志。可以是1位、1.5位、2位的高电平。
+由于数据是在传输线上定时的，并且每一个设备有其自己的时钟，很可能在通信中两台设备间出现了小小的不同步。因此停止位不仅仅是<strong>表示传输的结束</strong>，并且<strong>提供计算机校正时钟同步的机会</strong>。适用于停止位的位数越多，不同时钟同步的容忍程度越大，但是数据传输率同时也越慢。</p></li>
+<li><p>空闲位或起始位：处于逻辑“1”状态，表示当前线路上没有资料传送，进入空闲状态。处于逻辑“0”状态，表示开始传送下一数据段(起始位)。</p></li>
+<li><p>波特率：即每秒传输的二进制位数， 用 b/s
+(bps)表示，通过对时钟的控制可以改变波特率。USART具有<strong>独立</strong>的高精度波特率发生器，不占用定时/计数器。常用的波特率有：9600、115200……</p>
+<blockquote>
+<p>Notes:奇偶校验是弱校验，115200最常用，发送/接收的FIFO（CPU太快了
+）</p>
+</blockquote></li>
 </ul>
-<h2 id="vimium">Vimium</h2>
+<h2 id="usart工作原理"><strong>USART</strong>工作原理</h2>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230608115210441.png"
+alt="image-20230608115210441" />
+<figcaption aria-hidden="true">image-20230608115210441</figcaption>
+</figure>
+<h3 id="fifo-操作">FIFO 操作</h3>
 <ul>
-<li><p>基础移动hjkl,gg,G</p></li>
-<li><p>J，K跳转标签页，H(Shift+h):打开上一个网页，L(Shift+l):打开下一个网页</p></li>
-<li><p>g0，g$跳转到第一个，最后一个标签页</p></li>
-<li><p>t:打开新的标签页</p></li>
-<li><p>x:关闭当前标签页；X重新打开最后关闭的标签页</p></li>
-<li><p>d向下翻半页，u向上翻半页</p></li>
-<li><p>yy:复制当前页面地址到剪切板。如下图所示,按下yy后在按下Win+V可以看到已经将当前页面的链接复制到剪切板了</p></li>
-<li><p>p（P）:如果剪切板第一个是URL，则打开链接，是记录则搜索该内容</p></li>
-<li><p>建议直接Tab or shift+Tab（
-gi:定位到页面中的第一个输入框,前面也可以加数字）</p></li>
-<li><p>r:刷新界面</p></li>
-<li><p><strong>f（F）</strong>:在当前（新）标签页打开指定的链接。如下图所示,按下f后就会在链接上出现字母或者字母组合,只要按下相应的字母或者字母组合就可以打开对应的链接</p></li>
+<li><p><strong>INTRO</strong>:FIFO 是“First-In
+First-Out”的缩写，意为“先进先出”，是一种常见的队列操作。Stellaris
+系列ARM 的UART 模块包含有2 个16
+字节的FIFO：一个用于发送，另一个用于接收。可以将两个FIFO
+分别配置为以不同深度触发中断。可供选择的配置包括：1/8、 1/4、1/2、3/4
+和7/8 深度。</p>
+<blockquote>
+<p>Tips:例如，如果接收FIFO选择1/4，则在UART 接收到4
+个数据时产生接收中断</p>
+</blockquote></li>
+<li><p>目的：收发FIFO 主要是为了解决UART 收发中断过于频繁而导致CPU
+效率不高的问题而引入的。</p>
+<p>在进行UART通信时，中断方式比轮询方式(polling)要简便且效率高。但是，如果没有收发
+FIFO，则每收发一个数据都要中断处理一次，效率仍然不够高。如果有了收发FIFO，则可以在连续收发若干个数据（可多至14
+个）后才产生一次中断然后一并处理，这就大大提高了收发效率。</p></li>
+<li><p>发送FIFO的基本工作过程：</p>
+<ul>
+<li><p>只要有数据填充到发送FIFO 里，就会立即启动发送过程。</p></li>
+<li><p>由于发送本身是个相对缓慢的过程，因此在发送的同时其它需要发送的数据还可以继续填充到发送
+FIFO 里。</p>
+<blockquote>
+<p>Tips:当发送 FIFO
+被填满时就不能再继续填充了，否则会造成数据丢失，此时只能等待。</p>
+</blockquote></li>
+<li><p>发送 FIFO 会按照填入数据的先后顺序把数据一个个发送出去，直到发送
+FIFO 全空时为止。已发送完毕的数据会被自动清除，在发送FIFO
+里同时会多出一个空位。</p></li>
+</ul></li>
+<li><p>接收FIFO的基本工作过程：</p>
+<ul>
+<li><p>当硬件逻辑接收到数据时，就会往接收FIFO
+里填充接收到的数据。</p></li>
+<li><p>程序应当及时取走这些数据，数据被取走也是在接收FIFO
+里被自动删除的过程，因此在接收 FIFO 里同时会多出一个空位。</p>
+<blockquote>
+<p>Tips:如果在接收 FIFO 里的数据未被及时取走而造成接收FIFO
+已满，则以后再接收到数据时因无空位可以填充而造成数据丢失。</p>
+</blockquote></li>
+</ul></li>
+<li><p><strong>Notes:</strong>完全不必要担心FIFO
+机制可能带来的数据丢失或得不到及时处理的问题，因为它已经帮你想到了收发过程中存在的任何问题，只要在初始化配置UART
+后，就可以放心收发了， FIFO 和中断例程会自动搞定一切。</p></li>
+</ul>
+<h3 id="发送接收">发送接收</h3>
+<ul>
+<li>发送逻辑：从发送FIFO
+读取的数据执行“并→串”转换。控制逻辑输出起始位在先的串行位流，并且根据控制寄存器中已编程的配置，后面紧跟着数据位（注意：最低位
+LSB 先输出）、奇偶校验位和停止位。</li>
+<li>接收逻辑：在检测到一个有效的起始脉冲后，对接收到的位流执行“串→并”转换。此外还会对溢出错误、奇偶校验错误、帧错误和线中止（line-break）错误进行检测，并将检测到的状态附加到被写入接收FIFO
+的数据中。</li>
+</ul>
+<h3 id="数据收发过程">数据收发过程</h3>
+<ul>
+<li>发送时，数据被写入发送FIFO。如果USART
+被使能，则会按照预先设置好的参数（波特率、数据位、停止位、校验位等）开始发送数据，一直到发送FIFO
+中没有数据。一旦向发送FIFO 写数据（如果FIFO 未空），UART 的忙标志位BUSY
+就有效，并且在发送数据期间一直保持有效。BUSY 位仅在发送FIFO
+为空，且已从移位寄存器发送最后一个字符，包括停止位时才变无效。即 USART
+不再使能，它也可以指示忙状态。</li>
+<li>在USART
+接收器空闲时，如果数据输入变成“低电平”，即接收到了起始位，则接收计数器开始运行，若起始位持续时间达到阈值，则起始位有效，否则会被认为是错误的起始位并将其忽略。</li>
+<li>如果起始位有效，则根据数据字符被编程的长度，对连续的数据位进行采样。如果奇偶校验模式使能，则还会检测奇偶校验位。</li>
+<li>最后，如果Rx
+为高电平，则有效的停止位被确认，否则发生帧错误。当接收到一个完整的字符时，将数据存放在接收FIFO
+中。</li>
+</ul>
+<h3 id="波特率">波特率</h3>
+<ul>
+<li><p>波特率除数（baud-rate divisor）是一个22 位数，它由16 位整数和6
+位小数组成，<strong>是一个用来设置USART的通信速度的参数</strong>。波特率发生器使用这两个值组成的数字来决定位周期，决定发送、接收的波特率。</p>
+<p>通过带有小数波特率的除法器，在足够高的系统时钟速率下，UART
+可以产生所有标准的波特率，而误差很小。</p></li>
 </ul>
 <blockquote>
-<p>Tips:好用！</p>
+<p>Tips:根据距离的远近设置波特率的大小</p>
+</blockquote>
+<h3 id="中断控制">中断控制</h3>
+<p>出现以下情况时，可使UART产生中断：</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230608120340707.png"
+alt="image-20230608120340707" />
+<figcaption aria-hidden="true">image-20230608120340707</figcaption>
+</figure>
+<blockquote>
+<p>Tips:接收数据就绪可读</p>
+</blockquote>
+<p>由于所有中断事件在发送到中断控制器之前会一起进行“或运算”操作，所以<strong>任意时刻
+USART
+只能向中断产生一个中断请求</strong>。通过查询中断状态函数，软件可以在同一个中断服务函数里处理多个中断事件（多个并列的if
+语句）</p>
+<p><img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230608120555701.png" /></p>
+<h3 id="使用dma收发">使用DMA收发</h3>
+<ul>
+<li><p>DMA（Direct Memory
+Access，直接内存访问）是一种用于数据传输的技术，它可以绕过CPU直接在外设和内存之间进行数据传输。在DMA操作中，有两个重要的地址：外设基地址和内存基地址。</p>
+<ul>
+<li>外设基地址是指用于DMA传输的外设设备的起始地址。</li>
+<li>内存基地址是指用于DMA传输的内存区域的起始地址。</li>
+</ul>
+<p>DMA的优点是可以减少CPU的负担，提高系统的效率和性能。</p>
+<p>DMA的缺点是需要额外的硬件支持，如DMA控制器和总线仲裁器，以及额外的软件配置，如设置DMA通道、传输方向、数据量、优先级等参数。</p></li>
+</ul>
+<blockquote>
+<p>Tips:数据传输想象成快递，本来店家需要和快递员一个一个联系，DMA就是快递柜分好类，店家就不用一个一个联系了</p>
+</blockquote>
+<h2 id="usart重要寄存器">USART重要寄存器</h2>
+<h3 id="状态寄存器usart_sr">状态寄存器（USART_SR）</h3>
+<p>通过查询状态寄存器可查询状态</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230608120652738.png"
+alt="image-20230608120652738" />
+<figcaption aria-hidden="true">image-20230608120652738</figcaption>
+</figure>
+<ul>
+<li><p>TC：发送完成 (Transmission complete)</p>
+<p>当包含有数据的一帧发送完成后，并且TXE=1时，由硬件将该位置’1’。如果USART_CR1中的TCIE为’1’，则产生中断。由软件序列清除该位(先读USART_SR，然后写入USART_DR)。
+TC位也可以通过写入’0’来清除，只有在多缓存通讯中才推荐这种清除程序。</p>
+<p>0：发送还未完成；</p>
+<p>1：发送完成。</p></li>
+<li><p>IDLE：监测到总线空闲 (IDLE line detected)</p>
+<p>当检测到总线空闲时，该位被硬件置位。如果USART_CR1中的IDLEIE为’1’，则产生中断。由软件序列清除该位(先读USART_SR，然后读USART_DR)。</p>
+<p>0：没有检测到空闲总线；</p>
+<p>1：检测到空闲总线。</p>
+<blockquote>
+<p>Tips：
+IDLE用于不知道到底有多少个字节，IDLE位不会再次被置高,直到RXNE位被置起(即又检测到一次空闲总线)</p>
+</blockquote></li>
+</ul>
+<h3 id="控制寄存器-usart_crx">控制寄存器 （USART_CRx）</h3>
+<p>有CR1、CR2、CR3三个寄存器，具体的配置较复杂，具体的可以参考《STM32中文参考手册》。</p>
+<h2 id="usart-api"><strong>USART API</strong></h2>
+<h3 id="接收">接收</h3>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_StatusTypeDef HAL_UART_Receive(UART_HandleTypeDef *huart, uint8_t *pData,uint16_t Size, uint32_t Timeout)</span><br><span class="line">串口接收数据的库函数，阻塞的方式接收数据。</span><br><span class="line"></span><br><span class="line">huart :要发送数据的串口指针，pData:接收数据缓存地址，注意此处的指针形式，Size:接收数据的长度（字节数） Timeout：数据接收等待时间，CPU等待这个时间用来接收数据。</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_StatusTypeDef HAL_UART_Receive_IT(UART_HandleTypeDef *huart, uint8_t *pData,uint16_t Size)</span><br></pre></td></tr></table></figure>
+<p>使用中断的方式进行接受数据，在这里需要注意的一个点是，使用中断的方式接收到数据之后，需要在中断里面在调用一次HAL_UART_Receive_IT函数，重新开启下一次数据接收，否则会导致，接收完一次数据之后，不会接收下一次数据。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_UART_Receive_IT(&amp;huart2,&amp;usart2_rdata,1);  </span><br><span class="line">//IT：interrupt type control，中断</span><br><span class="line">void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)  </span><br><span class="line">&#123;</span><br><span class="line">	if(huart-&gt;Instance == USART2)  //串口屏，接收中断</span><br><span class="line">	&#123;</span><br><span class="line">	HAL_UART_Receive_IT(&amp;huart2,&amp;usart2_rdata,1);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line">//接收到指定长度就会产生一次中断</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_StatusTypeDef HAL_UART_Receive_DMA(UART_HandleTypeDef *huart, uint8_t*pData, uint16_t Size)</span><br><span class="line">//接收到指定长度就会产生一次中断</span><br></pre></td></tr></table></figure>
+<h3 id="发送">发送</h3>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_StatusTypeDef HAL_UART_Transmit(UART_HandleTypeDef *huart, uint8_t *pData,uint16_t Size, uint32_t Timeout)</span><br><span class="line">在发送方面，使用HAL_UART_Transmit阻塞数据发送的时候，一定要计算好发送数据的时间。如果发送时间到了，但是数据还没有发送完成的话，会导致没有发送的数据丢失</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_StatusTypeDef HAL_UART_Transmit_IT(UART_HandleTypeDef *huart, uint8_t*pData, uint16_t Size)</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_StatusTypeDef HAL_UART_Transmit_DMA(UART_HandleTypeDef *huart, uint8_t*pData, uint16_t Size)</span><br></pre></td></tr></table></figure>
+<h3 id="中断">中断</h3>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">void USART1_IRQHandler(void)</span><br><span class="line">&#123;</span><br><span class="line">/* USER CODE BEGIN USART1_IRQn 0 */</span><br><span class="line">/* USER CODE END USART1_IRQn 0 */</span><br><span class="line">	HAL_UART_IRQHandler(&amp;huart1);</span><br><span class="line">/* USER CODE BEGIN USART1_IRQn 1 */</span><br><span class="line">/* USER CODE END USART1_IRQn 1 */</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">__weak void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)</span><br><span class="line">&#123;</span><br><span class="line">/* Prevent unused argument(s) compilation warning */</span><br><span class="line">	UNUSED(huart);</span><br><span class="line">/* NOTE: This function should not be modified, when the callback is needed,</span><br><span class="line">the HAL_UART_TxCpltCallback could be implemented in the user file*/</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">__weak void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)</span><br><span class="line">&#123;/* Prevent unused argument(s) compilation warning */</span><br><span class="line">	UNUSED(huart);</span><br><span class="line">/* NOTE: This function should not be modified, when the callback is needed,</span><br><span class="line">the HAL_UART_RxCpltCallback could be implemented in the user file*/</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>Tips:callback函数需要重定义</p>
+</blockquote>
+<h1 id="实验">实验</h1>
+<h2 id="cubemx">CubeMX：</h2>
+<ul>
+<li><p>串口在Connectivity</p></li>
+<li><p>Asynchronous <em>adj.</em>[电]
+异步的；不同时的；不同期的</p></li>
+<li><p>Parity 奇偶校验位</p></li>
+<li><p>NVIC Interrupt打开串口中断</p></li>
+<li><p>DMA setting当不知道要接收多少时用DMA空闲中断，ADD-&gt;Rx</p></li>
+</ul>
+<h2 id="keil">Keil</h2>
+<ul>
+<li>勾选<strong>use micro lib</strong></li>
+</ul>
+<blockquote>
+<p>Tips:KeilMDK配置项中Use
+MicroLIB是一个选项，用于选择是否使用microlib库。microlib库是一个简化的C标准库，它专门为需要在极少量内存中运行的深层嵌入式应用程序设计的。microlib库的优点是可以减少代码的大小，但缺点是功能有限，不符合ISO
+C标准和IEEE 754浮点算法标准。如果你想使用printf等函数，你可以选择Use
+MicroLIB选项，或者关闭半主机模式并重写相关的底层函数。</p>
 </blockquote>
 <ul>
-<li><strong>o（O）</strong>:在当前（新）标签页打开链接、书签（b是打开书签）、历史记录。如下图所示,按下o输入关键字后可以看到有符合条件的历史记录、书签等结果,可以通过上下箭头选择项目后按下Enter键即可在当前（新）标签页打开所选的项目。</li>
-<li>T:是在所有打开的标签页中搜索/</li>
-<li>m:添加标记,当你看一篇长文章时,如果你需要看前面的内容,或者想先看后面某部分内容再回来看当前的内容,则可以通过标记实现这需求。通过按下m之后再按一个字母就可以在当前位置标记,如果你在页面的其他地方想回到标记的地方,则可以通过`+之前标记的字母快速返回。</li>
+<li>DMA空闲中断</li>
 </ul>
-<h3 id="复制东西">复制东西</h3>
-<p>一般先/{}匹配到位置，再v进入可视化y复制</p>
-<h2 id="其他">其他</h2>
-<p>甚至有 Vim 的网页浏览快捷键 <a
-href="http://vim.wikia.com/wiki/Vim_key_bindings_for_web_browsers">browsers</a>,
-受欢迎的有用于 Google Chrome 的 <a
-href="https://chrome.google.com/webstore/detail/vimium/dbepggeogbaibhgnhhndojpepiihcmeb?hl=en">Vimium</a>
-和用于 Firefox 的 <a
-href="https://github.com/tridactyl/tridactyl">Tridactyl</a>。
-你甚至可以在 <a
-href="https://github.com/lambdalisue/jupyter-vim-binding">Jupyter
-notebooks</a> 中用 Vim 快捷键。 <a
-href="https://reversed.top/2016-08-13/big-list-of-vim-like-software">这个列表</a>
-中列举了支持类 vim 键位绑定的软件。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">// 先打开串口空闲中断</span><br><span class="line">__HAL_UART_ENABLE_IT(&amp;huart1, UART_IT_IDLE);</span><br><span class="line">HAL_UART_Receive_DMA(&amp;huart1, receive_data, 100);</span><br><span class="line"></span><br><span class="line">//然后重写callback函数</span><br><span class="line">void UART_IDLE_Callback(UART_HandleTypeDef *huart)</span><br><span class="line"></span><br><span class="line">//最后在it.c中调用自己的中断，屏蔽默认的中断</span><br><span class="line">void USART1_IRQHandler(void)</span><br><span class="line">&#123;</span><br><span class="line">  /* USER CODE BEGIN USART1_IRQn 0 */</span><br><span class="line">	UART_IDLE_Callback(&amp;huart1);    //调用自己的中断</span><br><span class="line">	return;    //屏蔽默认的中断</span><br><span class="line">  /* USER CODE END USART1_IRQn 0 */</span><br><span class="line">  HAL_UART_IRQHandler(&amp;huart1);</span><br><span class="line">  /* USER CODE BEGIN USART1_IRQn 1 */</span><br><span class="line"></span><br><span class="line">  /* USER CODE END USART1_IRQn 1 */</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="串口调试助手">串口调试助手</h2>
+<p>我用了xcom和sscom串口调试助手</p>
+<ul>
+<li>Xcom.exe中可以监视数据传输</li>
+<li>DTR(Data Terminal
+Ready（数据终端准备好）)：由数据终端设备（如计算机）发出，表示它已经准备好接收数据了。当DTR为高电平时，表示数据终端设备已经打开了串口，并且可以接收数据。当DTR为低电平时，表示数据终端设备已经关闭了串口，或者不想接收数据了。</li>
+<li>RTS(Request To
+Send（请求发送）)：由数据终端设备发出，表示它想要发送数据了，并且请求对方的许可。当RTS为高电平时，表示数据终端设备有数据要发送，并且等待对方的应答。当RTS为低电平时，表示数据终端设备没有数据要发送，或者暂停发送数据。</li>
+</ul>
+<h2 id="一些经验">一些经验</h2>
+<p>总结下来就是遇到串口不能使用的情况应该检查以下问题：</p>
+<p>（1）看看串口有没有和其他串口冲突或者被占用</p>
+<p>（2）代码有没有问题，实在不行先烧官方例程看看</p>
+<p>（3）检查波特率，停止位，数据位，奇偶校验位这些什么的，一定要选对</p>
+<blockquote>
+<p>Tips:对照Cube MX中的设置检查</p>
+</blockquote>
+<p>（4）还有就是要勾选<strong>use micro lib</strong>。</p>
+<h2 id="bonus">BONUS</h2>
+<ul>
+<li><p>uint8_t_16_t_t_t</p>
+<ul>
+<li><p>这些类型的来源：这些数据类型中都带有_t, _t
+表示这些数据类型是通过typedef定义的，而不是新的数据类型。也就是说，它们其实是我们已知的类型的别名。</p></li>
+<li><p>使用这些类型的原因：方便代码的维护。比如，在C中没有bool型，于是在一个软件中，一个程序员使用int，一个程序员使用short，会比较混乱。最好用一个typedef来定义一个统一的bool</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">typedef char bool;</span><br><span class="line">typedef unsigned char           uint8_t;</span><br></pre></td></tr></table></figure></li>
+<li><p>uint8_t实际上是一个char。所以输出uint8_t类型的变量实际上输出其对应的字符，而不是数值。</p></li>
+</ul></li>
+<li><p>句柄与普通指针的区别在于，指针包含的是引用对象的内存地址，而句柄则是由系统所管理的引用标识，该标识可以被系统重新定位到一个内存地址上。这种间接访问对象的模式增强了系统对引用对象的控制。句柄本质就是对底层硬件的指针的使用。句柄是针对内核的。大家可以理解为句柄是一个指向指针的指针。</p></li>
+</ul>
+<h1 id="problem">Problem</h1>
+<p>在前面两个使用EXTI中断的projects中没能收到USART传来的消息？？？</p>
+<p>在最后的DMA中断中收到了</p>
+<figure>
+<img
+src="C:\Users\Immortal\AppData\Local\Temp\WeChat%20Files\88a583cc4036de8ace38c8517d0075d.jpg"
+alt="88a583cc4036de8ace38c8517d0075d" />
+<figcaption
+aria-hidden="true">88a583cc4036de8ace38c8517d0075d</figcaption>
+</figure>
 <h1 id="references">References</h1>
 <ul>
+<li><p>哈工深电控内训</p></li>
 <li><p><a
-href="https://blog.csdn.net/weixin_42514042/article/details/124169302">VSCode
-vim 使用vimrc配置 vim使用系统剪切板配置_vscode
-vimrc_未知褶皱的博客-CSDN博客</a></p></li>
+href="https://blog.csdn.net/weixin_56321457/article/details/124206957">STM32用XCOM调试助手打印不出数据_xcom串口调试助手_山野的风.的博客-CSDN博客</a></p></li>
 <li><p><a
-href="https://blog.csdn.net/m0_47670683/article/details/125160391?spm=1001.2101.3001.6661.1&amp;utm_medium=distribute.pc_relevant_t0.none-task-blog-2~default~CTRLIST~Rate-1-125160391-blog-121179927.235%5Ev38%5Epc_relevant_sort_base3&amp;depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-2~default~CTRLIST~Rate-1-125160391-blog-121179927.235%5Ev38%5Epc_relevant_sort_base3&amp;utm_relevant_index=1">VSCode使用Vim插件心得_vscode
-vim插件_皛心的博客-CSDN博客</a></p></li>
+href="https://www.cnblogs.com/ChurF-Lin/p/10793111.html">基于STM32之UART串口通信协议（一）详解
+- LLLIN000 - 博客园 (cnblogs.com)</a></p></li>
 <li><p><a
-href="https://zhuanlan.zhihu.com/p/113316942">Chrome插件Vimium使用教程 -
-知乎 (zhihu.com)</a></p></li>
-<li><p>【VS Code ×
-Vim：提高你的编码效率】https://www.bilibili.com/video/BV1MX4y1b7nM?vd_source=93bb338120537438ee9180881deab9c1</p></li>
+href="https://blog.csdn.net/weixin_43281206/article/details/116279189">STM32串口通信详解以及通信异常或者卡死常见问题分析_stm32
+串口传数据互相 干扰_“星云-视界”的博客-CSDN博客</a></p></li>
 </ul>
 ]]></content>
       <categories>
-        <category>CS</category>
+        <category>嵌入式</category>
       </categories>
       <tags>
-        <tag>CS</tag>
+        <tag>嵌入式</tag>
+        <tag>robomaster</tag>
       </tags>
   </entry>
   <entry>
@@ -4559,6 +4613,127 @@ vim 使用vimrc配置 vim使用系统剪切板配置_vscode
 vimrc_未知褶皱的博客-CSDN博客</a></p></li>
 <li><p>[VSCode使用Vim插件心得_vscode
 vim插件_皛心的博客-CSDN博客](</p></li>
+</ul>
+]]></content>
+      <categories>
+        <category>CS</category>
+      </categories>
+      <tags>
+        <tag>CS</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Vim（3）</title>
+    <url>/2023/08/14/Vim%EF%BC%883%EF%BC%89/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>Following missing semester of MIT to learn Vim.</p>
+<p>希望通过<a
+href="https://learnvimscriptthehardway.stevelosh.com/">Learn Vimscript
+the Hard Way (stevelosh.com)</a>+<a
+href="https://vim-adventures.com/">Vim Adventures</a>
+来进一步练习Vim的使用</p>
+<p>Vim（3）——Vim在其他应用上的应用</p>
+<blockquote>
+<p>双手离开鼠标！</p>
+</blockquote>
+<span id="more"></span>
+<h1 id="vim-in-other-programs">Vim in other programs</h1>
+<p>很多工具提供了 Vim 模式。这些 Vim
+模式的质量参差不齐；取决于具体工具，有的提供了很多酷炫的 Vim
+功能，但是大多数对基本功能支持的很好。</p>
+<h2 id="shell">Shell</h2>
+<p>如果你是一个 Bash 用户，用 <code>set -o vi</code>。如果你用
+Zsh：<code>bindkey -v</code>。Fish 用
+<code>fish_vi_key_bindings</code>。另外，不管利用什么 shell，你可以
+<code>export EDITOR=vim</code>。
+这是一个用来决定当一个程序需要启动编辑时启动哪个的环境变量。
+例如，<code>git</code> 会使用这个编辑器来编辑 commit 信息。</p>
+<h2 id="readline">Readline</h2>
+<p>很多程序使用 <a
+href="https://tiswww.case.edu/php/chet/readline/rltop.html">GNU
+Readline</a> 库来作为 它们的命令控制行界面。Readline 也支持基本的 Vim
+模式， 可以通过在 <code>~/.inputrc</code> 添加如下行开启：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">set editing-mode vi</span><br></pre></td></tr></table></figure>
+<p>比如，在这个设置下，Python REPL 会支持 Vim 快捷键。</p>
+<h2 id="vscode">VSCode</h2>
+<p>add extention——vim,enable</p>
+<p>Vim有些功能在VSCode中不能用，例如宏录制</p>
+<h3 id="导入vimrc">导入vimrc</h3>
+<p>再vscode的setting中enable vimrc配置方式，并填写vimrc文件地址</p>
+<p>用 vscode 打开 my.vimrc 文件，输入
+<code>set clipboard=unnamedplusset</code>。或者，直接在设置中搜索
+<code>vim.useSystemClipboard</code> ，打钩。默认使用的 vim
+无名缓存器已经与系统剪切板连通了。</p>
+<h3 id="vscode常用快捷键">VSCode常用快捷键</h3>
+<ul>
+<li><p>ctrl+B:侧边栏隐藏/显示</p></li>
+<li><p>ctrl+J:终端显示</p></li>
+<li><p>ctrl+Tab:切换tab</p></li>
+<li><p>ctrl+<number>：切换分屏，没有就创建</p></li>
+<li><p>ctrl+\:水平分屏</p></li>
+<li><p>ctrl+k+ctrl+\:竖直分屏;我改为:ctrl+&lt;]+\&gt;</p></li>
+<li><p>ctrl+w:删除当前屏幕（当当前屏幕无tab时）or tab</p></li>
+<li><p>ctrl+P:搜索文件,加上&gt;等价于ctrl+shift+P</p></li>
+<li><p>ctrl+shift+P:VSCode中的，命令:open folder</p></li>
+<li><p>ctrl+,:打开settings:配置一些json文件+vim</p></li>
+</ul>
+<p>函数定义之类：</p>
+<ul>
+<li><code>gd</code> : 进入函数定义</li>
+<li><code>Ctrl+o</code> : 从函数定义中返回</li>
+<li><code>gh</code> : 查看函数参数等信息</li>
+</ul>
+<h2 id="vimium">Vimium</h2>
+<ul>
+<li><p>基础移动hjkl,gg,G</p></li>
+<li><p>J，K跳转标签页，H(Shift+h):打开上一个网页，L(Shift+l):打开下一个网页</p></li>
+<li><p>g0，g$跳转到第一个，最后一个标签页</p></li>
+<li><p>t:打开新的标签页</p></li>
+<li><p>x:关闭当前标签页；X重新打开最后关闭的标签页</p></li>
+<li><p>d向下翻半页，u向上翻半页</p></li>
+<li><p>yy:复制当前页面地址到剪切板。如下图所示,按下yy后在按下Win+V可以看到已经将当前页面的链接复制到剪切板了</p></li>
+<li><p>p（P）:如果剪切板第一个是URL，则打开链接，是记录则搜索该内容</p></li>
+<li><p>建议直接Tab or shift+Tab（
+gi:定位到页面中的第一个输入框,前面也可以加数字）</p></li>
+<li><p>r:刷新界面</p></li>
+<li><p><strong>f（F）</strong>:在当前（新）标签页打开指定的链接。如下图所示,按下f后就会在链接上出现字母或者字母组合,只要按下相应的字母或者字母组合就可以打开对应的链接</p></li>
+</ul>
+<blockquote>
+<p>Tips:好用！</p>
+</blockquote>
+<ul>
+<li><strong>o（O）</strong>:在当前（新）标签页打开链接、书签（b是打开书签）、历史记录。如下图所示,按下o输入关键字后可以看到有符合条件的历史记录、书签等结果,可以通过上下箭头选择项目后按下Enter键即可在当前（新）标签页打开所选的项目。</li>
+<li>T:是在所有打开的标签页中搜索/</li>
+<li>m:添加标记,当你看一篇长文章时,如果你需要看前面的内容,或者想先看后面某部分内容再回来看当前的内容,则可以通过标记实现这需求。通过按下m之后再按一个字母就可以在当前位置标记,如果你在页面的其他地方想回到标记的地方,则可以通过`+之前标记的字母快速返回。</li>
+</ul>
+<h3 id="复制东西">复制东西</h3>
+<p>一般先/{}匹配到位置，再v进入可视化y复制</p>
+<h2 id="其他">其他</h2>
+<p>甚至有 Vim 的网页浏览快捷键 <a
+href="http://vim.wikia.com/wiki/Vim_key_bindings_for_web_browsers">browsers</a>,
+受欢迎的有用于 Google Chrome 的 <a
+href="https://chrome.google.com/webstore/detail/vimium/dbepggeogbaibhgnhhndojpepiihcmeb?hl=en">Vimium</a>
+和用于 Firefox 的 <a
+href="https://github.com/tridactyl/tridactyl">Tridactyl</a>。
+你甚至可以在 <a
+href="https://github.com/lambdalisue/jupyter-vim-binding">Jupyter
+notebooks</a> 中用 Vim 快捷键。 <a
+href="https://reversed.top/2016-08-13/big-list-of-vim-like-software">这个列表</a>
+中列举了支持类 vim 键位绑定的软件。</p>
+<h1 id="references">References</h1>
+<ul>
+<li><p><a
+href="https://blog.csdn.net/weixin_42514042/article/details/124169302">VSCode
+vim 使用vimrc配置 vim使用系统剪切板配置_vscode
+vimrc_未知褶皱的博客-CSDN博客</a></p></li>
+<li><p><a
+href="https://blog.csdn.net/m0_47670683/article/details/125160391?spm=1001.2101.3001.6661.1&amp;utm_medium=distribute.pc_relevant_t0.none-task-blog-2~default~CTRLIST~Rate-1-125160391-blog-121179927.235%5Ev38%5Epc_relevant_sort_base3&amp;depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-2~default~CTRLIST~Rate-1-125160391-blog-121179927.235%5Ev38%5Epc_relevant_sort_base3&amp;utm_relevant_index=1">VSCode使用Vim插件心得_vscode
+vim插件_皛心的博客-CSDN博客</a></p></li>
+<li><p><a
+href="https://zhuanlan.zhihu.com/p/113316942">Chrome插件Vimium使用教程 -
+知乎 (zhihu.com)</a></p></li>
+<li><p>【VS Code ×
+Vim：提高你的编码效率】https://www.bilibili.com/video/BV1MX4y1b7nM?vd_source=93bb338120537438ee9180881deab9c1</p></li>
 </ul>
 ]]></content>
       <categories>
@@ -5373,6 +5548,98 @@ href="https://zhuanlan.zhihu.com/p/431118510">浅析Makefile、make、cmake
       </tags>
   </entry>
   <entry>
+    <title>各种通信方式</title>
+    <url>/2023/07/29/%E5%90%84%E7%A7%8D%E9%80%9A%E4%BF%A1%E6%96%B9%E5%BC%8F/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>了解及总结（同步通信-异步通信-全双工通信-串行通信-并行通信）各种通信方法</p>
+<span id="more"></span>
+<h1 id="并行通信-and-串行通信">并行通信 and 串行通信</h1>
+<h2 id="并行通信">并行通信</h2>
+<p>Parallel communication</p>
+<h4 id="传输方式">传输方式</h4>
+<p>多个数据bit位同时传输</p>
+<h4 id="常用总线">常用总线</h4>
+<p>local bus, DDR</p>
+<h4 id="特点">特点</h4>
+<ul>
+<li>同时传输，效率高</li>
+<li>数据线多，设计复杂</li>
+</ul>
+<h2 id="串行通信">串行通信</h2>
+<p>Serial communication</p>
+<h4 id="传输方式-1">传输方式</h4>
+<p>数据bit一位一位传输</p>
+<h4 id="常用总线-1">常用总线</h4>
+<p>local bus, DDR</p>
+<h4 id="特点-1">特点</h4>
+<ul>
+<li>按bit逐位传输，效率低</li>
+<li>只需一根数据线，设计简单</li>
+</ul>
+<h1 id="异步串行通信-and-同步串行通信">异步串行通信 and
+同步串行通信</h1>
+<h2 id="异步串行通信">异步串行通信</h2>
+<p>Asynchronous serial communication</p>
+<h4 id="特点-2">特点</h4>
+<ul>
+<li>信息发送设备与接收设备之间无时钟连接</li>
+<li>信息中包含特殊标志位Start/Stop</li>
+<li>接收设备根据特殊标志位利用本地时钟对数据采样</li>
+</ul>
+<h4 id="example">Example</h4>
+<p>UART，无时钟线连接</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">接收器   发送器</span><br><span class="line">TxD-----&gt;RxD</span><br><span class="line">RxD&lt;-----TxD</span><br></pre></td></tr></table></figure>
+<h2 id="同步串行通信">同步串行通信</h2>
+<p>Synchronous serial communciation</p>
+<h4 id="特点-3">特点</h4>
+<ul>
+<li>信息发送设备与接收设备需要时钟同步</li>
+<li>两者间出数据线连接，还需要额外的时钟线连接</li>
+</ul>
+<h4 id="example-1">Example</h4>
+<p>IIC,需要时钟线SCL连接</p>
+<h1
+id="三种数据通路单工半双工全双工">三种数据通路：单工，半双工，全双工</h1>
+<h2 id="单工通信">单工通信</h2>
+<p>Simplex communciation</p>
+<h4 id="特点-4">特点</h4>
+<ul>
+<li>信息只能单一方向传输</li>
+</ul>
+<h4 id="example-2">Example</h4>
+<p>广播，遥控器</p>
+<h2 id="半双工通信">半双工通信</h2>
+<p>Half-duplex communciation</p>
+<h4 id="特点-5">特点</h4>
+<ul>
+<li>数据支持双向传输</li>
+<li>发送和接收不能同时进行，同一时间只能发送or接收数据</li>
+</ul>
+<h4 id="example-3">Example</h4>
+<p>IIC</p>
+<h2 id="全双工通信">全双工通信</h2>
+<p>Full-duplex communciation</p>
+<h4 id="特点-6">特点</h4>
+<ul>
+<li>数据支持双向传输</li>
+<li>数据接收和发送同时进行</li>
+</ul>
+<h4 id="example-4">Example</h4>
+<p>电话、网口、UART</p>
+<h1 id="references">References</h1>
+<ul>
+<li>B站视频：【四分钟搞定【同步通信-异步通信-全双工通信-串行通信-并行通信】】https://www.bilibili.com/video/BV1q64y1R72M?vd_source=93bb338120537438ee9180881deab9c1</li>
+</ul>
+]]></content>
+      <categories>
+        <category>嵌入式</category>
+      </categories>
+      <tags>
+        <tag>嵌入式</tag>
+        <tag>通信</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>基于CubeMX创建的第一个stm32工程</title>
     <url>/2023/08/04/%E5%9F%BA%E4%BA%8EcubeMX%E5%88%9B%E5%BB%BA%E7%9A%84%E7%AC%AC%E4%B8%80%E4%B8%AAstm32%E5%B7%A5%E7%A8%8B/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
@@ -6107,95 +6374,83 @@ alt="温州猪脏粉" />
       </tags>
   </entry>
   <entry>
-    <title>各种通信方式</title>
-    <url>/2023/07/29/%E5%90%84%E7%A7%8D%E9%80%9A%E4%BF%A1%E6%96%B9%E5%BC%8F/</url>
+    <title>桌面美化</title>
+    <url>/2023/08/10/%E6%A1%8C%E9%9D%A2%E7%BE%8E%E5%8C%96/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>了解及总结（同步通信-异步通信-全双工通信-串行通信-并行通信）各种通信方法</p>
+<p>美化桌面，愉悦心情</p>
 <span id="more"></span>
-<h1 id="并行通信-and-串行通信">并行通信 and 串行通信</h1>
-<h2 id="并行通信">并行通信</h2>
-<p>Parallel communication</p>
-<h4 id="传输方式">传输方式</h4>
-<p>多个数据bit位同时传输</p>
-<h4 id="常用总线">常用总线</h4>
-<p>local bus, DDR</p>
-<h4 id="特点">特点</h4>
+<h1 id="任务栏美化">任务栏美化</h1>
+<p>微软商店安装<strong>TranslucentTB</strong>使任务栏透明</p>
+<p>任务栏设置中隐藏任务栏</p>
+<h1 id="桌面美化">桌面美化</h1>
+<h2 id="rainmeter">Rainmeter</h2>
+<p>桌面时钟、音乐频谱、电脑监控等</p>
+<h3 id="加载主题">加载主题</h3>
+<p>在<a href="https://zhutix.com/">致美化 - 最专业的视觉美化交流平台
+(zhutix.com)</a>的Rainmeter中下载即可</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230810220256059.png"
+alt="image-20230810220256059" />
+<figcaption aria-hidden="true">image-20230810220256059</figcaption>
+</figure>
+<h3 id="设置">设置</h3>
 <ul>
-<li>同时传输，效率高</li>
-<li>数据线多，设计复杂</li>
+<li>点击穿透</li>
+<li>允许拖动</li>
+<li>总在底层</li>
 </ul>
-<h2 id="串行通信">串行通信</h2>
-<p>Serial communication</p>
-<h4 id="传输方式-1">传输方式</h4>
-<p>数据bit一位一位传输</p>
-<h4 id="常用总线-1">常用总线</h4>
-<p>local bus, DDR</p>
-<h4 id="特点-1">特点</h4>
+<h3 id="参数设置">参数设置</h3>
+<p>右上角可以直接该参数eg:rgb值,links等</p>
+<h3 id="主题保存">主题保存</h3>
+<p>自己自定义了组件，在主题中保存为新主题即可。</p>
+<h2 id="鼠标指针">鼠标指针</h2>
+<p>在致美化下载鼠标指针样式，解压后找到后缀.inf的文件右键安装</p>
+<p>在设置——个性化——主题——鼠标光标中切换方案即可</p>
+<h1 id="开始菜单美化">开始菜单美化</h1>
+<p>主要使用Start11给“开始”添加图片</p>
+<h1 id="wallpaper-engine">Wallpaper Engine</h1>
 <ul>
-<li>按bit逐位传输，效率低</li>
-<li>只需一根数据线，设计简单</li>
+<li><p>性能：开机时启动（设为最高优先级）；其他应用最大化时改为停止（释放内存）</p></li>
+<li><p>常规：打开覆盖壁纸图像+覆盖锁屏图像</p></li>
+<li><p>可以创建文件夹</p></li>
+<li><p>壁纸音量调为0；跟随鼠标晃动的壁纸：鼠标视差关闭即可</p></li>
+<li><p>彩蛋：设置-&gt;关于（英文大写输入）上上下下左右左右BA回车，获得星空主题</p></li>
 </ul>
-<h1 id="异步串行通信-and-同步串行通信">异步串行通信 and
-同步串行通信</h1>
-<h2 id="异步串行通信">异步串行通信</h2>
-<p>Asynchronous serial communication</p>
-<h4 id="特点-2">特点</h4>
-<ul>
-<li>信息发送设备与接收设备之间无时钟连接</li>
-<li>信息中包含特殊标志位Start/Stop</li>
-<li>接收设备根据特殊标志位利用本地时钟对数据采样</li>
-</ul>
-<h4 id="example">Example</h4>
-<p>UART，无时钟线连接</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">接收器   发送器</span><br><span class="line">TxD-----&gt;RxD</span><br><span class="line">RxD&lt;-----TxD</span><br></pre></td></tr></table></figure>
-<h2 id="同步串行通信">同步串行通信</h2>
-<p>Synchronous serial communciation</p>
-<h4 id="特点-3">特点</h4>
-<ul>
-<li>信息发送设备与接收设备需要时钟同步</li>
-<li>两者间出数据线连接，还需要额外的时钟线连接</li>
-</ul>
-<h4 id="example-1">Example</h4>
-<p>IIC,需要时钟线SCL连接</p>
-<h1
-id="三种数据通路单工半双工全双工">三种数据通路：单工，半双工，全双工</h1>
-<h2 id="单工通信">单工通信</h2>
-<p>Simplex communciation</p>
-<h4 id="特点-4">特点</h4>
-<ul>
-<li>信息只能单一方向传输</li>
-</ul>
-<h4 id="example-2">Example</h4>
-<p>广播，遥控器</p>
-<h2 id="半双工通信">半双工通信</h2>
-<p>Half-duplex communciation</p>
-<h4 id="特点-5">特点</h4>
-<ul>
-<li>数据支持双向传输</li>
-<li>发送和接收不能同时进行，同一时间只能发送or接收数据</li>
-</ul>
-<h4 id="example-3">Example</h4>
-<p>IIC</p>
-<h2 id="全双工通信">全双工通信</h2>
-<p>Full-duplex communciation</p>
-<h4 id="特点-6">特点</h4>
-<ul>
-<li>数据支持双向传输</li>
-<li>数据接收和发送同时进行</li>
-</ul>
-<h4 id="example-4">Example</h4>
-<p>电话、网口、UART</p>
+<h1 id="结果展示">结果展示</h1>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230810235722677.png"
+alt="image-20230810235722677" />
+<figcaption aria-hidden="true">image-20230810235722677</figcaption>
+</figure>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230810235744577.png"
+alt="image-20230810235744577" />
+<figcaption aria-hidden="true">image-20230810235744577</figcaption>
+</figure>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230815103141441.png"
+alt="image-20230815103141441" />
+<figcaption aria-hidden="true">image-20230815103141441</figcaption>
+</figure>
 <h1 id="references">References</h1>
 <ul>
-<li>B站视频：【四分钟搞定【同步通信-异步通信-全双工通信-串行通信-并行通信】】https://www.bilibili.com/video/BV1q64y1R72M?vd_source=93bb338120537438ee9180881deab9c1</li>
+<li><p>【【Wallpaper
+Engine】迄今为止最详细的使用教程】https://www.bilibili.com/video/BV1dX4y1E7vF?vd_source=93bb338120537438ee9180881deab9c1</p></li>
+<li><p><a
+href="https://zhuanlan.zhihu.com/p/563088705">程序员教你十分钟做出炫酷桌面
+- 知乎 (zhihu.com)</a></p></li>
+<li><p>【雨滴桌面教程|深度打造你的自定义桌面（Rainmeter教程）】https://www.bilibili.com/video/BV1N5411x7KP?vd_source=93bb338120537438ee9180881deab9c1</p></li>
 </ul>
 ]]></content>
       <categories>
-        <category>嵌入式</category>
+        <category>奇技淫巧</category>
       </categories>
       <tags>
-        <tag>嵌入式</tag>
-        <tag>通信</tag>
+        <tag>奇技淫巧</tag>
       </tags>
   </entry>
   <entry>
@@ -6839,86 +7094,6 @@ alt="强制跳转地址" />
       </categories>
       <tags>
         <tag>嵌入式</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>桌面美化</title>
-    <url>/2023/08/10/%E6%A1%8C%E9%9D%A2%E7%BE%8E%E5%8C%96/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>美化桌面，愉悦心情</p>
-<span id="more"></span>
-<h1 id="任务栏美化">任务栏美化</h1>
-<p>微软商店安装<strong>TranslucentTB</strong>使任务栏透明</p>
-<p>任务栏设置中隐藏任务栏</p>
-<h1 id="桌面美化">桌面美化</h1>
-<h2 id="rainmeter">Rainmeter</h2>
-<p>桌面时钟、音乐频谱、电脑监控等</p>
-<h3 id="加载主题">加载主题</h3>
-<p>在<a href="https://zhutix.com/">致美化 - 最专业的视觉美化交流平台
-(zhutix.com)</a>的Rainmeter中下载即可</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230810220256059.png"
-alt="image-20230810220256059" />
-<figcaption aria-hidden="true">image-20230810220256059</figcaption>
-</figure>
-<h3 id="设置">设置</h3>
-<ul>
-<li>点击穿透</li>
-<li>允许拖动</li>
-<li>总在底层</li>
-</ul>
-<h3 id="参数设置">参数设置</h3>
-<p>右上角可以直接该参数eg:rgb值,links等</p>
-<h3 id="主题保存">主题保存</h3>
-<p>自己自定义了组件，在主题中保存为新主题即可。</p>
-<h2 id="鼠标指针">鼠标指针</h2>
-<p>在致美化下载鼠标指针样式，解压后找到后缀.inf的文件右键安装</p>
-<p>在设置——个性化——主题——鼠标光标中切换方案即可</p>
-<h1 id="开始菜单美化">开始菜单美化</h1>
-<p>主要使用Start11给“开始”添加图片</p>
-<h1 id="wallpaper-engine">Wallpaper Engine</h1>
-<ul>
-<li><p>性能：开机时启动（设为最高优先级）；其他应用最大化时改为停止（释放内存）</p></li>
-<li><p>常规：打开覆盖壁纸图像+覆盖锁屏图像</p></li>
-<li><p>可以创建文件夹</p></li>
-<li><p>壁纸音量调为0；跟随鼠标晃动的壁纸：鼠标视差关闭即可</p></li>
-<li><p>彩蛋：设置-&gt;关于（英文大写输入）上上下下左右左右BA回车，获得星空主题</p></li>
-</ul>
-<h1 id="结果展示">结果展示</h1>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230810235722677.png"
-alt="image-20230810235722677" />
-<figcaption aria-hidden="true">image-20230810235722677</figcaption>
-</figure>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230810235744577.png"
-alt="image-20230810235744577" />
-<figcaption aria-hidden="true">image-20230810235744577</figcaption>
-</figure>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230815103141441.png"
-alt="image-20230815103141441" />
-<figcaption aria-hidden="true">image-20230815103141441</figcaption>
-</figure>
-<h1 id="references">References</h1>
-<ul>
-<li><p>【【Wallpaper
-Engine】迄今为止最详细的使用教程】https://www.bilibili.com/video/BV1dX4y1E7vF?vd_source=93bb338120537438ee9180881deab9c1</p></li>
-<li><p><a
-href="https://zhuanlan.zhihu.com/p/563088705">程序员教你十分钟做出炫酷桌面
-- 知乎 (zhihu.com)</a></p></li>
-<li><p>【雨滴桌面教程|深度打造你的自定义桌面（Rainmeter教程）】https://www.bilibili.com/video/BV1N5411x7KP?vd_source=93bb338120537438ee9180881deab9c1</p></li>
-</ul>
-]]></content>
-      <categories>
-        <category>奇技淫巧</category>
-      </categories>
-      <tags>
-        <tag>奇技淫巧</tag>
       </tags>
   </entry>
 </search>
