@@ -926,6 +926,189 @@ href="https://blog.csdn.net/mary19920410/article/details/71518130">浅析C语言
       </tags>
   </entry>
   <entry>
+    <title>EXTI入门</title>
+    <url>/2023/08/21/EXTI%E5%85%A5%E9%97%A8/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>Following
+哈工深上传到B站的电控组培训来入门robomaster电控组，我购买了普中科技玄武套餐开发板作为硬件。</p>
+<p>本篇介绍我学习EXIT的见闻</p>
+<span id="more"></span>
+<h1 id="exti">EXTI</h1>
+<h2 id="中断简介">中断简介</h2>
+<p>中断指计算机运行过程中，出现某些意外情况需要主机干预时，机器能自动停止正在运行的程序并转入处理新情况的程序，处理完毕后又返回原被暂停的程序继续运行。<strong>中断是实现多线程设计的必要条件</strong>。</p>
+<p>EXTI：（External interrupt/event controller）外部中断/事件控制器</p>
+<h2 id="nvic">NVIC</h2>
+<p>NVIC的全称是Nested vectoredinterrupt
+controller，即嵌套向量中断控制器</p>
+<p>能够打断当前代码执行流程的事件分为<strong>异常(exception)</strong>和<strong>中断(interrupt)</strong>，他们都被编排在中断向量表（在stm32中文参考手册中可查找，在stm32的启动文件中也能找到eg:startup_stm32f103xe.s）里面。</p>
+<ul>
+<li>编号为负的内核异常不能被设置优先级，如复位(Reset)、不可屏蔽中断
+(NMI)、硬错误(Hardfault)。从编号 7
+开始的为外部中断，这些中断的优先级都是可以自行设置的。</li>
+<li>NVIC的核心功能是中断优先级分组、中断优先级的配置、读中断请求标志、清除中断请求标志、使能中断、清除中断等.</li>
+<li>外部中断信号从核外发出，信号最终要传递到NVIC(嵌套向量中断控制器)。</li>
+<li>NVIC跟内核紧密耦合，它控制着整个芯片中断的相关功能。</li>
+</ul>
+<h2 id="中断优先级分组">中断优先级分组</h2>
+<p>STM32 的中断向量具有两个属性：抢占，响应</p>
+<ul>
+<li><p>抢占（编号越小，优先级越高），是指打断其它中断的属性，即因为具有这个属性，会出现嵌套中断(在执行中断服务函数
+A 的过程中被中断 B 打断，执行完中断服务函数 B 再继续执行中断服务函数
+A)。</p></li>
+<li><p>响应（编号越小，优先级越高）属性则应用在抢占属性相同的情况下，当两个中断向量的抢占优先级相同时，如果两个中断同时到达，则先处理响应优先级高的中断。（不能打断其他中断）</p></li>
+<li><p>在STM32中，抢占优先级和响应优先级的数量由一个 4
+位的数字来决定，把这个 4
+位数字的位数分配成抢占优先级部分和响应优先级部分。（都写在寄存器内）</p></li>
+</ul>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230607154202250.png"
+alt="image-20230607154202250" />
+<figcaption aria-hidden="true">image-20230607154202250</figcaption>
+</figure>
+<blockquote>
+<p>Tips:两个中断不可能同时来，所以响应优先级主要给出了一种响应的优先队列，当多个中断向量的抢占优先级相同时，它们不会互相打断，后续的排队会按照响应优先级排队。</p>
+</blockquote>
+<h2 id="exti介绍">EXTI介绍</h2>
+<p>中断引脚的序号需要不一样才能配置不停的中断（F1系列的硬件实现）</p>
+<blockquote>
+<p>Tips:F1系列中断是共用的eg:中断/事件线EXTI0，输入源PX0（X可为A,B,...I）PA0用了则PB0就用不了。</p>
+</blockquote>
+<p>EXTI有两大模式;中断模式和事件模式</p>
+<ul>
+<li>中断模式产生中断：把输入信号输入到NVIC中，进一步执行中断服务函数，实现功能，这是软件级别的。</li>
+<li>事件模式产生事件：传输一个脉冲信号给其他外设使用，并且这是电路级别的信号传输，不需要软件处理，硬件直接触发</li>
+</ul>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230821013658350.png"
+alt="image-20230821013658350" />
+<figcaption aria-hidden="true">image-20230821013658350</figcaption>
+</figure>
+<ul>
+<li>23：并行传输数据，和这个寄存器一样的有23个</li>
+<li>边沿检测电路：一个符合则输出1</li>
+</ul>
+<p>每一种模式都可配置为上升沿触发、下降沿触发，以及上升下降沿触发三种触发方式</p>
+<h2 id="中断函数的实现">中断函数的实现</h2>
+<p>要产生中断，必须先配置好并使能中断线。根据需要的边沿检测设置2个触发寄存器，同时在中断屏蔽寄存器的相应位写’1’允许中断请求。当外部中断线上发生了期待的边沿时，将产生一个中断请求，对应的挂起位也随之被置’1’。在挂起寄存器的对应位写’1’，将清除该中断请求。</p>
+<p>如果需要产生事件，必须先配置好并使能事件线。根据需要的边沿检测通过设置2个触发寄存器，同时在事件屏蔽寄存器的相应位写’1’允许事件请求。当事件线上发生了需要的边沿时，将产生一个事件请求脉冲，对应的挂起位不被置’1’。</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230607154902377.png"
+alt="image-20230607154902377" />
+<figcaption aria-hidden="true">image-20230607154902377</figcaption>
+</figure>
+<p>通过在软件中断/事件寄存器写’1’，也可以通过软件产生中断/事件请求。</p>
+<ul>
+<li><p>一般来说单片机的中断发生有两个条件，一是<strong>中断标志位置位</strong>，二是<strong>中断允许</strong>（中断屏蔽寄存器），如果这两个条件都满足则进入中断，因为正常情况下中断一直是允许的，那么只能通过标志位来区分是否有中断挂起</p></li>
+<li><p>中断标志位：挂起请求寄存器设置。</p>
+<p>PRx:挂起为（pending bit）：</p>
+<p>0没有发生触发请求，1发生了选择触发请求</p>
+<p>当在外部中断线上发生了选择的边沿事件，该位被置1。在该位写入1可以清楚它，也可以通过改变边沿检测的极性清除。</p></li>
+<li><p>如果进入中断不清除标志位，那么这一中断服务程序结束后由于标志位还是置位的并且中断是允许的，那么还会再次进入该中断，就会发生一直在执行中断程序的情况</p></li>
+<li><p>周期性中断是由定时器辅助完成的，只要定时时间到，硬件就会自动置位标志位，这时中断发生，定时器还在运行，<strong>与中断处理是并行的没有冲突</strong>，因此周期性的中断不是从中断标志位清零开始的。</p>
+<blockquote>
+<p>Tips:MCU和定时器是并行的，互不影响</p>
+</blockquote></li>
+<li><p>如果中断程序没有执行完并且一下个中断又来了，那么硬件还是会自动置位标志位的，如果在这之前已经清零标志位那么中断结束后会再进入一次该中断，如果这时还没有清除中断标志位，则第二个中断无效。</p>
+<blockquote>
+<p>Tips:有中断，中断标志位变为1,不清0，则不能响应新的中断。</p>
+</blockquote></li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**</span><br><span class="line"> * @brief EXTI line detection callbacks.</span><br><span class="line"> * @param GPIO_Pin: Specifies the pins connected EXTI line</span><br><span class="line"> * @retval None</span><br><span class="line"> *外部中断的回调函数,hal库</span><br><span class="line"> */ </span><br><span class="line">__weak void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) </span><br><span class="line">&#123;</span><br><span class="line"> /* Prevent unused argument(s) compilation warning */</span><br><span class="line"> UNUSED(GPIO_Pin);</span><br><span class="line"> /* NOTE: This function Should not be modified, when the callback is needed, the HAL_GPIO_EXTI_Callback could be implemented in the user file */ </span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>Tips:
+<code>_weak</code>在其他地方重新定义该函数此_weak定义的函数会被覆盖,即我们要重写void
+HAL_GPIO_EXTI_Callback(uin16_t,GPIO_Pin);函数</p>
+</blockquote>
+<h2 id="实验">实验</h2>
+<h3 id="按键扫描">按键扫描</h3>
+<p>根据需要确定GPIO模式：选择下拉输入还是上拉输入or浮空输入，通过反复读取按键状态是否为高电平判断按键是否被触发</p>
+<p><strong>按键扫描的原理</strong>：
+按键的两个引脚的一端通过下拉电阻拉倒低电平，另一端接着电源。当按下开关时，输入引脚为高电平。通过反复读取按键状态是否为高电平判断按键是否被触发。</p>
+<p><strong>notes:</strong></p>
+<ul>
+<li><p>记得在cubeMX的GPIO把NVIC设置为enable</p></li>
+<li><p>在keil
+5中添加新文件：先将文件放在同一目录下，右键add添加.c文件/双击add即可，.h文件用#include包含即可</p></li>
+<li><p>机械按键的抖动，毛刺，延时再判断，hal_delay是用systick实现的</p>
+<blockquote>
+<p>Tips:设置中断优先级（比时钟低，不然不能HAL_Delay(),会陷入死循环）</p>
+</blockquote></li>
+</ul>
+<p>如下图：数码管8位一般定义为：DP G F E D C B A</p>
+<p>B C亮表示1，即00000110=0x06;</p>
+<p>A B G E D亮表示2 即01011011=0x5b；</p>
+<p>依次类推</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/a1ec08fa513d26975dfc13c055fbb2fb4316d87b.jpg"
+alt="a1ec08fa513d26975dfc13c055fbb2fb4316d87b" />
+<figcaption
+aria-hidden="true">a1ec08fa513d26975dfc13c055fbb2fb4316d87b</figcaption>
+</figure>
+<h1 id="references">References</h1>
+<ul>
+<li>哈工深电控内训</li>
+<li><a
+href="https://zhidao.baidu.com/question/1959763145635584700.html">单片机的中断标志位是有什么作用？_百度知道
+(baidu.com)</a></li>
+</ul>
+]]></content>
+      <categories>
+        <category>嵌入式</category>
+      </categories>
+      <tags>
+        <tag>嵌入式</tag>
+        <tag>robomaster</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Environment_variables</title>
+    <url>/2023/08/14/Environment-variables/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>最近调整自己的workflow，遇到很多配置环境变量（environment
+variable）的问题，借此机会了解一下</p>
+<span id="more"></span>
+<h1 id="introduction">Introduction</h1>
+<p>环境变量是一种<strong>在操作系统中</strong>用来指定操作系统运行环境的参数，例如临时文件夹的位置，系统文件夹的位置，可执行文件的搜索路径等。</p>
+<p>环境变量的作用是<strong>让操作系统或者应用程序能够找到所需要的资源或者设置</strong>。</p>
+<h1 id="diffenent-systems">diffenent systems</h1>
+<h2 id="在windows中">在Windows中</h2>
+<p>可以通过“控制面板”-“系统”-“高级系统设置”-“环境变量”来查看和编辑环境变量。通过可视化的窗口模式展现出来的.</p>
+<h2 id="在linux中">在Linux中</h2>
+<p>可以通过命令行工具或者编辑配置文件来查看和编辑环境变量。</p>
+<h3 id="设置">设置：</h3>
+<p>在
+/etc/profile文件中设置，export的意思就是将局部变量设置为环境变量。现有的变量是被这样一行代码设置的：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">export PATH USER LOGNAME MAIL HOSTNAME HISTSIZE HISTCONTROL</span><br></pre></td></tr></table></figure>
+<p>这几个环境变量已经有一些默认值了，不过我们可以追加内容，比如修改PATH：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line"># : 的意思是并列</span><br><span class="line">PATH = /abc/def:$PATH</span><br></pre></td></tr></table></figure>
+<h3 id="查看">查看：</h3>
+<p>查看全部，使用<code>env</code>命令即可。</p>
+<p>查看单个，可以使用<code>echo：如echo $JAVA_HOME。</code></p>
+<h1 id="一些常见的环境变量有">一些常见的环境变量有</h1>
+<ul>
+<li><p>PATH：指定可执行文件的搜索路径，当你在命令行中输入一个程序名而没有指定完整路径时，系统会在PATH中指定的目录下寻找该程序。（一般为bin文件姐）</p></li>
+<li><p>JAVA_HOME：指定JDK（Java开发工具包）的安装目录，一些Java开发工具或者应用程序会使用这个变量来找到JDK。</p></li>
+<li><p>TEMP或TMP：指定临时文件夹的位置，一些应用程序会在这个目录下存储临时数据或者缓存文件。</p></li>
+<li><p>USERPROFILE：指定当前用户的配置文件的位置，一些应用程序会在这个目录下存储用户相关的数据或者设置。</p></li>
+</ul>
+<h1 id="references">References</h1>
+<ul>
+<li><a href="https://zhuanlan.zhihu.com/p/82011100">看懂什么是环境变量!
+- 知乎 (zhihu.com)</a></li>
+</ul>
+]]></content>
+      <categories>
+        <category>CS</category>
+      </categories>
+      <tags>
+        <tag>CS</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Flash入门</title>
     <url>/2023/08/24/Flash%E5%85%A5%E9%97%A8/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
@@ -2125,8 +2308,8 @@ Branching</a></li>
         <category>CS</category>
       </categories>
       <tags>
-        <tag>Git</tag>
         <tag>CS</tag>
+        <tag>Git</tag>
       </tags>
   </entry>
   <entry>
@@ -2835,8 +3018,8 @@ Branching</a></li>
         <category>CS</category>
       </categories>
       <tags>
-        <tag>Git</tag>
         <tag>CS</tag>
+        <tag>Git</tag>
       </tags>
   </entry>
   <entry>
@@ -3217,8 +3400,8 @@ Branching</a></li>
         <category>CS</category>
       </categories>
       <tags>
-        <tag>Git</tag>
         <tag>CS</tag>
+        <tag>Git</tag>
       </tags>
   </entry>
   <entry>
@@ -3506,51 +3689,6 @@ href="https://zhuanlan.zhihu.com/p/413285767">Jlink之J-Scope虚拟示波器 -
       </tags>
   </entry>
   <entry>
-    <title>Linear_algebra</title>
-    <url>/2023/09/08/Linear-algebra/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>学习过程中遇到了伪逆的问题，于是我重新看了MIT的网课并且发现了一份好的学习资料：<a
-href="https://www.yuque.com/alexman/so5y8g">线性代数 (yuque.com)</a></p>
-<p>本想总结一下左右逆和伪逆，但别人写得已经足够好了，仅在此放下链接——感谢分享！</p>
-<span id="more"></span>
-<h1 id="四个基本空间">四个基本空间</h1>
-<p><a
-href="https://zhuanlan.zhihu.com/p/454870189">线性代数中四个基本子空间
-(The Four Fundamental Subspaces) - 知乎 (zhihu.com)</a></p>
-<h1 id="svd">SVD</h1>
-<p>SVD：singular value decomposition奇异值分解</p>
-<p><a href="https://www.yuque.com/alexman/so5y8g/psybsc">3.5
-奇异值分解(SVD) (yuque.com)</a></p>
-<h2 id="奇异值是什么">奇异值是什么</h2>
-<p><a href="https://zhuanlan.zhihu.com/p/629013736">12.3 奇异值是什么 -
-知乎 (zhihu.com)</a></p>
-<h1 id="左右逆伪逆">左右逆，伪逆</h1>
-<p><a href="https://www.yuque.com/alexman/so5y8g/lr3tqw">3.8 左逆,
-右逆和伪逆&amp;极分解 (yuque.com)</a></p>
-<p><span class="math inline">\(A^TA\)</span>对于长方形矩阵<span
-class="math inline">\(A\)</span>是一个很好的研究i对象</p>
-<p>列满秩：<span class="math inline">\(A\)</span>的左逆<span
-class="math inline">\((A^TA)^{-1}A^T,r=n&lt;m\)</span></p>
-<p>行满秩：<span class="math inline">\(A\)</span>的右逆<span
-class="math inline">\(A^T(AA^T)^{-1},r=m&lt;n\)</span></p>
-<p>伪逆：Pseudo-inverses，<span class="math inline">\(A^+\)</span></p>
-<h1 id="references">References</h1>
-<ul>
-<li><p><a
-href="https://zhuanlan.zhihu.com/p/454870189">线性代数中四个基本子空间
-(The Four Fundamental Subspaces) - 知乎 (zhihu.com)</a></p></li>
-<li><p><a href="https://www.yuque.com/alexman/so5y8g">线性代数
-(yuque.com)</a></p></li>
-</ul>
-]]></content>
-      <categories>
-        <category>Math</category>
-      </categories>
-      <tags>
-        <tag>Math</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Markdown_in_Typora</title>
     <url>/2023/08/09/Markdown-in-Typora/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
@@ -3645,6 +3783,51 @@ host，利用PicGo作为上传工具，再连接Typora，实现一条龙服务</
       </categories>
       <tags>
         <tag>奇技淫巧</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Linear_algebra</title>
+    <url>/2023/09/08/Linear-algebra/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>学习过程中遇到了伪逆的问题，于是我重新看了MIT的网课并且发现了一份好的学习资料：<a
+href="https://www.yuque.com/alexman/so5y8g">线性代数 (yuque.com)</a></p>
+<p>本想总结一下左右逆和伪逆，但别人写得已经足够好了，仅在此放下链接——感谢分享！</p>
+<span id="more"></span>
+<h1 id="四个基本空间">四个基本空间</h1>
+<p><a
+href="https://zhuanlan.zhihu.com/p/454870189">线性代数中四个基本子空间
+(The Four Fundamental Subspaces) - 知乎 (zhihu.com)</a></p>
+<h1 id="svd">SVD</h1>
+<p>SVD：singular value decomposition奇异值分解</p>
+<p><a href="https://www.yuque.com/alexman/so5y8g/psybsc">3.5
+奇异值分解(SVD) (yuque.com)</a></p>
+<h2 id="奇异值是什么">奇异值是什么</h2>
+<p><a href="https://zhuanlan.zhihu.com/p/629013736">12.3 奇异值是什么 -
+知乎 (zhihu.com)</a></p>
+<h1 id="左右逆伪逆">左右逆，伪逆</h1>
+<p><a href="https://www.yuque.com/alexman/so5y8g/lr3tqw">3.8 左逆,
+右逆和伪逆&amp;极分解 (yuque.com)</a></p>
+<p><span class="math inline">\(A^TA\)</span>对于长方形矩阵<span
+class="math inline">\(A\)</span>是一个很好的研究i对象</p>
+<p>列满秩：<span class="math inline">\(A\)</span>的左逆<span
+class="math inline">\((A^TA)^{-1}A^T,r=n&lt;m\)</span></p>
+<p>行满秩：<span class="math inline">\(A\)</span>的右逆<span
+class="math inline">\(A^T(AA^T)^{-1},r=m&lt;n\)</span></p>
+<p>伪逆：Pseudo-inverses，<span class="math inline">\(A^+\)</span></p>
+<h1 id="references">References</h1>
+<ul>
+<li><p><a
+href="https://zhuanlan.zhihu.com/p/454870189">线性代数中四个基本子空间
+(The Four Fundamental Subspaces) - 知乎 (zhihu.com)</a></p></li>
+<li><p><a href="https://www.yuque.com/alexman/so5y8g">线性代数
+(yuque.com)</a></p></li>
+</ul>
+]]></content>
+      <categories>
+        <category>Math</category>
+      </categories>
+      <tags>
+        <tag>Math</tag>
       </tags>
   </entry>
   <entry>
@@ -4725,6 +4908,100 @@ vim插件_皛心的博客-CSDN博客](</p></li>
       </tags>
   </entry>
   <entry>
+    <title>blog搭建及优化</title>
+    <url>/2023/07/27/blog%E6%90%AD%E5%BB%BA%E5%8F%8A%E4%BC%98%E5%8C%96/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>仅以此blog记录生活点滴</p>
+<p>遇到困难第一时间找官方手册解决问题!</p>
+<p>优化进行ing</p>
+<span id="more"></span>
+<h1 id="优化">优化</h1>
+<ul>
+<li><p>以PicGo作为图床上传工具，在github上创建figure
+bed并连接typora（一键式typora插入图片自动上传并转化为url）</p></li>
+<li><p>增加search function</p></li>
+<li><p>设置预览摘要</p></li>
+<li><p>主页文章添加阴影效果</p></li>
+<li><p>给一篇文章设置多标签</p></li>
+<li><p>让blog支持LaTex数学公式</p>
+<p>hexo并不支持LaTex数学公式<a
+href="https://theme-next.js.org/docs/third-party-services/math-equations.html">Math
+Equations | NexT (theme-next.js.org)</a></p>
+<p>卸载hexo-math，Render
+Engines替换渲染:下载pandoc，hexo-renderer-pandoc，修改config，使用hexo-filter-mathjax</p>
+<p><a
+href="https://github.com/next-theme/hexo-filter-mathjax">next-theme/hexo-filter-mathjax:
+💯 Server side MathJax renderer plugin for Hexo.
+(github.com)</a></p></li>
+<li><p>hexo-optimize优化页面加载速度</p></li>
+<li><p>修改背景</p></li>
+</ul>
+<h1 id="bonus">Bonus</h1>
+<p>记录搭建blog过程中遇到的一些东西</p>
+<ul>
+<li><p>github.io是静态网页每次修改都需要重新部署</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#在/blog/source/_posts 中添加文件，然后再bash中重新部署</span><br><span class="line">hexo clean</span><br><span class="line">hexo g</span><br><span class="line">hexo d</span><br><span class="line">###本地查看</span><br><span class="line">hexo s</span><br><span class="line">###新建文章</span><br><span class="line">hexo n &#x27;filename&#x27;</span><br></pre></td></tr></table></figure></li>
+<li><p>设置文章的tags and categories</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">---</span><br><span class="line">title:</span><br><span class="line">date:</span><br><span class="line">tags: [ &#x27;标签1&#x27; , &#x27;标签2&#x27; , &#x27;标签3&#x27; ]  #注意空格</span><br><span class="line">categories: life</span><br><span class="line">---</span><br><span class="line">### 以下是正文</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">总结下有两种格式都适用：</span><br><span class="line"></span><br><span class="line">第一种：</span><br><span class="line"></span><br><span class="line">tags: [ &#x27;Ruby&#x27;, &#x27;Perl&#x27;, &#x27;Python&#x27; ]</span><br><span class="line"></span><br><span class="line">第二种：</span><br><span class="line"></span><br><span class="line">tags:</span><br><span class="line"></span><br><span class="line">- hexo</span><br><span class="line"></span><br><span class="line">- disqus</span><br></pre></td></tr></table></figure></li>
+<li><p>数学公式的使用需要添加：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">mathjax: true</span><br></pre></td></tr></table></figure></li>
+<li><pre><code>  background-size:contain/cover         //看你需求</code></pre></li>
+<li><p>CDN(Content Delivery
+Network，内容分发网络)是一项非常有效的<strong>缩短时延</strong>的技术，采用更多的缓存服务器（CDN边缘节点），布放在用户访问相对集中的地区或网络中。当用户访问网站时，利用全局负载技术，将用户的访问指向距离最近的缓存服务器上，由缓存服务器响应用户请求</p></li>
+<li><p>YAML(.yml文件)，一种数据序列化格式，方便传输和存储</p></li>
+<li><p>只要我们在文章中插入
+<!-- more -->，该标签之上的是摘要，之后的内容不可见，需点击全文阅读按钮。</p></li>
+</ul>
+<h1 id="references">References</h1>
+<ul>
+<li><p><a href="https://theme-next.js.org/">NexT - Theme for Hexo
+(theme-next.js.org)</a>Next主题官方文档</p></li>
+<li><p><a
+href="https://github.com/next-theme/hexo-filter-mathjax">next-theme/hexo-filter-mathjax:
+💯 Server side MathJax renderer plugin for Hexo.
+(github.com)</a></p></li>
+<li><p><a
+href="https://github.com/next-theme/hexo-optimize">next-theme/hexo-optimize:
+🚩 A Hexo plugin that optimize the pages loading speed.
+(github.com)</a></p></li>
+<li><p>跟随知乎枫叶大佬<a
+href="https://zhuanlan.zhihu.com/p/102592286">从零开始搭建个人博客（超详细）
+- 知乎 (zhihu.com)</a>搭建此blog</p></li>
+<li><p><a
+href="https://github.com/jackfrued/Python-100-Days/blob/master/番外篇/使用Hexo搭建自己的博客.md">Python-100-Days/番外篇/使用Hexo搭建自己的博客.md
+at master · jackfrued/Python-100-Days (github.com)</a></p></li>
+<li><p>Next主题设置：<a
+href="https://github.com/theme-next/hexo-theme-next/blob/master/README.md">hexo-theme-next/README.md
+at master · theme-next/hexo-theme-next (github.com)</a></p></li>
+<li><p><a href="https://zhuanlan.zhihu.com/p/52362950">到底什么是CDN？ -
+知乎 (zhihu.com)</a></p></li>
+<li><p><a
+href="https://zhuanlan.zhihu.com/p/433176170">两分钟带你了解YAML（.yml后缀文件）
+- 知乎 (zhihu.com)</a></p></li>
+<li><p><a
+href="https://news.netshop168.com/article-85934.html">rss订阅是什么意思?为什么要使用RSS?RSS也称为RSS订阅或RSS提要
+(netshop168.com)</a></p></li>
+<li><p><a href="https://zhuanlan.zhihu.com/p/347342082">如何利用 Github
+搭建自己的免费图床？ - 知乎 (zhihu.com)</a></p></li>
+<li><p><a
+href="https://zhuanlan.zhihu.com/p/489236769">使用Github+picGo搭建图床，保姆级教程来了
+- 知乎 (zhihu.com)</a></p></li>
+<li><p><a href="https://www.ruanyifeng.com/blog/2016/07/yaml.html">YAML
+语言教程 - 阮一峰的网络日志 (ruanyifeng.com)</a></p></li>
+<li><p><a
+href="https://www.cnblogs.com/cscshi/p/15196114.html#:~:text=1%201.%20设置背景图片%20将想要的背景图片放入%20themes%2Fnext%2Fsource%2Fimages。%20打开%20themes%2Fnext%2Fsource%2Fcss%2F%20_custom%2Fcustom.styl,blog_root%2Fsource%2F_data%2Fstyles.style%20中添加以下内容：%20...%203%203.%20参考%20Hexo-NexT%20设置博客背景图片">Hexo-NexT
+设置博客背景图片 - 锦瑟，无端 - 博客园 (cnblogs.com)</a></p></li>
+</ul>
+]]></content>
+      <categories>
+        <category>奇技淫巧</category>
+      </categories>
+      <tags>
+        <tag>奇技淫巧</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Vim（3）</title>
     <url>/2023/08/14/Vim%EF%BC%883%EF%BC%89/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
@@ -4843,6 +5120,91 @@ Vim：提高你的编码效率】https://www.bilibili.com/video/BV1MX4y1b7nM?vd_
       </categories>
       <tags>
         <tag>CS</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>用户名更改and下载cubeMX和keil的一些问题</title>
+    <url>/2023/08/17/cubeMX%E5%92%8Ckeil%E7%9A%84%E5%AE%89%E8%A3%85%E4%B8%8E%E5%8D%B8%E8%BD%BD/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>cubeMX和keil的安装+卸载及集成到VSCode</p>
+<p>被两个软件安装和卸载折磨了！！！,终获成功！！！</p>
+<p>多次卸载+安装始终无法正确使用，反而把两个软件的安装+卸载搞熟悉了</p>
+<span id="more"></span>
+<h1 id="改用户名">改用户名</h1>
+<p>主要的错误应该是我的用户名用的中文吧，所以决定壮士断腕改为英文名，看了很多失败的案例，还是选择在淘宝上请一个师傅远程操作（这种事情还是安全为上！）</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/_-721152154__465acad98c72f8e17ea03c287d76d4af_207603416_IMG_20230815_173354_0_xg_0.jpg"
+alt="error1" />
+<figcaption aria-hidden="true">error1</figcaption>
+</figure>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/_-639538789__b14d87141ec83c2e90a4fa2c3b7ca94e_210373979_IMG_20230815_173357_0_xg_0.jpg"
+alt="error2" />
+<figcaption aria-hidden="true">error2</figcaption>
+</figure>
+<p>但改了用户名后就会有很多软件不能用，必要的还是重新下载为好</p>
+<h1 id="stm32cubemx">STM32CubeMX</h1>
+<h2 id="下载">下载</h2>
+<p>在官网直接下载即可</p>
+<p>但是使用时必须下载相应的库才行：在首页HELP-&gt;Manage embedded
+software packages中可以直接install/update</p>
+<blockquote>
+<p>Tips:旧版可以直接下，最新版必须要ST公司的账号（注册是免费的）</p>
+</blockquote>
+<h2 id="firmware-packages">Firmware packages</h2>
+<p>我的路径仍然有问题，且无法修改，所以还是选择从官网上下载.zip文件，然后在固件管理中选择from
+local</p>
+<h2 id="卸载">卸载</h2>
+<p>现在控制面板的程序和功能中删除STM32CubeMX,然后清除C盘的一些残留数据文件夹</p>
+<ul>
+<li>C:Files32Cube32CubeMX</li>
+<li>C:<username>32CubeMX</li>
+<li>C:<username>32CubeMX</li>
+</ul>
+<p>最后删除注册表中的相关项：在Win+R中输入regedit进入注册表编辑器，进入以下路径：HKEY_CURRENT_USER32CubeMX，右键单击“STM32CubeMX”文件夹，选择“删除”。</p>
+<h1 id="keil5">keil5</h1>
+<h2 id="下载-1">下载</h2>
+<p>找好心人（知乎，B站，贴吧。。。）的网盘资源下载，按指令要求安装完后进行注册</p>
+<p>然后使用注册机，之前的注册机2020年失效，寻找最新的可以到2032年</p>
+<blockquote>
+<p>Tips:注册时，注册机和keil的打开都必须以管理员的方式打开</p>
+</blockquote>
+<h2 id="pack-install">Pack install</h2>
+<p>进入keil后点击pack install(一个绿绿的选项)下载必要的pack</p>
+<blockquote>
+<p>Tips:可以直接在官网上下载（最新），然后双击会自动下载到keil里面</p>
+</blockquote>
+<h2 id="卸载-1">卸载</h2>
+<p>有unstall固然挺好，否则把文件夹卸载后，要在Win+R中输入regedit进入注册表编辑器在里面将HKEY_CLASSES_ROOT目录下的
+所有UV开头的文件删除，然后将HKEY_CURRENT_USER</p>
+<h1 id="vscode">VSCode</h1>
+<p>在keil中配置好后在VSCode中打开：</p>
+<p>先在VSCode中下载<code>Keil Assistance</code>,然后在管理扩展中给出<code>MDK UV4.exe path</code>即可</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230817224831344.png"
+alt="image-20230817224831344" />
+<figcaption aria-hidden="true">image-20230817224831344</figcaption>
+</figure>
+<blockquote>
+<p>看到这一幕好激动！！！</p>
+</blockquote>
+<h1 id="references">References</h1>
+<ul>
+<li><a
+href="https://wenku.csdn.net/answer/564b100e9b124f08943a2fe894a8c7c4#:~:text=stm32cubemx卸载干净教程%201%20关闭STM32CubeMX软件及其相关的进程。%202%20打开控制面板，选择“程序和功能”。%203%20在已安装的程序列表中，找到并选择“STMicroelectronics%20STM32CubeMX”。,7%20删除Java%20Runtime%20Environment（JRE）中的缓存：%20打开控制面板，选择“Java”。%20...%208%20最后，重新启动计算机。">stm32cubemx卸载干净教程
+- CSDN文库</a></li>
+<li><a
+href="https://blog.csdn.net/Damon_Sandy/article/details/130314186">如何彻底删除keil5_keil卸载_胜折宇的博客-CSDN博客</a></li>
+</ul>
+]]></content>
+      <categories>
+        <category>嵌入式</category>
+      </categories>
+      <tags>
+        <tag>嵌入式</tag>
       </tags>
   </entry>
   <entry>
@@ -5039,186 +5401,7 @@ Vim：提高你的编码效率】https://www.bilibili.com/video/BV1MX4y1b7nM?vd_
       </tags>
   </entry>
   <entry>
-    <title>blog搭建及优化</title>
-    <url>/2023/07/27/blog%E6%90%AD%E5%BB%BA%E5%8F%8A%E4%BC%98%E5%8C%96/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>仅以此blog记录生活点滴</p>
-<p>遇到困难第一时间找官方手册解决问题!</p>
-<p>优化进行ing</p>
-<span id="more"></span>
-<h1 id="优化">优化</h1>
-<ul>
-<li><p>以PicGo作为图床上传工具，在github上创建figure
-bed并连接typora（一键式typora插入图片自动上传并转化为url）</p></li>
-<li><p>增加search function</p></li>
-<li><p>设置预览摘要</p></li>
-<li><p>主页文章添加阴影效果</p></li>
-<li><p>给一篇文章设置多标签</p></li>
-<li><p>让blog支持LaTex数学公式</p>
-<p>hexo并不支持LaTex数学公式<a
-href="https://theme-next.js.org/docs/third-party-services/math-equations.html">Math
-Equations | NexT (theme-next.js.org)</a></p>
-<p>卸载hexo-math，Render
-Engines替换渲染:下载pandoc，hexo-renderer-pandoc，修改config，使用hexo-filter-mathjax</p>
-<p><a
-href="https://github.com/next-theme/hexo-filter-mathjax">next-theme/hexo-filter-mathjax:
-💯 Server side MathJax renderer plugin for Hexo.
-(github.com)</a></p></li>
-<li><p>hexo-optimize优化页面加载速度</p></li>
-<li><p>修改背景</p></li>
-</ul>
-<h1 id="bonus">Bonus</h1>
-<p>记录搭建blog过程中遇到的一些东西</p>
-<ul>
-<li><p>github.io是静态网页每次修改都需要重新部署</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#在/blog/source/_posts 中添加文件，然后再bash中重新部署</span><br><span class="line">hexo clean</span><br><span class="line">hexo g</span><br><span class="line">hexo d</span><br><span class="line">###本地查看</span><br><span class="line">hexo s</span><br><span class="line">###新建文章</span><br><span class="line">hexo n &#x27;filename&#x27;</span><br></pre></td></tr></table></figure></li>
-<li><p>设置文章的tags and categories</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">---</span><br><span class="line">title:</span><br><span class="line">date:</span><br><span class="line">tags: [ &#x27;标签1&#x27; , &#x27;标签2&#x27; , &#x27;标签3&#x27; ]  #注意空格</span><br><span class="line">categories: life</span><br><span class="line">---</span><br><span class="line">### 以下是正文</span><br></pre></td></tr></table></figure>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">总结下有两种格式都适用：</span><br><span class="line"></span><br><span class="line">第一种：</span><br><span class="line"></span><br><span class="line">tags: [ &#x27;Ruby&#x27;, &#x27;Perl&#x27;, &#x27;Python&#x27; ]</span><br><span class="line"></span><br><span class="line">第二种：</span><br><span class="line"></span><br><span class="line">tags:</span><br><span class="line"></span><br><span class="line">- hexo</span><br><span class="line"></span><br><span class="line">- disqus</span><br></pre></td></tr></table></figure></li>
-<li><p>数学公式的使用需要添加：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">mathjax: true</span><br></pre></td></tr></table></figure></li>
-<li><pre><code>  background-size:contain/cover         //看你需求</code></pre></li>
-<li><p>CDN(Content Delivery
-Network，内容分发网络)是一项非常有效的<strong>缩短时延</strong>的技术，采用更多的缓存服务器（CDN边缘节点），布放在用户访问相对集中的地区或网络中。当用户访问网站时，利用全局负载技术，将用户的访问指向距离最近的缓存服务器上，由缓存服务器响应用户请求</p></li>
-<li><p>YAML(.yml文件)，一种数据序列化格式，方便传输和存储</p></li>
-<li><p>只要我们在文章中插入
-<!-- more -->，该标签之上的是摘要，之后的内容不可见，需点击全文阅读按钮。</p></li>
-</ul>
-<h1 id="references">References</h1>
-<ul>
-<li><p><a href="https://theme-next.js.org/">NexT - Theme for Hexo
-(theme-next.js.org)</a>Next主题官方文档</p></li>
-<li><p><a
-href="https://github.com/next-theme/hexo-filter-mathjax">next-theme/hexo-filter-mathjax:
-💯 Server side MathJax renderer plugin for Hexo.
-(github.com)</a></p></li>
-<li><p><a
-href="https://github.com/next-theme/hexo-optimize">next-theme/hexo-optimize:
-🚩 A Hexo plugin that optimize the pages loading speed.
-(github.com)</a></p></li>
-<li><p>跟随知乎枫叶大佬<a
-href="https://zhuanlan.zhihu.com/p/102592286">从零开始搭建个人博客（超详细）
-- 知乎 (zhihu.com)</a>搭建此blog</p></li>
-<li><p><a
-href="https://github.com/jackfrued/Python-100-Days/blob/master/番外篇/使用Hexo搭建自己的博客.md">Python-100-Days/番外篇/使用Hexo搭建自己的博客.md
-at master · jackfrued/Python-100-Days (github.com)</a></p></li>
-<li><p>Next主题设置：<a
-href="https://github.com/theme-next/hexo-theme-next/blob/master/README.md">hexo-theme-next/README.md
-at master · theme-next/hexo-theme-next (github.com)</a></p></li>
-<li><p><a href="https://zhuanlan.zhihu.com/p/52362950">到底什么是CDN？ -
-知乎 (zhihu.com)</a></p></li>
-<li><p><a
-href="https://zhuanlan.zhihu.com/p/433176170">两分钟带你了解YAML（.yml后缀文件）
-- 知乎 (zhihu.com)</a></p></li>
-<li><p><a
-href="https://news.netshop168.com/article-85934.html">rss订阅是什么意思?为什么要使用RSS?RSS也称为RSS订阅或RSS提要
-(netshop168.com)</a></p></li>
-<li><p><a href="https://zhuanlan.zhihu.com/p/347342082">如何利用 Github
-搭建自己的免费图床？ - 知乎 (zhihu.com)</a></p></li>
-<li><p><a
-href="https://zhuanlan.zhihu.com/p/489236769">使用Github+picGo搭建图床，保姆级教程来了
-- 知乎 (zhihu.com)</a></p></li>
-<li><p><a href="https://www.ruanyifeng.com/blog/2016/07/yaml.html">YAML
-语言教程 - 阮一峰的网络日志 (ruanyifeng.com)</a></p></li>
-<li><p><a
-href="https://www.cnblogs.com/cscshi/p/15196114.html#:~:text=1%201.%20设置背景图片%20将想要的背景图片放入%20themes%2Fnext%2Fsource%2Fimages。%20打开%20themes%2Fnext%2Fsource%2Fcss%2F%20_custom%2Fcustom.styl,blog_root%2Fsource%2F_data%2Fstyles.style%20中添加以下内容：%20...%203%203.%20参考%20Hexo-NexT%20设置博客背景图片">Hexo-NexT
-设置博客背景图片 - 锦瑟，无端 - 博客园 (cnblogs.com)</a></p></li>
-</ul>
-]]></content>
-      <categories>
-        <category>奇技淫巧</category>
-      </categories>
-      <tags>
-        <tag>奇技淫巧</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>用户名更改and下载cubeMX和keil的一些问题</title>
-    <url>/2023/08/17/cubeMX%E5%92%8Ckeil%E7%9A%84%E5%AE%89%E8%A3%85%E4%B8%8E%E5%8D%B8%E8%BD%BD/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>cubeMX和keil的安装+卸载及集成到VSCode</p>
-<p>被两个软件安装和卸载折磨了！！！,终获成功！！！</p>
-<p>多次卸载+安装始终无法正确使用，反而把两个软件的安装+卸载搞熟悉了</p>
-<span id="more"></span>
-<h1 id="改用户名">改用户名</h1>
-<p>主要的错误应该是我的用户名用的中文吧，所以决定壮士断腕改为英文名，看了很多失败的案例，还是选择在淘宝上请一个师傅远程操作（这种事情还是安全为上！）</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/_-721152154__465acad98c72f8e17ea03c287d76d4af_207603416_IMG_20230815_173354_0_xg_0.jpg"
-alt="error1" />
-<figcaption aria-hidden="true">error1</figcaption>
-</figure>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/_-639538789__b14d87141ec83c2e90a4fa2c3b7ca94e_210373979_IMG_20230815_173357_0_xg_0.jpg"
-alt="error2" />
-<figcaption aria-hidden="true">error2</figcaption>
-</figure>
-<p>但改了用户名后就会有很多软件不能用，必要的还是重新下载为好</p>
-<h1 id="stm32cubemx">STM32CubeMX</h1>
-<h2 id="下载">下载</h2>
-<p>在官网直接下载即可</p>
-<p>但是使用时必须下载相应的库才行：在首页HELP-&gt;Manage embedded
-software packages中可以直接install/update</p>
-<blockquote>
-<p>Tips:旧版可以直接下，最新版必须要ST公司的账号（注册是免费的）</p>
-</blockquote>
-<h2 id="firmware-packages">Firmware packages</h2>
-<p>我的路径仍然有问题，且无法修改，所以还是选择从官网上下载.zip文件，然后在固件管理中选择from
-local</p>
-<h2 id="卸载">卸载</h2>
-<p>现在控制面板的程序和功能中删除STM32CubeMX,然后清除C盘的一些残留数据文件夹</p>
-<ul>
-<li>C:Files32Cube32CubeMX</li>
-<li>C:<username>32CubeMX</li>
-<li>C:<username>32CubeMX</li>
-</ul>
-<p>最后删除注册表中的相关项：在Win+R中输入regedit进入注册表编辑器，进入以下路径：HKEY_CURRENT_USER32CubeMX，右键单击“STM32CubeMX”文件夹，选择“删除”。</p>
-<h1 id="keil5">keil5</h1>
-<h2 id="下载-1">下载</h2>
-<p>找好心人（知乎，B站，贴吧。。。）的网盘资源下载，按指令要求安装完后进行注册</p>
-<p>然后使用注册机，之前的注册机2020年失效，寻找最新的可以到2032年</p>
-<blockquote>
-<p>Tips:注册时，注册机和keil的打开都必须以管理员的方式打开</p>
-</blockquote>
-<h2 id="pack-install">Pack install</h2>
-<p>进入keil后点击pack install(一个绿绿的选项)下载必要的pack</p>
-<blockquote>
-<p>Tips:可以直接在官网上下载（最新），然后双击会自动下载到keil里面</p>
-</blockquote>
-<h2 id="卸载-1">卸载</h2>
-<p>有unstall固然挺好，否则把文件夹卸载后，要在Win+R中输入regedit进入注册表编辑器在里面将HKEY_CLASSES_ROOT目录下的
-所有UV开头的文件删除，然后将HKEY_CURRENT_USER</p>
-<h1 id="vscode">VSCode</h1>
-<p>在keil中配置好后在VSCode中打开：</p>
-<p>先在VSCode中下载<code>Keil Assistance</code>,然后在管理扩展中给出<code>MDK UV4.exe path</code>即可</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230817224831344.png"
-alt="image-20230817224831344" />
-<figcaption aria-hidden="true">image-20230817224831344</figcaption>
-</figure>
-<blockquote>
-<p>看到这一幕好激动！！！</p>
-</blockquote>
-<h1 id="references">References</h1>
-<ul>
-<li><a
-href="https://wenku.csdn.net/answer/564b100e9b124f08943a2fe894a8c7c4#:~:text=stm32cubemx卸载干净教程%201%20关闭STM32CubeMX软件及其相关的进程。%202%20打开控制面板，选择“程序和功能”。%203%20在已安装的程序列表中，找到并选择“STMicroelectronics%20STM32CubeMX”。,7%20删除Java%20Runtime%20Environment（JRE）中的缓存：%20打开控制面板，选择“Java”。%20...%208%20最后，重新启动计算机。">stm32cubemx卸载干净教程
-- CSDN文库</a></li>
-<li><a
-href="https://blog.csdn.net/Damon_Sandy/article/details/130314186">如何彻底删除keil5_keil卸载_胜折宇的博客-CSDN博客</a></li>
-</ul>
-]]></content>
-      <categories>
-        <category>嵌入式</category>
-      </categories>
-      <tags>
-        <tag>嵌入式</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>python数据分许</title>
+    <title>python数据分析</title>
     <url>/2023/09/14/python%E6%95%B0%E6%8D%AE%E5%88%86%E6%9E%90/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
 <p>暑研期间主要做的就是数据分析的事情，那当然离不了python数据分析三件套了——在此记录三件套的基础学习（多用实践才能记住）</p>
@@ -5741,6 +5924,13 @@ at master · jackfrued/Python-100-Days (github.com)</a></p>
 <li>https://github.com/jackfrued/Python-100-Days/blob/master/Day66-80/66.%E6%95%B0%E6%8D%AE%E5%88%86%E6%9E%90%E6%A6%82%E8%BF%B0.md</li>
 </ul>
 ]]></content>
+      <categories>
+        <category>CS</category>
+      </categories>
+      <tags>
+        <tag>CS</tag>
+        <tag>数据分析</tag>
+      </tags>
   </entry>
   <entry>
     <title>stm32进阶（1）</title>
@@ -7165,57 +7355,6 @@ Makefile编译C/C++教程（Linux系统、VSCODE)】https://www.bilibili.com/vid
       </tags>
   </entry>
   <entry>
-    <title>推文制作</title>
-    <url>/2023/08/23/%E6%8E%A8%E6%96%87%E5%88%B6%E4%BD%9C/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>在太极拳社团中我常被安排写一些推文，开始直接上手（有点丑），现在还是花点时间学习一下这个有用的技能。</p>
-<p><strong>推文 = 文案 + 排版</strong></p>
-<blockquote>
-<p>Tips:学习制作推文还是建议大家看看References中的视频，看这篇blog并不能让你学会制作推文，自己做一篇就懂了。</p>
-</blockquote>
-<span id="more"></span>
-<h1 id="文案">文案</h1>
-<p>推文的一大特点就是图文并茂：</p>
-<ul>
-<li>标题+摘要</li>
-<li>上半部分：直接使用的段落</li>
-<li>下半部分：素材</li>
-</ul>
-<p>建议直接chat+bing</p>
-<h1 id="排版">排版</h1>
-<p>使用<strong>秀米编辑器</strong>（highly recommended）</p>
-<blockquote>
-<p>Tips:135编辑器:开始我用的135，免费的就东摘西选，不能成为一套。还是秀米好用</p>
-</blockquote>
-<h2 id="关注我们">关注我们</h2>
-<p>使用情形：社团纳新</p>
-<p>位置：组件-&gt;关注原文</p>
-<blockquote>
-<p>Tips:</p>
-</blockquote>
-<h2 id="正文">正文</h2>
-<p>位置：卡片-&gt;选择即可</p>
-<p>右键可查看标签，然后多标签搜索，可以查到整套模板；</p>
-<p>可以保存卡片底色到调色板，更改其他的底色就可以保持颜色一致</p>
-<h2 id="美观">美观</h2>
-<ul>
-<li>位置：组件-&gt;分割线/分隔符</li>
-</ul>
-<h2 id="二维码">二维码</h2>
-<p>直接放卡片，然后更改二维码即可</p>
-<h1 id="references">References</h1>
-<ul>
-<li>【【芝芝子】微信公众号推文制作，20分钟包教包会】https://www.bilibili.com/video/BV1KS4y1j7dv?vd_source=93bb338120537438ee9180881deab9c1</li>
-</ul>
-]]></content>
-      <categories>
-        <category>奇技淫巧</category>
-      </categories>
-      <tags>
-        <tag>奇技淫巧</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>旅游日记——丽水、温州</title>
     <url>/2023/08/16/%E6%97%85%E6%B8%B8%E6%97%A5%E8%AE%B0%EF%BC%881%EF%BC%89/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
@@ -7292,6 +7431,57 @@ alt="温州猪脏粉" />
       </categories>
       <tags>
         <tag>journey</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>推文制作</title>
+    <url>/2023/08/23/%E6%8E%A8%E6%96%87%E5%88%B6%E4%BD%9C/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>在太极拳社团中我常被安排写一些推文，开始直接上手（有点丑），现在还是花点时间学习一下这个有用的技能。</p>
+<p><strong>推文 = 文案 + 排版</strong></p>
+<blockquote>
+<p>Tips:学习制作推文还是建议大家看看References中的视频，看这篇blog并不能让你学会制作推文，自己做一篇就懂了。</p>
+</blockquote>
+<span id="more"></span>
+<h1 id="文案">文案</h1>
+<p>推文的一大特点就是图文并茂：</p>
+<ul>
+<li>标题+摘要</li>
+<li>上半部分：直接使用的段落</li>
+<li>下半部分：素材</li>
+</ul>
+<p>建议直接chat+bing</p>
+<h1 id="排版">排版</h1>
+<p>使用<strong>秀米编辑器</strong>（highly recommended）</p>
+<blockquote>
+<p>Tips:135编辑器:开始我用的135，免费的就东摘西选，不能成为一套。还是秀米好用</p>
+</blockquote>
+<h2 id="关注我们">关注我们</h2>
+<p>使用情形：社团纳新</p>
+<p>位置：组件-&gt;关注原文</p>
+<blockquote>
+<p>Tips:</p>
+</blockquote>
+<h2 id="正文">正文</h2>
+<p>位置：卡片-&gt;选择即可</p>
+<p>右键可查看标签，然后多标签搜索，可以查到整套模板；</p>
+<p>可以保存卡片底色到调色板，更改其他的底色就可以保持颜色一致</p>
+<h2 id="美观">美观</h2>
+<ul>
+<li>位置：组件-&gt;分割线/分隔符</li>
+</ul>
+<h2 id="二维码">二维码</h2>
+<p>直接放卡片，然后更改二维码即可</p>
+<h1 id="references">References</h1>
+<ul>
+<li>【【芝芝子】微信公众号推文制作，20分钟包教包会】https://www.bilibili.com/video/BV1KS4y1j7dv?vd_source=93bb338120537438ee9180881deab9c1</li>
+</ul>
+]]></content>
+      <categories>
+        <category>奇技淫巧</category>
+      </categories>
+      <tags>
+        <tag>奇技淫巧</tag>
       </tags>
   </entry>
   <entry>
@@ -7373,6 +7563,315 @@ href="https://zhuanlan.zhihu.com/p/563088705">程序员教你十分钟做出炫�
       <tags>
         <tag>奇技淫巧</tag>
       </tags>
+  </entry>
+  <entry>
+    <title>正则表达式</title>
+    <url>/2023/08/23/%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>根据<a
+href="https://deerchao.cn/tutorials/regex/regex.htm">正则表达式30分钟入门教程
+(deerchao.cn)</a>这篇文章来学习的正则表达式，文章介绍的是 .Net
+下的正则表达式，其它环境下的具体情况可以在读完本文后去参考官方文档，或者查看<a
+href="https://deerchao.cn/tutorials/regex/diffs.html">正则表达式引擎特性对比</a>。</p>
+<blockquote>
+<p>Tips:正则表达式学不了一点，看得头疼，偶的建议是了解点基础语法即可。有需要的时候再回头来看。</p>
+</blockquote>
+<span id="more"></span>
+<h1 id="简介">简介</h1>
+<p>正则表达式就是记录文本规则的代码。常用于查找符合某些复杂规则的字符串的需要。</p>
+<p>比<strong>通配符</strong>（wildcard:*和?）更精确，也更复杂</p>
+<h1 id="测试正则表达式">测试正则表达式</h1>
+<p>.Net下的工具 <a
+href="https://deerchao.cn/tools/regester/">Regester</a>，直接测试</p>
+<p>也可以试试这个在线测试工具：<a
+href="https://deerchao.cn/tools/wegester/">Wegester,
+JavaScript正则表达式测试器。</a></p>
+<p><strong>常用的处理选项</strong>：</p>
+<table>
+<colgroup>
+<col style="width: 35%" />
+<col style="width: 64%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>名称</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>IgnoreCase(忽略大小写)</td>
+<td>匹配时不区分大小写。</td>
+</tr>
+<tr class="even">
+<td>Multiline(多行模式)</td>
+<td>更改^和<span
+class="math inline">\(的含义，使它们分别在任意一行的行首和行尾匹配，而不仅仅在整个字符串的开头和结尾匹配。(在此模式下,\)</span>的精确含意是:匹配.)</td>
+</tr>
+<tr class="odd">
+<td>Singleline(单行模式)</td>
+<td>更改.的含义，使它与每一个字符匹配（包括换行符）。</td>
+</tr>
+<tr class="even">
+<td>IgnorePatternWhitespace(忽略空白)</td>
+<td>忽略表达式中的非转义空白并启用由#标记的注释。</td>
+</tr>
+<tr class="odd">
+<td>ExplicitCapture(显式捕获)</td>
+<td>仅捕获已被显式命名的组。</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Tips<处理多行>:如果选中了这个选项，^和$的意义就变成了匹配行的开始处和结束处。</p>
+<p>多行模式和单行模式没任何关系，可以同时使用</p>
+</blockquote>
+<h1 id="注释">注释</h1>
+<p>学习任何一样工具，我认为最首要的是学会如何写注释：</p>
+<p>通过语法<code>(?#comment)</code>来包含注释</p>
+<p>要包含注释的话，最好是启用“忽略模式里的空白符”选项，这样在编写表达式时能任意的添加空格，Tab，换行，而实际使用时这些都将被忽略。启用这个选项后，在#后面到这一行结束的所有文本都将被当成注释忽略掉。</p>
+<h1 id="元字符">元字符</h1>
+<p>metacharater</p>
+<table>
+<colgroup>
+<col style="width: 6%" />
+<col style="width: 93%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>代码</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>.</td>
+<td>匹配除换行符以外的任意字符</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>匹配字母或数字或下划线或汉字</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>匹配任意的空白符（包括空格，制表符(Tab)，换行符，中文全角空格等）</td>
+</tr>
+<tr class="even">
+<td> 匹配数字</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td> 匹配单词的开始或结束(只匹配一个位置，不匹配字符)</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>^</td>
+<td>匹配字符串的开始</td>
+</tr>
+<tr class="odd">
+<td>$</td>
+<td>匹配字符串的结束</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>避免重复书写：0-。这里({8})的意思是前面2次(8次)。</li>
+</ul>
+<blockquote>
+<p>Tips:{5,12}和{2}是类似的，只不过{2}匹配只能不多不少重复2次，{5,12}则是重复的次数不能少于5次，不能多于12次，否则都不匹配。</p>
+</blockquote>
+<table>
+<thead>
+<tr class="header">
+<th>代码/语法</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>*</td>
+<td>重复零次或更多次</td>
+</tr>
+<tr class="even">
+<td>+</td>
+<td>重复一次或更多次</td>
+</tr>
+<tr class="odd">
+<td>?</td>
+<td>重复零次或一次</td>
+</tr>
+<tr class="even">
+<td>{n}</td>
+<td>重复n次</td>
+</tr>
+<tr class="odd">
+<td>{n,}</td>
+<td>重复n次或更多次</td>
+</tr>
+<tr class="even">
+<td>{n,m}</td>
+<td>重复n到m次</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><p>字符转义：使用\.和\*来查找.和*。当然，要查找，你也得用\.</p></li>
+<li><p>字符类：在方括号里列出想匹配的字符集合即可</p>
+<blockquote>
+<p>Tips:[aeiou]就匹配任何一个英文元音字母，[.?!]匹配标点符号(.或?或!)。</p>
+</blockquote></li>
+<li><p>反义：有时需要查找不属于某个能简单定义的字符类的字符。比如想查找除了数字以外，其它任意字符都行的情况，这时需要用到<strong>反义</strong></p></li>
+</ul>
+<table>
+<thead>
+<tr class="header">
+<th>代码/语法</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td></td>
+<td>匹配任意不是字母，数字，下划线，汉字的字符</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>匹配任意不是空白符的字符</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>匹配任意非数字的字符</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>匹配不是单词开头或结束的位置</td>
+</tr>
+<tr class="odd">
+<td>[^x]</td>
+<td>匹配除了x以外的任意字符</td>
+</tr>
+<tr class="even">
+<td>[^aeiou]</td>
+<td>匹配除了aeiou这几个字母以外的任意字符</td>
+</tr>
+</tbody>
+</table>
+<h1 id="分枝条件">分枝条件</h1>
+<p>用|把不同的规则分隔开，如果满足其中任意一种规则都应该当成匹配:</p>
+<p><strong>eg</strong>:<code>0\d&#123;2&#125;-\d&#123;8&#125;|0\d&#123;3&#125;-\d&#123;7&#125;</code>这个表达式能匹配两种以连字号分隔的电话号码：一种是三位区号，8位本地号(如010-12345678)，一种是4位区号，7位本地号(0376-2233445)。</p>
+<blockquote>
+<p>Tips:<strong>使用分枝条件时，要注意各个条件的顺序</strong>。如果你把它改成|-的话，那么就只会匹配5位的邮编(以及9位邮编的前5位)。原因是匹配分枝条件时，将会从左到右地测试每个条件，如果满足了某个分枝的话，就不会去再管其它的条件了。</p>
+</blockquote>
+<h1 id="分组">分组</h1>
+<p>想要重复多个字符，可以用小括号来指定<strong>子表达式</strong>(也叫做<strong>分组</strong>)，然后你就可以指定这个子表达式的重复次数了。</p>
+<p>eg:<code>(\d&#123;1,3&#125;\.)&#123;3&#125;\d&#123;1,3&#125;</code></p>
+<h2 id="后向引用">后向引用</h2>
+<p>默认情况下，每个分组会自动拥有一个<strong>组号</strong>，规则是：从左向右，以分组的左括号为标志，第一个出现的分组的组号为1，第二个为2，以此类推。</p>
+<p><strong>后向引用</strong>用于重复搜索前面某个分组匹配的文本。例如，\1代表分组1匹配的文本。</p>
+<table>
+<colgroup>
+<col style="width: 9%" />
+<col style="width: 45%" />
+<col style="width: 45%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>分类</th>
+<th>代码/语法</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>捕获</td>
+<td>(exp)</td>
+<td>匹配exp,并捕获文本到自动命名的组里</td>
+</tr>
+<tr class="even">
+<td>(?<name>exp)</td>
+<td>匹配exp,并捕获文本到名称为name的组里，也可以写成(?'name'exp)</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>(?:exp)</td>
+<td>匹配exp,不捕获匹配的文本，也不给此分组分配组号</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>零宽断言</td>
+<td>(?=exp)</td>
+<td>匹配exp前面的位置</td>
+</tr>
+<tr class="odd">
+<td>(?&lt;=exp)</td>
+<td>匹配exp后面的位置</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>(?!exp)</td>
+<td>匹配后面跟的不是exp的位置</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>(?&lt;!exp)</td>
+<td>匹配前面不是exp的位置</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>注释</td>
+<td>(?#comment)</td>
+<td>这种类型的分组不对正则表达式的处理产生任何影响，用于提供注释让人阅读</td>
+</tr>
+</tbody>
+</table>
+<h1 id="贪婪与懒惰">贪婪与懒惰</h1>
+<ul>
+<li>贪婪匹配：当正则表达式中包含能接受重复的限定符时，通常的行为是（在使整个表达式能得到匹配的前提下）匹配<strong>尽可能多</strong>的字符。以这个表达式为例：a.*b，它将会匹配最长的以a开始，以b结束的字符串。</li>
+<li>懒惰匹配：<strong>尽可能少</strong>的字符。前面给出的限定符都可以被转化为懒惰匹配模式，只要在它后面加上一个问号?。这样.*?就意味着匹配任意数量的重复，但是在能使整个匹配成功的前提下使用最少的重复。</li>
+</ul>
+<p>懒惰限定符：</p>
+<table>
+<thead>
+<tr class="header">
+<th>代码/语法</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>*?</td>
+<td>重复任意次，但尽可能少重复</td>
+</tr>
+<tr class="even">
+<td>+?</td>
+<td>重复1次或更多次，但尽可能少重复</td>
+</tr>
+<tr class="odd">
+<td>??</td>
+<td>重复0次或1次，但尽可能少重复</td>
+</tr>
+<tr class="even">
+<td>{n,m}?</td>
+<td>重复n到m次，但尽可能少重复</td>
+</tr>
+<tr class="odd">
+<td>{n,}?</td>
+<td>重复n次以上，但尽可能少重复</td>
+</tr>
+</tbody>
+</table>
+<h1 id="bonus">Bonus</h1>
+<p>文章中还有零宽断言、负向零宽断言、平衡组/递归匹配等知识我并未做记录，或许得等到我真正需要用到的时候再使用吧。</p>
+<h1 id="references">References</h1>
+<ul>
+<li><a
+href="https://github.com/jackfrued/Python-100-Days/blob/master/Day01-15/12.字符串和正则表达式.md">Python-100-Days/Day01-15/12.字符串和正则表达式.md
+at master · jackfrued/Python-100-Days (github.com)</a></li>
+<li><a
+href="https://deerchao.cn/tutorials/regex/regex.htm">正则表达式30分钟入门教程
+(deerchao.cn)</a></li>
+</ul>
+]]></content>
   </entry>
   <entry>
     <title>电学预演</title>
@@ -7706,498 +8205,6 @@ alt="强制跳转地址" />
       </categories>
       <tags>
         <tag>嵌入式</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>正则表达式</title>
-    <url>/2023/08/23/%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>根据<a
-href="https://deerchao.cn/tutorials/regex/regex.htm">正则表达式30分钟入门教程
-(deerchao.cn)</a>这篇文章来学习的正则表达式，文章介绍的是 .Net
-下的正则表达式，其它环境下的具体情况可以在读完本文后去参考官方文档，或者查看<a
-href="https://deerchao.cn/tutorials/regex/diffs.html">正则表达式引擎特性对比</a>。</p>
-<blockquote>
-<p>Tips:正则表达式学不了一点，看得头疼，偶的建议是了解点基础语法即可。有需要的时候再回头来看。</p>
-</blockquote>
-<span id="more"></span>
-<h1 id="简介">简介</h1>
-<p>正则表达式就是记录文本规则的代码。常用于查找符合某些复杂规则的字符串的需要。</p>
-<p>比<strong>通配符</strong>（wildcard:*和?）更精确，也更复杂</p>
-<h1 id="测试正则表达式">测试正则表达式</h1>
-<p>.Net下的工具 <a
-href="https://deerchao.cn/tools/regester/">Regester</a>，直接测试</p>
-<p>也可以试试这个在线测试工具：<a
-href="https://deerchao.cn/tools/wegester/">Wegester,
-JavaScript正则表达式测试器。</a></p>
-<p><strong>常用的处理选项</strong>：</p>
-<table>
-<colgroup>
-<col style="width: 35%" />
-<col style="width: 64%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th>名称</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>IgnoreCase(忽略大小写)</td>
-<td>匹配时不区分大小写。</td>
-</tr>
-<tr class="even">
-<td>Multiline(多行模式)</td>
-<td>更改^和<span
-class="math inline">\(的含义，使它们分别在任意一行的行首和行尾匹配，而不仅仅在整个字符串的开头和结尾匹配。(在此模式下,\)</span>的精确含意是:匹配.)</td>
-</tr>
-<tr class="odd">
-<td>Singleline(单行模式)</td>
-<td>更改.的含义，使它与每一个字符匹配（包括换行符）。</td>
-</tr>
-<tr class="even">
-<td>IgnorePatternWhitespace(忽略空白)</td>
-<td>忽略表达式中的非转义空白并启用由#标记的注释。</td>
-</tr>
-<tr class="odd">
-<td>ExplicitCapture(显式捕获)</td>
-<td>仅捕获已被显式命名的组。</td>
-</tr>
-</tbody>
-</table>
-<blockquote>
-<p>Tips<处理多行>:如果选中了这个选项，^和$的意义就变成了匹配行的开始处和结束处。</p>
-<p>多行模式和单行模式没任何关系，可以同时使用</p>
-</blockquote>
-<h1 id="注释">注释</h1>
-<p>学习任何一样工具，我认为最首要的是学会如何写注释：</p>
-<p>通过语法<code>(?#comment)</code>来包含注释</p>
-<p>要包含注释的话，最好是启用“忽略模式里的空白符”选项，这样在编写表达式时能任意的添加空格，Tab，换行，而实际使用时这些都将被忽略。启用这个选项后，在#后面到这一行结束的所有文本都将被当成注释忽略掉。</p>
-<h1 id="元字符">元字符</h1>
-<p>metacharater</p>
-<table>
-<colgroup>
-<col style="width: 6%" />
-<col style="width: 93%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th>代码</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>.</td>
-<td>匹配除换行符以外的任意字符</td>
-</tr>
-<tr class="even">
-<td></td>
-<td>匹配字母或数字或下划线或汉字</td>
-</tr>
-<tr class="odd">
-<td></td>
-<td>匹配任意的空白符（包括空格，制表符(Tab)，换行符，中文全角空格等）</td>
-</tr>
-<tr class="even">
-<td> 匹配数字</td>
-<td></td>
-</tr>
-<tr class="odd">
-<td> 匹配单词的开始或结束(只匹配一个位置，不匹配字符)</td>
-<td></td>
-</tr>
-<tr class="even">
-<td>^</td>
-<td>匹配字符串的开始</td>
-</tr>
-<tr class="odd">
-<td>$</td>
-<td>匹配字符串的结束</td>
-</tr>
-</tbody>
-</table>
-<ul>
-<li>避免重复书写：0-。这里({8})的意思是前面2次(8次)。</li>
-</ul>
-<blockquote>
-<p>Tips:{5,12}和{2}是类似的，只不过{2}匹配只能不多不少重复2次，{5,12}则是重复的次数不能少于5次，不能多于12次，否则都不匹配。</p>
-</blockquote>
-<table>
-<thead>
-<tr class="header">
-<th>代码/语法</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>*</td>
-<td>重复零次或更多次</td>
-</tr>
-<tr class="even">
-<td>+</td>
-<td>重复一次或更多次</td>
-</tr>
-<tr class="odd">
-<td>?</td>
-<td>重复零次或一次</td>
-</tr>
-<tr class="even">
-<td>{n}</td>
-<td>重复n次</td>
-</tr>
-<tr class="odd">
-<td>{n,}</td>
-<td>重复n次或更多次</td>
-</tr>
-<tr class="even">
-<td>{n,m}</td>
-<td>重复n到m次</td>
-</tr>
-</tbody>
-</table>
-<ul>
-<li><p>字符转义：使用\.和\*来查找.和*。当然，要查找，你也得用\.</p></li>
-<li><p>字符类：在方括号里列出想匹配的字符集合即可</p>
-<blockquote>
-<p>Tips:[aeiou]就匹配任何一个英文元音字母，[.?!]匹配标点符号(.或?或!)。</p>
-</blockquote></li>
-<li><p>反义：有时需要查找不属于某个能简单定义的字符类的字符。比如想查找除了数字以外，其它任意字符都行的情况，这时需要用到<strong>反义</strong></p></li>
-</ul>
-<table>
-<thead>
-<tr class="header">
-<th>代码/语法</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td></td>
-<td>匹配任意不是字母，数字，下划线，汉字的字符</td>
-</tr>
-<tr class="even">
-<td></td>
-<td>匹配任意不是空白符的字符</td>
-</tr>
-<tr class="odd">
-<td></td>
-<td>匹配任意非数字的字符</td>
-</tr>
-<tr class="even">
-<td></td>
-<td>匹配不是单词开头或结束的位置</td>
-</tr>
-<tr class="odd">
-<td>[^x]</td>
-<td>匹配除了x以外的任意字符</td>
-</tr>
-<tr class="even">
-<td>[^aeiou]</td>
-<td>匹配除了aeiou这几个字母以外的任意字符</td>
-</tr>
-</tbody>
-</table>
-<h1 id="分枝条件">分枝条件</h1>
-<p>用|把不同的规则分隔开，如果满足其中任意一种规则都应该当成匹配:</p>
-<p><strong>eg</strong>:<code>0\d&#123;2&#125;-\d&#123;8&#125;|0\d&#123;3&#125;-\d&#123;7&#125;</code>这个表达式能匹配两种以连字号分隔的电话号码：一种是三位区号，8位本地号(如010-12345678)，一种是4位区号，7位本地号(0376-2233445)。</p>
-<blockquote>
-<p>Tips:<strong>使用分枝条件时，要注意各个条件的顺序</strong>。如果你把它改成|-的话，那么就只会匹配5位的邮编(以及9位邮编的前5位)。原因是匹配分枝条件时，将会从左到右地测试每个条件，如果满足了某个分枝的话，就不会去再管其它的条件了。</p>
-</blockquote>
-<h1 id="分组">分组</h1>
-<p>想要重复多个字符，可以用小括号来指定<strong>子表达式</strong>(也叫做<strong>分组</strong>)，然后你就可以指定这个子表达式的重复次数了。</p>
-<p>eg:<code>(\d&#123;1,3&#125;\.)&#123;3&#125;\d&#123;1,3&#125;</code></p>
-<h2 id="后向引用">后向引用</h2>
-<p>默认情况下，每个分组会自动拥有一个<strong>组号</strong>，规则是：从左向右，以分组的左括号为标志，第一个出现的分组的组号为1，第二个为2，以此类推。</p>
-<p><strong>后向引用</strong>用于重复搜索前面某个分组匹配的文本。例如，\1代表分组1匹配的文本。</p>
-<table>
-<colgroup>
-<col style="width: 9%" />
-<col style="width: 45%" />
-<col style="width: 45%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th>分类</th>
-<th>代码/语法</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>捕获</td>
-<td>(exp)</td>
-<td>匹配exp,并捕获文本到自动命名的组里</td>
-</tr>
-<tr class="even">
-<td>(?<name>exp)</td>
-<td>匹配exp,并捕获文本到名称为name的组里，也可以写成(?'name'exp)</td>
-<td></td>
-</tr>
-<tr class="odd">
-<td>(?:exp)</td>
-<td>匹配exp,不捕获匹配的文本，也不给此分组分配组号</td>
-<td></td>
-</tr>
-<tr class="even">
-<td>零宽断言</td>
-<td>(?=exp)</td>
-<td>匹配exp前面的位置</td>
-</tr>
-<tr class="odd">
-<td>(?&lt;=exp)</td>
-<td>匹配exp后面的位置</td>
-<td></td>
-</tr>
-<tr class="even">
-<td>(?!exp)</td>
-<td>匹配后面跟的不是exp的位置</td>
-<td></td>
-</tr>
-<tr class="odd">
-<td>(?&lt;!exp)</td>
-<td>匹配前面不是exp的位置</td>
-<td></td>
-</tr>
-<tr class="even">
-<td>注释</td>
-<td>(?#comment)</td>
-<td>这种类型的分组不对正则表达式的处理产生任何影响，用于提供注释让人阅读</td>
-</tr>
-</tbody>
-</table>
-<h1 id="贪婪与懒惰">贪婪与懒惰</h1>
-<ul>
-<li>贪婪匹配：当正则表达式中包含能接受重复的限定符时，通常的行为是（在使整个表达式能得到匹配的前提下）匹配<strong>尽可能多</strong>的字符。以这个表达式为例：a.*b，它将会匹配最长的以a开始，以b结束的字符串。</li>
-<li>懒惰匹配：<strong>尽可能少</strong>的字符。前面给出的限定符都可以被转化为懒惰匹配模式，只要在它后面加上一个问号?。这样.*?就意味着匹配任意数量的重复，但是在能使整个匹配成功的前提下使用最少的重复。</li>
-</ul>
-<p>懒惰限定符：</p>
-<table>
-<thead>
-<tr class="header">
-<th>代码/语法</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>*?</td>
-<td>重复任意次，但尽可能少重复</td>
-</tr>
-<tr class="even">
-<td>+?</td>
-<td>重复1次或更多次，但尽可能少重复</td>
-</tr>
-<tr class="odd">
-<td>??</td>
-<td>重复0次或1次，但尽可能少重复</td>
-</tr>
-<tr class="even">
-<td>{n,m}?</td>
-<td>重复n到m次，但尽可能少重复</td>
-</tr>
-<tr class="odd">
-<td>{n,}?</td>
-<td>重复n次以上，但尽可能少重复</td>
-</tr>
-</tbody>
-</table>
-<h1 id="bonus">Bonus</h1>
-<p>文章中还有零宽断言、负向零宽断言、平衡组/递归匹配等知识我并未做记录，或许得等到我真正需要用到的时候再使用吧。</p>
-<h1 id="references">References</h1>
-<ul>
-<li><a
-href="https://github.com/jackfrued/Python-100-Days/blob/master/Day01-15/12.字符串和正则表达式.md">Python-100-Days/Day01-15/12.字符串和正则表达式.md
-at master · jackfrued/Python-100-Days (github.com)</a></li>
-<li><a
-href="https://deerchao.cn/tutorials/regex/regex.htm">正则表达式30分钟入门教程
-(deerchao.cn)</a></li>
-</ul>
-]]></content>
-  </entry>
-  <entry>
-    <title>EXTI入门</title>
-    <url>/2023/08/21/EXTI%E5%85%A5%E9%97%A8/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>Following
-哈工深上传到B站的电控组培训来入门robomaster电控组，我购买了普中科技玄武套餐开发板作为硬件。</p>
-<p>本篇介绍我学习EXIT的见闻</p>
-<span id="more"></span>
-<h1 id="exti">EXTI</h1>
-<h2 id="中断简介">中断简介</h2>
-<p>中断指计算机运行过程中，出现某些意外情况需要主机干预时，机器能自动停止正在运行的程序并转入处理新情况的程序，处理完毕后又返回原被暂停的程序继续运行。<strong>中断是实现多线程设计的必要条件</strong>。</p>
-<p>EXTI：（External interrupt/event controller）外部中断/事件控制器</p>
-<h2 id="nvic">NVIC</h2>
-<p>NVIC的全称是Nested vectoredinterrupt
-controller，即嵌套向量中断控制器</p>
-<p>能够打断当前代码执行流程的事件分为<strong>异常(exception)</strong>和<strong>中断(interrupt)</strong>，他们都被编排在中断向量表（在stm32中文参考手册中可查找，在stm32的启动文件中也能找到eg:startup_stm32f103xe.s）里面。</p>
-<ul>
-<li>编号为负的内核异常不能被设置优先级，如复位(Reset)、不可屏蔽中断
-(NMI)、硬错误(Hardfault)。从编号 7
-开始的为外部中断，这些中断的优先级都是可以自行设置的。</li>
-<li>NVIC的核心功能是中断优先级分组、中断优先级的配置、读中断请求标志、清除中断请求标志、使能中断、清除中断等.</li>
-<li>外部中断信号从核外发出，信号最终要传递到NVIC(嵌套向量中断控制器)。</li>
-<li>NVIC跟内核紧密耦合，它控制着整个芯片中断的相关功能。</li>
-</ul>
-<h2 id="中断优先级分组">中断优先级分组</h2>
-<p>STM32 的中断向量具有两个属性：抢占，响应</p>
-<ul>
-<li><p>抢占（编号越小，优先级越高），是指打断其它中断的属性，即因为具有这个属性，会出现嵌套中断(在执行中断服务函数
-A 的过程中被中断 B 打断，执行完中断服务函数 B 再继续执行中断服务函数
-A)。</p></li>
-<li><p>响应（编号越小，优先级越高）属性则应用在抢占属性相同的情况下，当两个中断向量的抢占优先级相同时，如果两个中断同时到达，则先处理响应优先级高的中断。（不能打断其他中断）</p></li>
-<li><p>在STM32中，抢占优先级和响应优先级的数量由一个 4
-位的数字来决定，把这个 4
-位数字的位数分配成抢占优先级部分和响应优先级部分。（都写在寄存器内）</p></li>
-</ul>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230607154202250.png"
-alt="image-20230607154202250" />
-<figcaption aria-hidden="true">image-20230607154202250</figcaption>
-</figure>
-<blockquote>
-<p>Tips:两个中断不可能同时来，所以响应优先级主要给出了一种响应的优先队列，当多个中断向量的抢占优先级相同时，它们不会互相打断，后续的排队会按照响应优先级排队。</p>
-</blockquote>
-<h2 id="exti介绍">EXTI介绍</h2>
-<p>中断引脚的序号需要不一样才能配置不停的中断（F1系列的硬件实现）</p>
-<blockquote>
-<p>Tips:F1系列中断是共用的eg:中断/事件线EXTI0，输入源PX0（X可为A,B,...I）PA0用了则PB0就用不了。</p>
-</blockquote>
-<p>EXTI有两大模式;中断模式和事件模式</p>
-<ul>
-<li>中断模式产生中断：把输入信号输入到NVIC中，进一步执行中断服务函数，实现功能，这是软件级别的。</li>
-<li>事件模式产生事件：传输一个脉冲信号给其他外设使用，并且这是电路级别的信号传输，不需要软件处理，硬件直接触发</li>
-</ul>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230821013658350.png"
-alt="image-20230821013658350" />
-<figcaption aria-hidden="true">image-20230821013658350</figcaption>
-</figure>
-<ul>
-<li>23：并行传输数据，和这个寄存器一样的有23个</li>
-<li>边沿检测电路：一个符合则输出1</li>
-</ul>
-<p>每一种模式都可配置为上升沿触发、下降沿触发，以及上升下降沿触发三种触发方式</p>
-<h2 id="中断函数的实现">中断函数的实现</h2>
-<p>要产生中断，必须先配置好并使能中断线。根据需要的边沿检测设置2个触发寄存器，同时在中断屏蔽寄存器的相应位写’1’允许中断请求。当外部中断线上发生了期待的边沿时，将产生一个中断请求，对应的挂起位也随之被置’1’。在挂起寄存器的对应位写’1’，将清除该中断请求。</p>
-<p>如果需要产生事件，必须先配置好并使能事件线。根据需要的边沿检测通过设置2个触发寄存器，同时在事件屏蔽寄存器的相应位写’1’允许事件请求。当事件线上发生了需要的边沿时，将产生一个事件请求脉冲，对应的挂起位不被置’1’。</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230607154902377.png"
-alt="image-20230607154902377" />
-<figcaption aria-hidden="true">image-20230607154902377</figcaption>
-</figure>
-<p>通过在软件中断/事件寄存器写’1’，也可以通过软件产生中断/事件请求。</p>
-<ul>
-<li><p>一般来说单片机的中断发生有两个条件，一是<strong>中断标志位置位</strong>，二是<strong>中断允许</strong>（中断屏蔽寄存器），如果这两个条件都满足则进入中断，因为正常情况下中断一直是允许的，那么只能通过标志位来区分是否有中断挂起</p></li>
-<li><p>中断标志位：挂起请求寄存器设置。</p>
-<p>PRx:挂起为（pending bit）：</p>
-<p>0没有发生触发请求，1发生了选择触发请求</p>
-<p>当在外部中断线上发生了选择的边沿事件，该位被置1。在该位写入1可以清楚它，也可以通过改变边沿检测的极性清除。</p></li>
-<li><p>如果进入中断不清除标志位，那么这一中断服务程序结束后由于标志位还是置位的并且中断是允许的，那么还会再次进入该中断，就会发生一直在执行中断程序的情况</p></li>
-<li><p>周期性中断是由定时器辅助完成的，只要定时时间到，硬件就会自动置位标志位，这时中断发生，定时器还在运行，<strong>与中断处理是并行的没有冲突</strong>，因此周期性的中断不是从中断标志位清零开始的。</p>
-<blockquote>
-<p>Tips:MCU和定时器是并行的，互不影响</p>
-</blockquote></li>
-<li><p>如果中断程序没有执行完并且一下个中断又来了，那么硬件还是会自动置位标志位的，如果在这之前已经清零标志位那么中断结束后会再进入一次该中断，如果这时还没有清除中断标志位，则第二个中断无效。</p>
-<blockquote>
-<p>Tips:有中断，中断标志位变为1,不清0，则不能响应新的中断。</p>
-</blockquote></li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/**</span><br><span class="line"> * @brief EXTI line detection callbacks.</span><br><span class="line"> * @param GPIO_Pin: Specifies the pins connected EXTI line</span><br><span class="line"> * @retval None</span><br><span class="line"> *外部中断的回调函数,hal库</span><br><span class="line"> */ </span><br><span class="line">__weak void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) </span><br><span class="line">&#123;</span><br><span class="line"> /* Prevent unused argument(s) compilation warning */</span><br><span class="line"> UNUSED(GPIO_Pin);</span><br><span class="line"> /* NOTE: This function Should not be modified, when the callback is needed, the HAL_GPIO_EXTI_Callback could be implemented in the user file */ </span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>Tips:
-<code>_weak</code>在其他地方重新定义该函数此_weak定义的函数会被覆盖,即我们要重写void
-HAL_GPIO_EXTI_Callback(uin16_t,GPIO_Pin);函数</p>
-</blockquote>
-<h2 id="实验">实验</h2>
-<h3 id="按键扫描">按键扫描</h3>
-<p>根据需要确定GPIO模式：选择下拉输入还是上拉输入or浮空输入，通过反复读取按键状态是否为高电平判断按键是否被触发</p>
-<p><strong>按键扫描的原理</strong>：
-按键的两个引脚的一端通过下拉电阻拉倒低电平，另一端接着电源。当按下开关时，输入引脚为高电平。通过反复读取按键状态是否为高电平判断按键是否被触发。</p>
-<p><strong>notes:</strong></p>
-<ul>
-<li><p>记得在cubeMX的GPIO把NVIC设置为enable</p></li>
-<li><p>在keil
-5中添加新文件：先将文件放在同一目录下，右键add添加.c文件/双击add即可，.h文件用#include包含即可</p></li>
-<li><p>机械按键的抖动，毛刺，延时再判断，hal_delay是用systick实现的</p>
-<blockquote>
-<p>Tips:设置中断优先级（比时钟低，不然不能HAL_Delay(),会陷入死循环）</p>
-</blockquote></li>
-</ul>
-<p>如下图：数码管8位一般定义为：DP G F E D C B A</p>
-<p>B C亮表示1，即00000110=0x06;</p>
-<p>A B G E D亮表示2 即01011011=0x5b；</p>
-<p>依次类推</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/a1ec08fa513d26975dfc13c055fbb2fb4316d87b.jpg"
-alt="a1ec08fa513d26975dfc13c055fbb2fb4316d87b" />
-<figcaption
-aria-hidden="true">a1ec08fa513d26975dfc13c055fbb2fb4316d87b</figcaption>
-</figure>
-<h1 id="references">References</h1>
-<ul>
-<li>哈工深电控内训</li>
-<li><a
-href="https://zhidao.baidu.com/question/1959763145635584700.html">单片机的中断标志位是有什么作用？_百度知道
-(baidu.com)</a></li>
-</ul>
-]]></content>
-      <categories>
-        <category>嵌入式</category>
-      </categories>
-      <tags>
-        <tag>嵌入式</tag>
-        <tag>robomaster</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Environment_variables</title>
-    <url>/2023/08/14/Environment-variables/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>最近调整自己的workflow，遇到很多配置环境变量（environment
-variable）的问题，借此机会了解一下</p>
-<span id="more"></span>
-<h1 id="introduction">Introduction</h1>
-<p>环境变量是一种<strong>在操作系统中</strong>用来指定操作系统运行环境的参数，例如临时文件夹的位置，系统文件夹的位置，可执行文件的搜索路径等。</p>
-<p>环境变量的作用是<strong>让操作系统或者应用程序能够找到所需要的资源或者设置</strong>。</p>
-<h1 id="diffenent-systems">diffenent systems</h1>
-<h2 id="在windows中">在Windows中</h2>
-<p>可以通过“控制面板”-“系统”-“高级系统设置”-“环境变量”来查看和编辑环境变量。通过可视化的窗口模式展现出来的.</p>
-<h2 id="在linux中">在Linux中</h2>
-<p>可以通过命令行工具或者编辑配置文件来查看和编辑环境变量。</p>
-<h3 id="设置">设置：</h3>
-<p>在
-/etc/profile文件中设置，export的意思就是将局部变量设置为环境变量。现有的变量是被这样一行代码设置的：</p>
-<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">export PATH USER LOGNAME MAIL HOSTNAME HISTSIZE HISTCONTROL</span><br></pre></td></tr></table></figure>
-<p>这几个环境变量已经有一些默认值了，不过我们可以追加内容，比如修改PATH：</p>
-<figure class="highlight text"><table><tr><td class="code"><pre><span class="line"># : 的意思是并列</span><br><span class="line">PATH = /abc/def:$PATH</span><br></pre></td></tr></table></figure>
-<h3 id="查看">查看：</h3>
-<p>查看全部，使用<code>env</code>命令即可。</p>
-<p>查看单个，可以使用<code>echo：如echo $JAVA_HOME。</code></p>
-<h1 id="一些常见的环境变量有">一些常见的环境变量有</h1>
-<ul>
-<li><p>PATH：指定可执行文件的搜索路径，当你在命令行中输入一个程序名而没有指定完整路径时，系统会在PATH中指定的目录下寻找该程序。（一般为bin文件姐）</p></li>
-<li><p>JAVA_HOME：指定JDK（Java开发工具包）的安装目录，一些Java开发工具或者应用程序会使用这个变量来找到JDK。</p></li>
-<li><p>TEMP或TMP：指定临时文件夹的位置，一些应用程序会在这个目录下存储临时数据或者缓存文件。</p></li>
-<li><p>USERPROFILE：指定当前用户的配置文件的位置，一些应用程序会在这个目录下存储用户相关的数据或者设置。</p></li>
-</ul>
-<h1 id="references">References</h1>
-<ul>
-<li><a href="https://zhuanlan.zhihu.com/p/82011100">看懂什么是环境变量!
-- 知乎 (zhihu.com)</a></li>
-</ul>
-]]></content>
-      <categories>
-        <category>CS</category>
-      </categories>
-      <tags>
-        <tag>CS</tag>
       </tags>
   </entry>
 </search>
