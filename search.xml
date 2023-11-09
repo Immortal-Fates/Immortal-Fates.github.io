@@ -819,6 +819,113 @@ can id过滤_flydream0的博客-CSDN博客</a></li>
       </tags>
   </entry>
   <entry>
+    <title>C语言在单片机中的应用</title>
+    <url>/2023/09/11/C%E8%AF%AD%E8%A8%80%E5%9C%A8%E5%8D%95%E7%89%87%E6%9C%BA%E4%B8%AD%E7%9A%84%E5%BA%94%E7%94%A8/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>最近学习stm32时发现单片机代码中很多移位运算符，以及fp32，uint8_t等的使用，在此总结回顾一下。</p>
+<blockquote>
+<p>我数据结构的课没选上，可能只有看网课来自学了，笔记也会发出来</p>
+</blockquote>
+<span id="more"></span>
+<h1 id="位运算">位运算</h1>
+<p>C语言提供了六种位运算符：</p>
+<table>
+<thead>
+<tr class="header">
+<th>运算符</th>
+<th>&amp;</th>
+<th>|</th>
+<th>^</th>
+<th>~</th>
+<th>&lt;&lt;</th>
+<th>&gt;&gt;</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>说明</td>
+<td>按位与</td>
+<td>按位或</td>
+<td>按位异或</td>
+<td>取反</td>
+<td>左移</td>
+<td>右移</td>
+</tr>
+</tbody>
+</table>
+<p>内存中以补码的形式存储数据！！！</p>
+<ul>
+<li><h2 id="按位与运算">按位与运算（&amp;）</h2></li>
+</ul>
+<p>&amp;是根据内存中的二进制位进行运算的，而不是数据的二进制形式；其他位运算符也一样。以
+-9&amp;5 = 5</p>
+<p>按位与运算通常用来对某些位清 0，或者保留某些位</p>
+<ul>
+<li><h2 id="按位或运算">按位或运算（|）</h2></li>
+</ul>
+<p>按位或运算可以用来将某些位置 1，或者保留某些位</p>
+<ul>
+<li><h2 id="按位异或运算">按位异或运算（^）</h2></li>
+</ul>
+<p>按位异或运算可以用来将某些二进制位反转</p>
+<ul>
+<li><h2 id="取反运算">取反运算（~）</h2></li>
+</ul>
+<p>取反运算符<code>~</code>为单目运算符，右结合性，作用是对参与运算的二进制位取反。例如<code>~1</code>为0，<code>~0</code>为1，这和逻辑运算中的<code>!</code>非常类似。</p>
+<ul>
+<li><h2 id="左移运算">左移运算（&lt;&lt;）</h2></li>
+</ul>
+<p>左移运算符<code>&lt;&lt;</code>用来把操作数的各个二进制位全部左移若干位，高位丢弃，低位补0。</p>
+<p>如果数据较小，被丢弃的高位不包含 1，那么左移 n 位相当于乘以 2 的 n
+次方。</p>
+<ul>
+<li><h2 id="右移运算">右移运算（&gt;&gt;）</h2></li>
+</ul>
+<p>右移运算符<code>&gt;&gt;</code>用来把操作数的各个二进制位全部右移若干位，低位丢弃，高位补
+0 或 1。如果数据的最高位是 0，那么就补 0；如果最高位是 1，那么就补
+1。</p>
+<p>如果被丢弃的低位不包含 1，那么右移 n 位相当于除以 2 的 n
+次方（但被移除的位中经常会包含 1</p>
+<h1 id="fp32fp16和int8">FP32、FP16和INT8</h1>
+<p>INT8、FP16和FP32是不同的数据类型用于表示数字的精度和存储方式。</p>
+<ul>
+<li><p>INT8是指八位整型数据类型，占用1个字节，用8位二进制表示一个数字，它是一种定点计算方式，适用于对整数进行运算，虽然精度较低，但数据量小、能耗低，计算速度相对更快，适合在移动终端进行AI计算。</p></li>
+<li><p>FP16(float，半精度)是指半精度浮点数数据类型，占用2个字节，用16位二进制表示一个数字，其中1位为符号位，5位为指数位，10位为有效数字位。与FP32相比，FP16的访存消耗仅为1/2，因此在一些GPU中可以加速计算速度，但也容易造成溢出。</p></li>
+<li><p>FP32(full precise float
+32,单精度)是指单精度浮点数数据类型，占用4个字节，用32位二进制表示一个数字，其中1位为符号位，8位为指数位，23位为尾数位。FP32精度相对较高，但相应地需要更多的存储空间和计算资源。</p></li>
+</ul>
+<p>因此，INT8适用于对整数进行计算的场景，FP16适用于移动终端等资源受限的场景，而FP32适用于需要较高精度的计算场景</p>
+<h1 id="intx_t-and-uintx_t">intx_t and uintx_t</h1>
+<p>在C语言中有6种基本数据类型：short、int、long、float、double、char</p>
+<p>**uint8_t_16_t_t_t**</p>
+<p>1、这些类型的来源：这些数据类型中都带有**_t<strong>, </strong>_t**
+表示这些数据类型是通过typedef定义的，而不是新的数据类型。也就是说，它们其实是我们已知的类型的别名。</p>
+<p>2、使用这些类型的原因：方便代码的维护。比如，在C中没有bool型，于是在一个软件中，一个程序员使用int，一个程序员使用short，会比较混乱。最好用一个typedef来定义一个统一的bool</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">typedef char bool;</span><br></pre></td></tr></table></figure>
+<p>在C99标准中定义了这些数据类型，具体定义在：/usr/include/stdint.h:</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#ifndef __int8_t_defined  </span><br><span class="line"># define __int8_t_defined  </span><br><span class="line">typedef signed char             int8_t;   </span><br><span class="line">typedef short int               int16_t;  </span><br><span class="line">typedef int                     int32_t;  </span><br><span class="line"># if __WORDSIZE == 64  </span><br><span class="line">typedef long int                int64_t;  </span><br><span class="line"># else  </span><br><span class="line">__extension__  </span><br><span class="line">typedef long long int           int64_t;  </span><br><span class="line"># endif  </span><br><span class="line">#endif  </span><br><span class="line">  </span><br><span class="line">  </span><br><span class="line">typedef unsigned char           uint8_t;  </span><br><span class="line">typedef unsigned short int      uint16_t;  </span><br><span class="line">#ifndef __uint32_t_defined  </span><br><span class="line">typedef unsigned int            uint32_t;  </span><br><span class="line"># define __uint32_t_defined  </span><br><span class="line">#endif  </span><br><span class="line">#if __WORDSIZE == 64  </span><br><span class="line">typedef unsigned long int       uint64_t;  </span><br><span class="line">#else  </span><br><span class="line">__extension__  </span><br><span class="line">typedef unsigned long long int  uint64_t;  </span><br><span class="line">#endif  </span><br></pre></td></tr></table></figure>
+<h1 id="references">References</h1>
+<ul>
+<li><p><a
+href="http://c.biancheng.net/view/2038.html">C语言位运算（按位与运算、或运算、异或运算、左移运算、右移运算）
+(biancheng.net)</a></p></li>
+<li><p><a
+href="https://blog.csdn.net/weixin_44942126/article/details/115014754">FP32、FP16和INT8_fp32
+int8_Stars-Chan的博客-CSDN博客</a></p></li>
+<li><p><a
+href="https://blog.csdn.net/mary19920410/article/details/71518130">浅析C语言之uint8_t
+/ uint16_t / uint32_t
+/uint64_t_海阔天空sky1992的博客-CSDN博客</a></p></li>
+</ul>
+]]></content>
+      <categories>
+        <category>嵌入式</category>
+      </categories>
+      <tags>
+        <tag>嵌入式</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>EXTI入门</title>
     <url>/2023/08/21/EXTI%E5%85%A5%E9%97%A8/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
@@ -955,113 +1062,6 @@ href="https://zhidao.baidu.com/question/1959763145635584700.html">单片机的�
       <tags>
         <tag>嵌入式</tag>
         <tag>robomaster</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>C语言在单片机中的应用</title>
-    <url>/2023/09/11/C%E8%AF%AD%E8%A8%80%E5%9C%A8%E5%8D%95%E7%89%87%E6%9C%BA%E4%B8%AD%E7%9A%84%E5%BA%94%E7%94%A8/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>最近学习stm32时发现单片机代码中很多移位运算符，以及fp32，uint8_t等的使用，在此总结回顾一下。</p>
-<blockquote>
-<p>我数据结构的课没选上，可能只有看网课来自学了，笔记也会发出来</p>
-</blockquote>
-<span id="more"></span>
-<h1 id="位运算">位运算</h1>
-<p>C语言提供了六种位运算符：</p>
-<table>
-<thead>
-<tr class="header">
-<th>运算符</th>
-<th>&amp;</th>
-<th>|</th>
-<th>^</th>
-<th>~</th>
-<th>&lt;&lt;</th>
-<th>&gt;&gt;</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>说明</td>
-<td>按位与</td>
-<td>按位或</td>
-<td>按位异或</td>
-<td>取反</td>
-<td>左移</td>
-<td>右移</td>
-</tr>
-</tbody>
-</table>
-<p>内存中以补码的形式存储数据！！！</p>
-<ul>
-<li><h2 id="按位与运算">按位与运算（&amp;）</h2></li>
-</ul>
-<p>&amp;是根据内存中的二进制位进行运算的，而不是数据的二进制形式；其他位运算符也一样。以
--9&amp;5 = 5</p>
-<p>按位与运算通常用来对某些位清 0，或者保留某些位</p>
-<ul>
-<li><h2 id="按位或运算">按位或运算（|）</h2></li>
-</ul>
-<p>按位或运算可以用来将某些位置 1，或者保留某些位</p>
-<ul>
-<li><h2 id="按位异或运算">按位异或运算（^）</h2></li>
-</ul>
-<p>按位异或运算可以用来将某些二进制位反转</p>
-<ul>
-<li><h2 id="取反运算">取反运算（~）</h2></li>
-</ul>
-<p>取反运算符<code>~</code>为单目运算符，右结合性，作用是对参与运算的二进制位取反。例如<code>~1</code>为0，<code>~0</code>为1，这和逻辑运算中的<code>!</code>非常类似。</p>
-<ul>
-<li><h2 id="左移运算">左移运算（&lt;&lt;）</h2></li>
-</ul>
-<p>左移运算符<code>&lt;&lt;</code>用来把操作数的各个二进制位全部左移若干位，高位丢弃，低位补0。</p>
-<p>如果数据较小，被丢弃的高位不包含 1，那么左移 n 位相当于乘以 2 的 n
-次方。</p>
-<ul>
-<li><h2 id="右移运算">右移运算（&gt;&gt;）</h2></li>
-</ul>
-<p>右移运算符<code>&gt;&gt;</code>用来把操作数的各个二进制位全部右移若干位，低位丢弃，高位补
-0 或 1。如果数据的最高位是 0，那么就补 0；如果最高位是 1，那么就补
-1。</p>
-<p>如果被丢弃的低位不包含 1，那么右移 n 位相当于除以 2 的 n
-次方（但被移除的位中经常会包含 1</p>
-<h1 id="fp32fp16和int8">FP32、FP16和INT8</h1>
-<p>INT8、FP16和FP32是不同的数据类型用于表示数字的精度和存储方式。</p>
-<ul>
-<li><p>INT8是指八位整型数据类型，占用1个字节，用8位二进制表示一个数字，它是一种定点计算方式，适用于对整数进行运算，虽然精度较低，但数据量小、能耗低，计算速度相对更快，适合在移动终端进行AI计算。</p></li>
-<li><p>FP16(float，半精度)是指半精度浮点数数据类型，占用2个字节，用16位二进制表示一个数字，其中1位为符号位，5位为指数位，10位为有效数字位。与FP32相比，FP16的访存消耗仅为1/2，因此在一些GPU中可以加速计算速度，但也容易造成溢出。</p></li>
-<li><p>FP32(full precise float
-32,单精度)是指单精度浮点数数据类型，占用4个字节，用32位二进制表示一个数字，其中1位为符号位，8位为指数位，23位为尾数位。FP32精度相对较高，但相应地需要更多的存储空间和计算资源。</p></li>
-</ul>
-<p>因此，INT8适用于对整数进行计算的场景，FP16适用于移动终端等资源受限的场景，而FP32适用于需要较高精度的计算场景</p>
-<h1 id="intx_t-and-uintx_t">intx_t and uintx_t</h1>
-<p>在C语言中有6种基本数据类型：short、int、long、float、double、char</p>
-<p>**uint8_t_16_t_t_t**</p>
-<p>1、这些类型的来源：这些数据类型中都带有**_t<strong>, </strong>_t**
-表示这些数据类型是通过typedef定义的，而不是新的数据类型。也就是说，它们其实是我们已知的类型的别名。</p>
-<p>2、使用这些类型的原因：方便代码的维护。比如，在C中没有bool型，于是在一个软件中，一个程序员使用int，一个程序员使用short，会比较混乱。最好用一个typedef来定义一个统一的bool</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">typedef char bool;</span><br></pre></td></tr></table></figure>
-<p>在C99标准中定义了这些数据类型，具体定义在：/usr/include/stdint.h:</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#ifndef __int8_t_defined  </span><br><span class="line"># define __int8_t_defined  </span><br><span class="line">typedef signed char             int8_t;   </span><br><span class="line">typedef short int               int16_t;  </span><br><span class="line">typedef int                     int32_t;  </span><br><span class="line"># if __WORDSIZE == 64  </span><br><span class="line">typedef long int                int64_t;  </span><br><span class="line"># else  </span><br><span class="line">__extension__  </span><br><span class="line">typedef long long int           int64_t;  </span><br><span class="line"># endif  </span><br><span class="line">#endif  </span><br><span class="line">  </span><br><span class="line">  </span><br><span class="line">typedef unsigned char           uint8_t;  </span><br><span class="line">typedef unsigned short int      uint16_t;  </span><br><span class="line">#ifndef __uint32_t_defined  </span><br><span class="line">typedef unsigned int            uint32_t;  </span><br><span class="line"># define __uint32_t_defined  </span><br><span class="line">#endif  </span><br><span class="line">#if __WORDSIZE == 64  </span><br><span class="line">typedef unsigned long int       uint64_t;  </span><br><span class="line">#else  </span><br><span class="line">__extension__  </span><br><span class="line">typedef unsigned long long int  uint64_t;  </span><br><span class="line">#endif  </span><br></pre></td></tr></table></figure>
-<h1 id="references">References</h1>
-<ul>
-<li><p><a
-href="http://c.biancheng.net/view/2038.html">C语言位运算（按位与运算、或运算、异或运算、左移运算、右移运算）
-(biancheng.net)</a></p></li>
-<li><p><a
-href="https://blog.csdn.net/weixin_44942126/article/details/115014754">FP32、FP16和INT8_fp32
-int8_Stars-Chan的博客-CSDN博客</a></p></li>
-<li><p><a
-href="https://blog.csdn.net/mary19920410/article/details/71518130">浅析C语言之uint8_t
-/ uint16_t / uint32_t
-/uint64_t_海阔天空sky1992的博客-CSDN博客</a></p></li>
-</ul>
-]]></content>
-      <categories>
-        <category>嵌入式</category>
-      </categories>
-      <tags>
-        <tag>嵌入式</tag>
       </tags>
   </entry>
   <entry>
@@ -1539,6 +1539,237 @@ taskYIELD()时，才会进行上下文切换。任务永远不会被抢占，而
       </tags>
   </entry>
   <entry>
+    <title>GPIO入门</title>
+    <url>/2023/08/20/GPIO%E5%85%A5%E9%97%A8/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>Following
+哈工深上传到B站的电控组培训来入门robomaster电控组，我购买了普中科技玄武套餐开发板作为硬件。</p>
+<p>本篇介绍我学习GPIO的见闻</p>
+<span id="more"></span>
+<h1 id="gpio">GPIO</h1>
+<h2 id="简介">简介</h2>
+<p>GPIO：general purpose input
+output通用输入输出，一种外设与大部分芯片引脚挂钩。</p>
+<p>GPIO时最基本功能，高电平3.3V，低电平0V，<strong>单片机对外设的所有操作</strong>都通过GPIO进行的</p>
+<h2 id="八种模式">八种模式</h2>
+<p>四种输入，四种输出</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230815145636958.png"
+alt="image-20230815145636958" />
+<figcaption aria-hidden="true">image-20230815145636958</figcaption>
+</figure>
+<p><strong>VDD表示器件内部的工作电压，VSS通常指电路公共接地端电压</strong>。
+对于数字电路来说，VDD是芯片的工作电压，VSS是接地点，在场效应管中，VDD为漏极，VSS为源极，VDD和VSS指的是元件引脚</p>
+<ul>
+<li><p>输入浮空：不确定，根据阈值确定0和1（不常用），浮空什么都不接，高阻态，数据传输时较多</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230815145657948.png"
+alt="image-20230815145657948" />
+<figcaption aria-hidden="true">image-20230815145657948</figcaption>
+</figure></li>
+<li><p><strong>输入上拉：</strong>拉就是把点位拉高，比如拉到Vcc。上拉就是将不确定的信号通过一个上拉电阻嵌位在高电平。电阻同时起到限流的作用。</p>
+<p>无输入——1，有输入——取决于输入</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230815145710226.png"
+alt="image-20230815145710226" />
+<figcaption aria-hidden="true">image-20230815145710226</figcaption>
+</figure></li>
+<li><p><strong>输入下拉：</strong></p>
+<p>无输入——0，有输入——取决于输入</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230815145727794.png"
+alt="image-20230815145727794" />
+<figcaption aria-hidden="true">image-20230815145727794</figcaption>
+</figure></li>
+<li><p>模拟输入：ADC，可推出读入电压的大小</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230815145737614.png"
+alt="image-20230815145737614" />
+<figcaption aria-hidden="true">image-20230815145737614</figcaption>
+</figure></li>
+<li><p>开漏输出：一般来说，开漏是用来连接不同电平的器件，匹配电平用的，因为开漏引脚不连接外部的上拉电阻时，只能输出低电平，如果需要同时具备输出高电平的功能，则需要接上拉电阻，很好的一个优点是通过改变上拉电源的电压，便可以改变传输电平。（低电压控制高电压）</p>
+<p>0——输出0，1——浮空</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230815145748091.png"
+alt="image-20230815145748091" />
+<figcaption aria-hidden="true">image-20230815145748091</figcaption>
+</figure></li>
+<li><p><strong>推挽输出（最多）</strong>：可以输出高，低电平，连接数字器件。推挽结构一般是指两个三级管分别受到互补信号的控制，总是在一个三极管导通的时候另一个截止</p>
+<p>0——0，1——1</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230815145757519.png"
+alt="image-20230815145757519" />
+<figcaption aria-hidden="true">image-20230815145757519</figcaption>
+</figure></li>
+<li><p>推挽式复用：可以理解为GPIO口被用作第二功能时的配置情况（即并非作为通用IO口使用）</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230815145810824.png"
+alt="image-20230815145810824" />
+<figcaption aria-hidden="true">image-20230815145810824</figcaption>
+</figure></li>
+<li><p>开漏式复用：可以理解为GPIO口被用作第二功能时的配置情况（即并非作为通用IO口使用）</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230815145820371.png"
+alt="image-20230815145820371" />
+<figcaption aria-hidden="true">image-20230815145820371</figcaption>
+</figure></li>
+</ul>
+<h2 id="常用函数">常用函数</h2>
+<ul>
+<li>设置GPIO电平高低</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_GPIO_WritePin(GPIOx,GPIO_Pin,GPIO_state);</span><br></pre></td></tr></table></figure>
+<p>GPIOX代表目标引脚的端口号，例如GPIOB。
+GPIO_Pin代表目标引脚的引脚号，例如GPIO_Pin_5。
+GPIO_state代表当前引脚的高低电平，<strong>高电平(GPIO_PIN_SET)熄灭、低电平(GPIO_PIN_RESET)点亮。</strong></p>
+<ul>
+<li>翻转GPIO电平状态</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_GPIO_TogglePin(GPIOx,GPIO_Pin); //toggle  v.切换</span><br></pre></td></tr></table></figure>
+<ul>
+<li>读取GPIO电平状态</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_GPIO_ReadPin(GPIOx,GPIO_Pin);</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>Tips:GPIO用|，挺常见的（用+也一样）</p>
+</blockquote>
+<h2 id="实验">实验</h2>
+<p>分别做了跑马灯和按键点亮GPIO的实验</p>
+<h1 id="bonus">BONUS</h1>
+<h2 id="cubemx">CubeMX</h2>
+<h3 id="一基本概念">一、基本概念：</h3>
+<ul>
+<li><p>RCC： Reset and Clock Control，即复位和时钟控制。</p></li>
+<li><p>HSE： High Speed External Clock
+signal，高速外部时钟信号，即是OSC_IN和OSC_OUT接口所接的4~16MHz的晶振，一般接8MHz。</p>
+<blockquote>
+<p>Tips:72MHz，我在CubeMX中设置的72但是在keil中打开工程还是8MHz，很奇怪（我只能手动修改）</p>
+</blockquote></li>
+<li><p>LSE： Low Speed External Clock
+signal，低速外部时钟信号，即是OSC32_IN和OSC32_OUT接口，指外部用于RTC的32.768KHz晶振。</p></li>
+<li><p>HSI： High Speed Internal Clock
+signal，高速内部时钟信号，出厂校准的8MHz内部RC振荡器。</p></li>
+<li><p>LSI： Low Speed Internal Clock
+signal，高速内部时钟信号，带有校准功能的40KHz的内部RC振荡器。</p></li>
+<li><p>RTC： Real Time
+Clock实时时钟，用于带有年、月、日、小时、分钟、秒钟的计时器。</p></li>
+<li><p>PLL：锁相环倍频输出，其时钟输入源可选择为HSI/2、HSE或者HSE/2。倍频可选择为2~16倍，但是其输出频率最大不得超过72MHz。</p></li>
+<li><p>SYSCLK：系统时钟，最高72MHz。</p></li>
+<li><p>AHB：高级高性能总线，这是一种“系统总线”AHB主要用于高性能模块(如CPU、DMA和DSP等)之间的连接。AHB
+系统由主模块、从模块和基础结构(Infrastructure)3部分组成，整个AHB总线上的传输都由主模块发出，由从模块负责回应。</p></li>
+<li><p>APB：是一种外围总线。APB主要用于低带宽的周边外设之间的连接，例如UART等，它的总线架构不像
+AHB支持多个主模块，在APB里面唯一的主模块就是APB 桥。</p></li>
+</ul>
+<h3 id="二外部晶振与内部晶振的区别">二、外部晶振与内部晶振的区别：</h3>
+<p>外部晶振比较稳定而内部晶振的误差比较大，但如果对频率要求不高，如不涉及到串口通信和精确定时等情况时，则可以使用内部晶振。所以如果对频率要求不高，则一般是优先使用内部晶振。如果要省电，用到了SLEEP，则不能使用内部晶振，因为内部振荡会停止。</p>
+<ul>
+<li><p>debug:SWD，JTAG(4/5 pins)</p></li>
+<li><p>选引脚后，在GPIO中进一步配置：</p>
+<p>GPIO mode,maximum output
+speed(速度越快耗电越大,high就完事了)</p></li>
+<li><p>RCC配置时钟（Crystal）：选择HSE:Crystal/Ceramic
+Reasonator外部晶振（HSI内部时钟，慢/不准确）</p>
+<blockquote>
+<p>Tips:时钟树的配置，晶振能在板子原理图中看</p>
+</blockquote></li>
+</ul>
+<h2 id="普中arm仿真器">普中ARM仿真器</h2>
+<p>普中免驱版ARM仿真器：选择CMSIS-DAP Debugger</p>
+<blockquote>
+<p>Tips:一般开始先build（比rebuild节约时间）</p>
+</blockquote>
+<p>可用20PIN的线直连，也可自己接线用杜邦线把仿真器和板子对应引脚连接：</p>
+<p>JTAG接线方式：1、3、4、5、7、9、13、15</p>
+<p>SWJ接线方式：1、 4、 7、 9</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230821005945795.png"
+alt="仿真器接线" />
+<figcaption aria-hidden="true">仿真器接线</figcaption>
+</figure>
+<h1 id="arm-仿真器种类与概念">ARM 仿真器种类与概念</h1>
+<p>JTAG、SWD是仿真器协议接口。</p>
+<p>JLink、ULink、ST-Link是各家公司仿真器的名字：调试仿真器是为了嵌入式程序开发时，连接电脑和单片机，方便于调试、仿真、下载嵌入式程序的设备。</p>
+<h2 id="jatg协议">JATG协议</h2>
+<p>JTAG（Joint Test Action
+Group，联合测试行动小组）是一种国际标准测试协议（IEEE
+1149.1兼容），主要用于芯片内部测试。现在多数的高级器件都支持JTAG协议，如ARM、DSP、FPGA器件等。JTAG调试接口必须使用VCC、GND电源信号，以及TMS、TCK、TDI、TDO四根调试信号，可选TRST、RESET复位信号和RTCK（同步时钟）信号。</p>
+<ul>
+<li>VREF:目标表参考电压信号，用于检测目标板是否供电，直接与目标板VDD相连，并不向外提供输出电压；</li>
+<li>TRST:JTAG复位，连接到目标板CPU的nTRST引脚，用于复位CPU调试接口的TAP控制器；目标板上应该将此脚上拉到高电位，避免意外复位，可选引脚；</li>
+<li><strong>TDI:测试数据输入，建议在目标板上上拉到VDD；</strong></li>
+<li><strong>TMS:测试模式选择，必须在目标板上将此引脚上拉；</strong></li>
+<li><strong>TCK:测试时钟输入，建议在目标板上将此引脚上拉；</strong></li>
+<li><strong>TDO:测试数据输出；</strong></li>
+<li>RTCK:
+目标板提供仿真器的时钟信号，有些项目中是要求JTAG的输入与其内部时钟信号同步，仿真器利用此引脚的输入可动态的控制自己的TCK速率；</li>
+<li>RESET:仿真器输出至目标CPU的系统复位信号，可选信号；</li>
+</ul>
+<h2 id="swd接口">SWD接口</h2>
+<p>串行调试（Serial Wire
+Debug），SWD是ARM调试公司提出的另外一种调试接口，相对于JTAG接口，占用更少的端口资源，四根信号如下：</p>
+<ul>
+<li><p>Vre：目标表参考电压信号，用于检测目标板是否供电，直接与目标板VDD相连，并不向外提供输出电压；</p></li>
+<li><p>GND：公共地信号；</p></li>
+<li><p>SWDIO：串行数据输入信号，作为仿真信号的双向数据信号线，建议上拉；</p></li>
+<li><p>SWCLK：串行时钟输入，作为仿真信号的时钟信号线，建议下拉；</p></li>
+<li><p>SWO：串行数据输出，CPU调试接口可通过SWO输出一些调试信息，该引脚可选。</p></li>
+<li><p>RESET：仿真器输出至目标CPU的系统复位信号；是可选信号。</p></li>
+</ul>
+<blockquote>
+<p>Tips:JTAG中的TRST和RESET，以及SWD中的RESET：虽然都是可选信号，建议连接，使得仿真器能够在连接器前对器件进行复位，已获得较理想的状态，便于后续连接仿真。</p>
+</blockquote>
+<h2 id="jlink仿真器">JLink仿真器</h2>
+<p>J-Link连接到计算机用的是USB接口，而到目标板内部用的还是jtag协议。它完成了一个从软件到硬件转换的工作。</p>
+<p>J-Link是德国 SEGGER 公司的仿真器，得到所有主流的 IDE 的支持。支持SWIM
+/ JTAG /
+SWD下载。速度，效率，功能都很好，据说是众多仿真器里最强悍的。</p>
+<h2 id="ulink仿真器">ULink仿真器</h2>
+<p>ULINK是ARM/KEIL公司推出的仿真器，ULINK2和ULINK
+Pro仿真器。ULINK/ULINK2可以配合Keil软件实现仿真功能，</p>
+<blockquote>
+<p>Tips:但是要注意的是，ULINK是KEIL公司开发的仿真器，专用于KEIL平台下使用，ADS、IAR下不能使用。</p>
+</blockquote>
+<h2 id="st-link仿真器">ST-Link仿真器</h2>
+<p>​ ST-LINK是专门针对意法半导体STM8和STM32系列芯片的仿真器。ST-LINK
+/V2指定的SWIM标准接口和JTAG / SWD标准接口，其主要功能有：</p>
+<ul>
+<li>编程功能：可烧写FLASH ROM、EEPROM、AFR等；</li>
+<li>仿真功能：支持全速运行、单步调试、断点调试等各种调试方法，可查看IO状态，变量数据等；</li>
+<li>仿真性能：采用USB2.0接口进行仿真调试，单步调试，断点调试，反应速度快；</li>
+<li>编程性能：采用USB2.0接口，进行SWIM / JTAG /
+SWD下载，下载速度快；</li>
+</ul>
+<h1 id="references">References</h1>
+<ul>
+<li><p><a
+href="https://zhuanlan.zhihu.com/p/429091473">简述调试仿真器协议（JTAG、SWD）及各类调试器（Jlink、Ulink、STlink）
+- 知乎 (zhihu.com)</a></p></li>
+<li><p><a
+href="https://blog.csdn.net/weixin_46672094/article/details/121106421">ARM
+仿真器种类与概念(JTAG、SWD、JLink、ULink、ST-Link)_arm仿真器jtag+swd接口定义_匠在江湖的博客-CSDN博客</a></p></li>
+<li><p><a
+href="https://blog.csdn.net/qq_35157382/article/details/119653413">嵌入式-STM32-GPIO输出和输入的HAL库函数_hal_gpio_writepin_南迦巴瓦峰_yang的博客-CSDN博客</a></p></li>
+</ul>
+]]></content>
+      <categories>
+        <category>嵌入式</category>
+      </categories>
+      <tags>
+        <tag>嵌入式</tag>
+        <tag>robomaster</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>FreeRTOS（2）</title>
     <url>/2023/08/29/FreeRTOS%EF%BC%882%EF%BC%89/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
@@ -1806,234 +2037,385 @@ Default：产生一个默认格式的任务函数，用户需要在该函数实�
       </tags>
   </entry>
   <entry>
-    <title>GPIO入门</title>
-    <url>/2023/08/20/GPIO%E5%85%A5%E9%97%A8/</url>
+    <title>Git进阶（2）</title>
+    <url>/2023/08/10/Git%E8%BF%9B%E9%98%B6%EF%BC%882%EF%BC%89/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>Following
-哈工深上传到B站的电控组培训来入门robomaster电控组，我购买了普中科技玄武套餐开发板作为硬件。</p>
-<p>本篇介绍我学习GPIO的见闻</p>
+<p>Git进阶（2）——了解Git Branching—”killer feature“</p>
+<p>希望通过<a href="https://git-scm.com/book/zh/v2">Git - Book
+(git-scm.com)</a>+<a
+href="https://learngitbranching.js.org/?locale=zh_CN">Learn Git
+Branching</a>来进一步掌握Git</p>
+<p><strong>Learn to love the command line. Leave the IDE
+behind.</strong></p>
 <span id="more"></span>
-<h1 id="gpio">GPIO</h1>
-<h2 id="简介">简介</h2>
-<p>GPIO：general purpose input
-output通用输入输出，一种外设与大部分芯片引脚挂钩。</p>
-<p>GPIO时最基本功能，高电平3.3V，低电平0V，<strong>单片机对外设的所有操作</strong>都通过GPIO进行的</p>
-<h2 id="八种模式">八种模式</h2>
-<p>四种输入，四种输出</p>
+<h1 id="git-branching">Git Branching</h1>
+<h2 id="branches-in-a-nutshell">Branches in a Nutshell</h2>
+<p>Git保存一系列不同时刻的snapshots,When you make a commit, Git stores a
+commit object that contains a pointer to the snapshot of the content you
+staged. 暂存操作会为每一个文件计算校验和。当使用 <code>git commit</code>
+进行提交操作时，Git
+会先计算每一个子目录（本例中只有项目根目录）的校验和， 然后在 Git
+仓库中这些校验和保存为树对象。随后，Git 便会创建一个提交对象，
+它除了包含上面提到的那些信息外，还包含指向这个树对象（项目根目录）的指针。
+如此一来，Git 就可以在需要的时候重现此次保存的快照。</p>
+<p>现在，Git 仓库中有五个对象：三个 <em>blob</em>
+对象（保存着文件快照）、一个 <strong>树</strong> 对象 （记录着目录结构和
+blob 对象索引）以及一个 <strong>提交</strong>
+对象（包含着指向前述树对象的指针和所有提交信息）。</p>
 <figure>
 <img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230815145636958.png"
-alt="image-20230815145636958" />
-<figcaption aria-hidden="true">image-20230815145636958</figcaption>
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/commit-and-tree.png"
+alt="commit-and-tree" />
+<figcaption aria-hidden="true">commit-and-tree</figcaption>
 </figure>
-<p><strong>VDD表示器件内部的工作电压，VSS通常指电路公共接地端电压</strong>。
-对于数字电路来说，VDD是芯片的工作电压，VSS是接地点，在场效应管中，VDD为漏极，VSS为源极，VDD和VSS指的是元件引脚</p>
-<ul>
-<li><p>输入浮空：不确定，根据阈值确定0和1（不常用），浮空什么都不接，高阻态，数据传输时较多</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230815145657948.png"
-alt="image-20230815145657948" />
-<figcaption aria-hidden="true">image-20230815145657948</figcaption>
-</figure></li>
-<li><p><strong>输入上拉：</strong>拉就是把点位拉高，比如拉到Vcc。上拉就是将不确定的信号通过一个上拉电阻嵌位在高电平。电阻同时起到限流的作用。</p>
-<p>无输入——1，有输入——取决于输入</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230815145710226.png"
-alt="image-20230815145710226" />
-<figcaption aria-hidden="true">image-20230815145710226</figcaption>
-</figure></li>
-<li><p><strong>输入下拉：</strong></p>
-<p>无输入——0，有输入——取决于输入</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230815145727794.png"
-alt="image-20230815145727794" />
-<figcaption aria-hidden="true">image-20230815145727794</figcaption>
-</figure></li>
-<li><p>模拟输入：ADC，可推出读入电压的大小</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230815145737614.png"
-alt="image-20230815145737614" />
-<figcaption aria-hidden="true">image-20230815145737614</figcaption>
-</figure></li>
-<li><p>开漏输出：一般来说，开漏是用来连接不同电平的器件，匹配电平用的，因为开漏引脚不连接外部的上拉电阻时，只能输出低电平，如果需要同时具备输出高电平的功能，则需要接上拉电阻，很好的一个优点是通过改变上拉电源的电压，便可以改变传输电平。（低电压控制高电压）</p>
-<p>0——输出0，1——浮空</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230815145748091.png"
-alt="image-20230815145748091" />
-<figcaption aria-hidden="true">image-20230815145748091</figcaption>
-</figure></li>
-<li><p><strong>推挽输出（最多）</strong>：可以输出高，低电平，连接数字器件。推挽结构一般是指两个三级管分别受到互补信号的控制，总是在一个三极管导通的时候另一个截止</p>
-<p>0——0，1——1</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230815145757519.png"
-alt="image-20230815145757519" />
-<figcaption aria-hidden="true">image-20230815145757519</figcaption>
-</figure></li>
-<li><p>推挽式复用：可以理解为GPIO口被用作第二功能时的配置情况（即并非作为通用IO口使用）</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230815145810824.png"
-alt="image-20230815145810824" />
-<figcaption aria-hidden="true">image-20230815145810824</figcaption>
-</figure></li>
-<li><p>开漏式复用：可以理解为GPIO口被用作第二功能时的配置情况（即并非作为通用IO口使用）</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230815145820371.png"
-alt="image-20230815145820371" />
-<figcaption aria-hidden="true">image-20230815145820371</figcaption>
-</figure></li>
-</ul>
-<h2 id="常用函数">常用函数</h2>
-<ul>
-<li>设置GPIO电平高低</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_GPIO_WritePin(GPIOx,GPIO_Pin,GPIO_state);</span><br></pre></td></tr></table></figure>
-<p>GPIOX代表目标引脚的端口号，例如GPIOB。
-GPIO_Pin代表目标引脚的引脚号，例如GPIO_Pin_5。
-GPIO_state代表当前引脚的高低电平，<strong>高电平(GPIO_PIN_SET)熄灭、低电平(GPIO_PIN_RESET)点亮。</strong></p>
-<ul>
-<li>翻转GPIO电平状态</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_GPIO_TogglePin(GPIOx,GPIO_Pin); //toggle  v.切换</span><br></pre></td></tr></table></figure>
-<ul>
-<li>读取GPIO电平状态</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">HAL_GPIO_ReadPin(GPIOx,GPIO_Pin);</span><br></pre></td></tr></table></figure>
+<p>Git 的分支，其实本质上仅仅是指向提交对象的可变指针</p>
+<p>Git有一个名为 <code>HEAD</code>
+的特殊指针，指向当前所在的本地分支（HEAD即当前你所在的位置）</p>
 <blockquote>
-<p>Tips:GPIO用|，挺常见的（用+也一样）</p>
+<p>Tips:Git 的分支实质上仅是包含所指对象校验和（长度为 40 的 SHA-1
+值字符串）的文件，所以它的创建和销毁都异常高效。</p>
 </blockquote>
-<h2 id="实验">实验</h2>
-<p>分别做了跑马灯和按键点亮GPIO的实验</p>
-<h1 id="bonus">BONUS</h1>
-<h2 id="cubemx">CubeMX</h2>
-<h3 id="一基本概念">一、基本概念：</h3>
-<ul>
-<li><p>RCC： Reset and Clock Control，即复位和时钟控制。</p></li>
-<li><p>HSE： High Speed External Clock
-signal，高速外部时钟信号，即是OSC_IN和OSC_OUT接口所接的4~16MHz的晶振，一般接8MHz。</p>
-<blockquote>
-<p>Tips:72MHz，我在CubeMX中设置的72但是在keil中打开工程还是8MHz，很奇怪（我只能手动修改）</p>
-</blockquote></li>
-<li><p>LSE： Low Speed External Clock
-signal，低速外部时钟信号，即是OSC32_IN和OSC32_OUT接口，指外部用于RTC的32.768KHz晶振。</p></li>
-<li><p>HSI： High Speed Internal Clock
-signal，高速内部时钟信号，出厂校准的8MHz内部RC振荡器。</p></li>
-<li><p>LSI： Low Speed Internal Clock
-signal，高速内部时钟信号，带有校准功能的40KHz的内部RC振荡器。</p></li>
-<li><p>RTC： Real Time
-Clock实时时钟，用于带有年、月、日、小时、分钟、秒钟的计时器。</p></li>
-<li><p>PLL：锁相环倍频输出，其时钟输入源可选择为HSI/2、HSE或者HSE/2。倍频可选择为2~16倍，但是其输出频率最大不得超过72MHz。</p></li>
-<li><p>SYSCLK：系统时钟，最高72MHz。</p></li>
-<li><p>AHB：高级高性能总线，这是一种“系统总线”AHB主要用于高性能模块(如CPU、DMA和DSP等)之间的连接。AHB
-系统由主模块、从模块和基础结构(Infrastructure)3部分组成，整个AHB总线上的传输都由主模块发出，由从模块负责回应。</p></li>
-<li><p>APB：是一种外围总线。APB主要用于低带宽的周边外设之间的连接，例如UART等，它的总线架构不像
-AHB支持多个主模块，在APB里面唯一的主模块就是APB 桥。</p></li>
-</ul>
-<h3 id="二外部晶振与内部晶振的区别">二、外部晶振与内部晶振的区别：</h3>
-<p>外部晶振比较稳定而内部晶振的误差比较大，但如果对频率要求不高，如不涉及到串口通信和精确定时等情况时，则可以使用内部晶振。所以如果对频率要求不高，则一般是优先使用内部晶振。如果要省电，用到了SLEEP，则不能使用内部晶振，因为内部振荡会停止。</p>
-<ul>
-<li><p>debug:SWD，JTAG(4/5 pins)</p></li>
-<li><p>选引脚后，在GPIO中进一步配置：</p>
-<p>GPIO mode,maximum output
-speed(速度越快耗电越大,high就完事了)</p></li>
-<li><p>RCC配置时钟（Crystal）：选择HSE:Crystal/Ceramic
-Reasonator外部晶振（HSI内部时钟，慢/不准确）</p>
-<blockquote>
-<p>Tips:时钟树的配置，晶振能在板子原理图中看</p>
-</blockquote></li>
-</ul>
-<h2 id="普中arm仿真器">普中ARM仿真器</h2>
-<p>普中免驱版ARM仿真器：选择CMSIS-DAP Debugger</p>
-<blockquote>
-<p>Tips:一般开始先build（比rebuild节约时间）</p>
-</blockquote>
-<p>可用20PIN的线直连，也可自己接线用杜邦线把仿真器和板子对应引脚连接：</p>
-<p>JTAG接线方式：1、3、4、5、7、9、13、15</p>
-<p>SWJ接线方式：1、 4、 7、 9</p>
+<h2 id="分支创建">分支创建</h2>
+<p>使用 <code>git branch</code> 命令：只是为我创建了一个新的指针</p>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git branch testing</span></span><br></pre></td></tr></table></figure>
 <figure>
 <img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230821005945795.png"
-alt="仿真器接线" />
-<figcaption aria-hidden="true">仿真器接线</figcaption>
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/head-to-master.png"
+alt="head-to-master" />
+<figcaption aria-hidden="true">head-to-master</figcaption>
 </figure>
-<h1 id="arm-仿真器种类与概念">ARM 仿真器种类与概念</h1>
-<p>JTAG、SWD是仿真器协议接口。</p>
-<p>JLink、ULink、ST-Link是各家公司仿真器的名字：调试仿真器是为了嵌入式程序开发时，连接电脑和单片机，方便于调试、仿真、下载嵌入式程序的设备。</p>
-<h2 id="jatg协议">JATG协议</h2>
-<p>JTAG（Joint Test Action
-Group，联合测试行动小组）是一种国际标准测试协议（IEEE
-1149.1兼容），主要用于芯片内部测试。现在多数的高级器件都支持JTAG协议，如ARM、DSP、FPGA器件等。JTAG调试接口必须使用VCC、GND电源信号，以及TMS、TCK、TDI、TDO四根调试信号，可选TRST、RESET复位信号和RTCK（同步时钟）信号。</p>
+<p><strong>创建新分支的同时切换过去</strong></p>
+<p>通常我们会在创建一个新分支后立即切换过去，这可以用
+<code>git checkout -b &lt;newbranchname&gt;</code> 一条命令搞定</p>
+<h2 id="分支删除">分支删除</h2>
+<p>使用带 <code>-d</code> 选项的 <code>git branch</code>
+命令来删除分支：</p>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git branch -d &lt;branch-name&gt;</span></span><br></pre></td></tr></table></figure>
+<h2 id="分支检查">分支检查</h2>
+<p><code>git log</code> 命令查看各个分支当前所指的对象。
+提供这一功能的参数是 <code>--decorate</code>。（仅检查当前分支）</p>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git <span class="built_in">log</span> --oneline --decorate</span></span><br></pre></td></tr></table></figure>
+<p>查看<strong>分叉历史</strong>。 运行
+<code>git log --oneline --decorate --graph --all</code>
+会输出你的提交历史、各个分支的指向以及项目的分支分叉情况。</p>
+<h2 id="分支切换">分支切换</h2>
+<p>在 Git 2.23 版本中，引入了一个名为 <code>git switch</code>
+的新命令，最终会取代 <code>git checkout</code>，因为
+<code>checkout</code> 作为单个命令有点超载（它承载了很多独立的功能）</p>
+<p>使用 <code>git checkout</code> 命令</p>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout testing</span></span><br></pre></td></tr></table></figure>
+<p>HEAD会随当前指针移动</p>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout master</span></span><br></pre></td></tr></table></figure>
 <ul>
-<li>VREF:目标表参考电压信号，用于检测目标板是否供电，直接与目标板VDD相连，并不向外提供输出电压；</li>
-<li>TRST:JTAG复位，连接到目标板CPU的nTRST引脚，用于复位CPU调试接口的TAP控制器；目标板上应该将此脚上拉到高电位，避免意外复位，可选引脚；</li>
-<li><strong>TDI:测试数据输入，建议在目标板上上拉到VDD；</strong></li>
-<li><strong>TMS:测试模式选择，必须在目标板上将此引脚上拉；</strong></li>
-<li><strong>TCK:测试时钟输入，建议在目标板上将此引脚上拉；</strong></li>
-<li><strong>TDO:测试数据输出；</strong></li>
-<li>RTCK:
-目标板提供仿真器的时钟信号，有些项目中是要求JTAG的输入与其内部时钟信号同步，仿真器利用此引脚的输入可动态的控制自己的TCK速率；</li>
-<li>RESET:仿真器输出至目标CPU的系统复位信号，可选信号；</li>
-</ul>
-<h2 id="swd接口">SWD接口</h2>
-<p>串行调试（Serial Wire
-Debug），SWD是ARM调试公司提出的另外一种调试接口，相对于JTAG接口，占用更少的端口资源，四根信号如下：</p>
-<ul>
-<li><p>Vre：目标表参考电压信号，用于检测目标板是否供电，直接与目标板VDD相连，并不向外提供输出电压；</p></li>
-<li><p>GND：公共地信号；</p></li>
-<li><p>SWDIO：串行数据输入信号，作为仿真信号的双向数据信号线，建议上拉；</p></li>
-<li><p>SWCLK：串行时钟输入，作为仿真信号的时钟信号线，建议下拉；</p></li>
-<li><p>SWO：串行数据输出，CPU调试接口可通过SWO输出一些调试信息，该引脚可选。</p></li>
-<li><p>RESET：仿真器输出至目标CPU的系统复位信号；是可选信号。</p></li>
+<li><p>HEAD 指回 <code>master</code> 分支</p></li>
+<li><p>将工作目录恢复成 <code>master</code>
+分支所指向的快照内容</p></li>
 </ul>
 <blockquote>
-<p>Tips:JTAG中的TRST和RESET，以及SWD中的RESET：虽然都是可选信号，建议连接，使得仿真器能够在连接器前对器件进行复位，已获得较理想的状态，便于后续连接仿真。</p>
+<p>Tips:切换前保持干净（留意未提交的修改）</p>
 </blockquote>
-<h2 id="jlink仿真器">JLink仿真器</h2>
-<p>J-Link连接到计算机用的是USB接口，而到目标板内部用的还是jtag协议。它完成了一个从软件到硬件转换的工作。</p>
-<p>J-Link是德国 SEGGER 公司的仿真器，得到所有主流的 IDE 的支持。支持SWIM
-/ JTAG /
-SWD下载。速度，效率，功能都很好，据说是众多仿真器里最强悍的。</p>
-<h2 id="ulink仿真器">ULink仿真器</h2>
-<p>ULINK是ARM/KEIL公司推出的仿真器，ULINK2和ULINK
-Pro仿真器。ULINK/ULINK2可以配合Keil软件实现仿真功能，</p>
+<h2 id="分支合并">分支合并</h2>
+<p><code>git merge</code> 命令来达到上述目的：先切换到主分支，然后
+<code>git merge &lt;想要合并的branch&gt;</code></p>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout master</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git merge hotfix</span></span><br></pre></td></tr></table></figure>
+<h3 id="一脉相承的分支合并">一脉相承的分支合并</h3>
+<p>当你试图合并两个分支时，
+如果顺着一个分支走下去能够到达另一个分支，那么 Git 在合并两者的时候，
+只会简单的将指针向前推进（指针右移），因为这种情况下的合并操作没有需要解决的分歧——这就叫做
+“快进（fast-forward）</p>
+<h3 id="diverged-branches">diverged branches:</h3>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/basic-merging-2.png"
+alt="basic-merging-2" />
+<figcaption aria-hidden="true">basic-merging-2</figcaption>
+</figure>
+<p>Git 会使用两个分支的末端所指的快照（<code>C4</code> 和
+<code>C5</code>）以及这两个分支的公共祖先（<code>C2</code>），做一个简单的三方合并。</p>
 <blockquote>
-<p>Tips:但是要注意的是，ULINK是KEIL公司开发的仿真器，专用于KEIL平台下使用，ADS、IAR下不能使用。</p>
+<p>Tips:多余的分支记得删除 <code>git branch -d ...</code></p>
 </blockquote>
-<h2 id="st-link仿真器">ST-Link仿真器</h2>
-<p>​ ST-LINK是专门针对意法半导体STM8和STM32系列芯片的仿真器。ST-LINK
-/V2指定的SWIM标准接口和JTAG / SWD标准接口，其主要功能有：</p>
+<h3 id="遇到冲突时的分支合并">遇到冲突时的分支合并</h3>
+<p>如果你在两个不同的分支中，对同一个文件的同一个部分进行了不同的修改，Git
+就没法干净的合并它们。</p>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git merge iss53</span></span><br></pre></td></tr></table></figure>
+<p>此时 Git 做了合并，但是没有自动地创建一个新的合并提交。 Git
+会暂停下来，等待你去解决合并产生的冲突。
+你可以在合并冲突后的任意时刻使用 <code>git status</code>
+命令来查看那些因包含合并冲突而处于未合并（unmerged）状态的文件：</p>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git status</span></span><br></pre></td></tr></table></figure>
+<p><code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code> , <code>=======</code> , 和
+<code>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code> 这些行被完全删除了。
+在你解决了所有文件里的冲突之后，对每个文件使用 <code>git add</code>
+命令来将其标记为冲突已解决。 一旦暂存这些原本有冲突的文件，Git
+就会将它们标记为冲突已解决。</p>
+<h2 id="rebasing">Rebasing</h2>
+<p>在 Git 中整合来自不同分支的修改主要有两种方法：<code>merge</code>
+(最容易)以及 <code>rebase</code>。</p>
+<p><strong>变基（rebase）</strong>：使用 <code>rebase</code>
+命令将提交到某一分支上的所有修改都移至另一分支上（先转到要rebase的分支上去，master是目标基底分支）</p>
+<p>变基是将一系列提交按照原有次序依次应用到另一分支上<code>git rebase &lt;basebranch&gt; &lt;topicbranch&gt;</code></p>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout experiment</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git rebase master</span>   </span><br></pre></td></tr></table></figure>
+<p>首先找到这两个分支（即当前分支
+<code>experiment</code>、变基操作的目标基底分支 <code>master</code>）
+的最近共同祖先
+<code>C2</code>然后对比当前分支相对于该祖先的历次提交，提取相应的修改并存为临时文件，
+然后将当前分支指向目标基底 <code>C3</code>,
+最后以此将之前另存为临时文件的修改依序应用。</p>
+<p>现在回到 <code>master</code> 分支，进行一次快进合并。</p>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout master</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git merge experiment</span></span><br></pre></td></tr></table></figure>
+<h3 id="rebasing-进阶">Rebasing 进阶</h3>
+<p>使用 <code>git rebase</code> 命令的 <code>--onto</code> 选项， 选中在
+<code>client</code> 分支里但不在 <code>server</code> 分支里的修改（即
+<code>C8</code> 和 <code>C9</code>），将它们在 <code>master</code>
+分支上重放：</p>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git rebase --onto master server client</span></span><br></pre></td></tr></table></figure>
+<p>理解：取出 <code>client</code> 分支，找出它从 <code>server</code>
+分支分歧之后的补丁， 然后把这些补丁在 <code>master</code>
+分支上重放一遍，让 <code>client</code> 看起来像直接基于
+<code>master</code> 修改一样<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/interesting-rebase-2.png"
+alt="interesting-rebase-2" /></p>
+<h3 id="变基的风险">变基的风险</h3>
+<p>总的原则是，只对尚未推送或分享给别人的本地修改执行变基操作清理历史，
+从不对已推送至别处的提交执行变基操作</p>
+<h2 id="分支管理">分支管理</h2>
+<p>git branch命令的使用</p>
 <ul>
-<li>编程功能：可烧写FLASH ROM、EEPROM、AFR等；</li>
-<li>仿真功能：支持全速运行、单步调试、断点调试等各种调试方法，可查看IO状态，变量数据等；</li>
-<li>仿真性能：采用USB2.0接口进行仿真调试，单步调试，断点调试，反应速度快；</li>
-<li>编程性能：采用USB2.0接口，进行SWIM / JTAG /
-SWD下载，下载速度快；</li>
+<li>查看所有分支</li>
 </ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">$ git branch</span><br><span class="line">* master</span><br></pre></td></tr></table></figure>
+<p>不加任何参数运行它，会得到当前所有分支的一个列表,<code>master</code>
+分支前的 <code>*</code> 字符：它代表现在检出的那一个分支（也就是说，当前
+<code>HEAD</code> 指针所指向的分支）</p>
+<ul>
+<li>查看每一个分支的最后一次提交</li>
+</ul>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git branch -v</span></span><br></pre></td></tr></table></figure>
+<ul>
+<li><p>--merged与 --no-merged
+这两个有用的选项可以过滤这个列表中已经合并或尚未合并到当前分支的分支。
+如果要查看哪些分支已经合并到当前分支，可以运行
+<code>git branch --merged</code></p>
+<blockquote>
+<p>Tips:你总是可以提供一个附加的参数来查看其它分支的合并状态而不必检出它们。
+例如，尚未合并到 <code>master</code> 分支的有哪些？</p>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout testing</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git branch --no-merged master</span></span><br><span class="line">  topicA</span><br><span class="line">  featureB</span><br></pre></td></tr></table></figure>
+</blockquote></li>
+</ul>
+<h2 id="在tree上移动">在tree上移动</h2>
+<p>分离<code>HEAD</code>:git checkout C1(一个snapshot的checksum)</p>
+<p>Git识别checksum比较智能，只需能唯一标识的前几个字符即可</p>
+<h3 id="相对引用">相对引用</h3>
+<p>通过哈希值指定提交记录很不方便，所以 Git
+引入了相对引用，这里我介绍两个简单的用法：</p>
+<ul>
+<li>使用 <code>^</code> 向上移动 1 个提交记录（寻找parent
+node，可以连续使用eg:<code>main^^</code>）,其后也可以跟数字，指明回到哪一个parent
+node</li>
+<li>使用 <code>~&lt;num&gt;</code> 向上移动多个提交记录，如
+<code>~3</code>（可选，不加数字时与 <code>^</code>
+相同，向上移动一次）</li>
+</ul>
+<blockquote>
+<p>Tips:modifiers可以复合使用：<code>git checkout HEAD\~2^2~3</code></p>
+</blockquote>
+<h3 id="强制修改分支位置">强制修改分支位置</h3>
+<p>使用相对引用最多的就是移动分支。可以直接使用 <code>-f</code>
+选项让分支指向另一个提交。例如:</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">git branch -f main HEAD~3</span><br></pre></td></tr></table></figure>
+<p>上面的命令会将 main 分支强制指向 HEAD 的第 3 级 parent 提交。</p>
+<h2 id="整理提交记录">整理提交记录</h2>
+<h3 id="cherry-pick">cherry-pick</h3>
+<p>“整理提交记录” —— 开发人员有时会说“我想要把这个提交放到这里,
+那个提交放到刚才那个提交的后面”</p>
+<ul>
+<li><code>git cherry-pick &lt;提交号&gt;...</code></li>
+</ul>
+<p>如果你想将一些提交复制到当前所在的位置（<code>HEAD</code>）下面的话，
+Cherry-pick 是最直接的方式了。（如果知道提交记录则very simple）</p>
+<h3 id="交互式的rebase">交互式的rebase</h3>
+<p>if 不清楚你想要的提交记录的哈希值</p>
+<blockquote>
+<p>Tips:COOL!!!</p>
+</blockquote>
+<p>交互式 rebase 指的是使用带参数 <code>--interactive</code> 的 rebase
+命令, 简写为 <code>-i</code>，Git 会打开一个 UI
+界面（vim）并列出将要被复制到目标分支的备选提交记录，它还会显示每个提交记录的哈希值和提交说明，提交说明有助于你理解这个提交进行了哪些更改。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">git rebase -i HEAD~4</span><br></pre></td></tr></table></figure>
+<p>当 rebase UI界面打开时, 你能做3件事:</p>
+<ul>
+<li>调整提交记录的顺序（通过鼠标拖放来完成）</li>
+<li>删除你不想要的提交（通过切换 <code>pick</code>
+的状态来完成，关闭就意味着你不想要这个提交记录）</li>
+<li>合并提交。</li>
+</ul>
+<h3 id="如何整理">如何整理</h3>
+<p>来看一个在开发中经常会遇到的情况：我正在解决某个特别棘手的
+Bug，为了便于调试而在代码中添加了一些调试命令并向控制台打印了一些信息。解决后并不想在commit中包含这些信息，实际我们只要让
+Git 复制解决问题的那一个提交记录就可以了。我们可以使用</p>
+<ul>
+<li><code>git rebase -i</code></li>
+<li><code>git cherry-pick</code></li>
+</ul>
+<p>来达到目的。</p>
+<ul>
+<li><p>我们可以使用 <code>rebase -i</code>
+对提交记录进行重新排序。只要把我们想要的提交记录挪到最前端，我们就可以很轻松的用
+<code>--amend</code> 修改它，然后把它们重新排成我们想要的顺序</p></li>
+<li><p>or只是把C2单独提出来，修改后，再用cherry-pick添加进去</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230815110958607.png"
+alt="image-20230815110958607" />
+<figcaption aria-hidden="true">image-20230815110958607</figcaption>
+</figure></li>
+</ul>
+<h2 id="分支开发工作流">分支开发工作流</h2>
+<h3 id="长期分支">长期分支</h3>
+<p>非必要，但常很有帮助</p>
+<p>许多使用 Git 的开发者都喜欢使用这种方式来工作，比如只在
+<code>master</code>
+分支上保留完全稳定的代码——有可能仅仅是已经发布或即将发布的代码。
+他们还有一些名为 <code>develop</code> 或者 <code>next</code>
+的平行分支，被用来做后续开发或者测试稳定性——这些分支不必保持绝对稳定，但是一旦达到稳定状态，它们就可以被合并入
+<code>master</code> 分支了。</p>
+<p>趋于稳定分支的流水线（“silo”）视图：</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/lr-branches-2.png"
+alt="lr-branches-2" />
+<figcaption aria-hidden="true">lr-branches-2</figcaption>
+</figure>
+<h3 id="主题分支">主题分支</h3>
+<p>主题分支对任何规模的项目都适用。
+主题分支是一种短期分支，它被用来实现单一特性或其相关工作。 在 Git
+中一天之内多次创建、使用、合并、删除分支都很常见。</p>
+<h2 id="远程分支">远程分支</h2>
+<p>远程引用是对远程仓库的引用（指针），包括分支、标签等等。 你可以通过
+<code>git ls-remote &lt;remote&gt;</code>
+来显式地获得远程引用的完整列表， 或者通过
+<code>git remote show &lt;remote&gt;</code> 获得远程分支的更多信息。</p>
+<h3 id="远程跟踪分支">远程跟踪分支</h3>
+<p>远程跟踪分支是远程分支状态的引用。它们是你无法移动的本地引用。一旦你进行了网络通信，
+Git
+就会为你移动它们以精确反映远程仓库的状态。提醒你该分支在远程仓库中的位置就是你最后一次连接到它们的位置。</p>
+<p>命名形式：<remote>/<branch></p>
+<p>Git 的 <code>clone</code> 命令会为你自动将其命名为
+<code>origin</code>，拉取它的所有数据， 创建一个指向它的
+<code>master</code> 分支的指针，并且在本地将其命名为
+<code>origin/master</code>。 Git 也会给你一个与 origin 的
+<code>master</code> 分支在指向同一个地方的本地 <code>master</code>
+分支，这样你就有工作的基础。</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/remote-branches-1.png"
+alt="remote-branches-1" />
+<figcaption aria-hidden="true">remote-branches-1</figcaption>
+</figure>
+<blockquote>
+<p>Tips:运行
+<code>git clone -o booyah</code>，那么你默认的远程分支名字将会是
+<code>booyah/master</code>。-o远程库的命名。</p>
+<p><code>git remote add name remote(url)</code></p>
+</blockquote>
+<h3 id="同步远程仓库">同步远程仓库</h3>
+<p>程仓库同步数据，运行 <code>git fetch &lt;remote&gt;</code></p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/remote-branches-3.png"
+alt="remote-branches-3" />
+<figcaption aria-hidden="true">remote-branches-3</figcaption>
+</figure>
+<blockquote>
+<p>Tips:本地与远程的工作可以分叉</p>
+</blockquote>
+<p>多个远程仓库可以：<code>git remote add name remote(url)</code></p>
+<h3 id="推送">推送</h3>
+<p><code>git push &lt;remote&gt; &lt;branch&gt;</code> Git 自动将
+<code>serverfix</code> 分支名字展开为
+<code>refs/heads/serverfix:refs/heads/serverfix</code>，
+那意味着，“推送本地的 <code>serverfix</code> 分支来更新远程仓库上的
+<code>serverfix</code> 分支。”</p>
+<p>运行 <code>git push origin serverfix:awesomebranch</code> 来将本地的
+<code>serverfix</code> 分支推送到远程仓库上的 <code>awesomebranch</code>
+分支</p>
+<blockquote>
+<p>Tips:<避免每次输入密码>使用 HTTPS URL 来推送，Git
+服务器会询问用户名与密码。</p>
+<p>如果不想在每一次推送时都输入用户名与密码，你可以设置一个 “credential
+cache”。 最简单的方式就是将其保存在内存中几分钟，可以简单地运行
+<code>git config --global credential.helper cache</code> 来设置它。</p>
+</blockquote>
+<p>当重新抓取到新的远程跟踪分支时，不会有一个新的 <code>serverfix</code>
+分支——只有一个不可以修改的 <code>origin/serverfix</code> 指针。</p>
+<p>可以运行 <code>git merge origin/serverfix</code>
+将这些工作合并到当前所在的分支。 如果想要在自己的 <code>serverfix</code>
+分支上工作，可以将其建立在远程跟踪分支之上：</p>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout -b serverfix origin/serverfix</span></span><br><span class="line">Branch serverfix set up to track remote branch serverfix from origin.</span><br><span class="line">Switched to a new branch &#x27;serverfix&#x27;</span><br></pre></td></tr></table></figure>
+<p>这会给你一个用于工作的本地分支，并且起点位于
+<code>origin/serverfix</code>。</p>
+<h3 id="跟踪分支">跟踪分支</h3>
+<p>从一个远程跟踪分支检出一个本地分支会自动创建所谓的“跟踪分支”（它跟踪的分支叫做“上游分支”）。
+跟踪分支是与远程分支有直接关系的本地分支。 如果在一个跟踪分支上输入
+<code>git pull</code>，Git
+能自动地识别去哪个服务器上抓取、合并到哪个分支。</p>
+<p><code>git checkout -b &lt;branch&gt; &lt;remote&gt;/&lt;branch&gt;</code>。可以自己命名</p>
+<p>这是一个十分常用的操作所以 Git 提供了 <code>--track</code>
+快捷方式：</p>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout --track origin/serverfix</span></span><br></pre></td></tr></table></figure>
+<p>该捷径本身还有一个捷径。 如果你尝试检出的分支 (a) 不存在且 (b)
+刚好只有一个名字与之匹配的远程分支，那么 Git
+就会为你创建一个跟踪分支：</p>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout serverfix</span></span><br></pre></td></tr></table></figure>
+<p><strong>设置已有的本地分支</strong>跟踪一个刚刚拉取下来的远程分支，或者想要修改正在跟踪的上游分支，
+你可以在任意时间使用 <code>-u</code> 或 <code>--set-upstream-to</code>
+选项运行 <code>git branch</code> 来显式地设置。</p>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git branch -u origin/serverfix</span></span><br><span class="line">Branch serverfix set up to track remote branch serverfix from origin.</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>Tips:<上游快捷方式>当设置好跟踪分支后，可以通过简写
+<code>@&#123;upstream&#125;</code> 或 <code>@&#123;u&#125;</code> 来引用它的上游分支。
+所以在 <code>master</code> 分支时并且它正在跟踪
+<code>origin/master</code> 时，如果愿意的话可以使用
+<code>git merge @&#123;u&#125;</code> 来取代
+<code>git merge origin/master</code>。</p>
+</blockquote>
+<p>查看设置的所有跟踪分支，可以使用 <code>git branch</code> 的
+<code>-vv</code> 选项。 这会将所有的本地分支列出来并且包含更多的信息</p>
+<h3 id="拉取">拉取</h3>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git fetch --all; git branch -vv</span></span><br></pre></td></tr></table></figure>
+<p><code>git fetch</code>
+命令从服务器上抓取本地没有的数据时，它并不会修改工作目录中的内容。
+它只会获取数据然后让你自己合并。</p>
+<blockquote>
+<p>Tips:<code>git pull</code> 在大多数情况下它的含义是一个
+<code>git fetch</code> 紧接着一个 <code>git merge</code> 命令。</p>
+<p>由于 <code>git pull</code> 的魔法经常令人困惑所以通常单独显式地使用
+<code>fetch</code> 与 <code>merge</code> 命令会更好一些。</p>
+</blockquote>
+<h3 id="删除远程分支">删除远程分支</h3>
+<p>可以运行带有 <code>--delete</code> 选项的 <code>git push</code>
+命令来删除一个远程分支。 如果想要从服务器上删除 <code>serverfix</code>
+分支，运行下面的命令：</p>
+<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git push origin --delete serverfix</span></span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>Tips:基本上这个命令做的只是从服务器上移除这个指针。 Git
+服务器通常会保留数据一段时间直到垃圾回收运行，所以如果不小心删除掉了，通常是很容易恢复的。</p>
+</blockquote>
 <h1 id="references">References</h1>
 <ul>
-<li><p><a
-href="https://zhuanlan.zhihu.com/p/429091473">简述调试仿真器协议（JTAG、SWD）及各类调试器（Jlink、Ulink、STlink）
-- 知乎 (zhihu.com)</a></p></li>
-<li><p><a
-href="https://blog.csdn.net/weixin_46672094/article/details/121106421">ARM
-仿真器种类与概念(JTAG、SWD、JLink、ULink、ST-Link)_arm仿真器jtag+swd接口定义_匠在江湖的博客-CSDN博客</a></p></li>
-<li><p><a
-href="https://blog.csdn.net/qq_35157382/article/details/119653413">嵌入式-STM32-GPIO输出和输入的HAL库函数_hal_gpio_writepin_南迦巴瓦峰_yang的博客-CSDN博客</a></p></li>
+<li><a href="https://git-scm.com/book/zh/v2">Git - Book
+(git-scm.com)</a></li>
+<li><a href="https://learngitbranching.js.org/?locale=zh_CN">Learn Git
+Branching</a></li>
 </ul>
 ]]></content>
       <categories>
-        <category>嵌入式</category>
+        <category>CS</category>
       </categories>
       <tags>
-        <tag>嵌入式</tag>
-        <tag>robomaster</tag>
+        <tag>CS</tag>
+        <tag>Git</tag>
       </tags>
   </entry>
   <entry>
@@ -2310,6 +2692,290 @@ Branching</a></li>
       <tags>
         <tag>CS</tag>
         <tag>Git</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>IIC-EEPROM入门</title>
+    <url>/2023/08/23/IIC-EEPROM%E5%85%A5%E9%97%A8/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>Following
+哈工深上传到B站的电控组培训来入门robomaster电控组，我购买了普中科技玄武套餐开发板作为硬件。</p>
+<p>本篇介绍我学习IIC,EEPROM的见闻，并顺带介绍了J-scope软件的使用</p>
+<blockquote>
+<p>Tips:基本全是copy仅添加一点个人的理解和整理，再次感谢前辈的分享。</p>
+</blockquote>
+<span id="more"></span>
+<h1 id="iic">IIC</h1>
+<h2 id="简介">简介</h2>
+<p>IIC（Inter－Integrated
+Circuit）总线是一种由PHILIPS公司在80年代开发的两线式串行总线，用于连接微控制器及其外围设备。它是<strong>半双工</strong>多设备通信方式。</p>
+<ul>
+<li><p>IIC总线最主要的优点是其简单性和有效性。由于接口直接在组件之上，因此IIC总线占用的空间非常小，减少了电路板的空间和芯片管脚的数量，降低了互联成本。总线的长度可高达25英尺，并且能够以10Kbps的最大传输速率支持40个组件。</p></li>
+<li><p>IIC总线的另一个优点是，它支持<strong>多主控(multimastering)</strong>，
+其中任何能够进行发送和接收的设备都可以成为主总线。一个主控能够控制信号的传输和时钟频率。</p></li>
+</ul>
+<blockquote>
+<p>Tips:当然，在任何时间点上只能有一个主控。</p>
+</blockquote>
+<p>IIC串行总线一般有两根信号线，一根是双向的数据线SDA，另一根是时钟线SCL，其时钟信号是由主控器件产生。所有接到IIC总线设备上的串行数据SDA都接到总线的SDA上，各设备的时钟线SCL接到总线的SCL上。对于并联在一条总线上的每个IC都有唯一的地址。</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230823150431794.png"
+alt="image-20230823150431794" />
+<figcaption aria-hidden="true">image-20230823150431794</figcaption>
+</figure>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230823144159053.png"
+alt="image-20230823144159053" />
+<figcaption aria-hidden="true">image-20230823144159053</figcaption>
+</figure>
+<blockquote>
+<p>Tips:高阻态，有一个低电平信号全为低电平</p>
+</blockquote>
+<p>一般情况下，数据线SDA和时钟线SCL都是处于<strong>上拉电阻状态</strong>。</p>
+<blockquote>
+<p>Tips:因为在总线空闲状态时，这两根线一般被上面所接的上拉电阻拉高，保持着高电平。</p>
+</blockquote>
+<p>目前绝大多数的MCU都附带IIC总线接口，STM32也不例外。但我们不使用STM32的硬件IIC，而是通过<strong>软件的方式来模拟</strong>（会占用MCU），因为STM32的硬件IIC非常复杂，更重要的是它并不稳定，故不推荐使用。</p>
+<ul>
+<li>总线上发送数据的器件被称作发送器</li>
+<li>接收数据的器件被称作接收器</li>
+<li>控制信息交换的器件被称作主器件</li>
+<li>受主器件控制的器件则被称作从器件</li>
+<li>主器件产生串行时钟SCL, 控制总线的访问状态、产生START和STOP条件</li>
+</ul>
+<h2 id="iic时序图详解">IIC时序图详解</h2>
+<p>IIC总线在传输数据的过程中一共有三种类型信号，分别为：开始信号、结束信号和应答信号。</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230823144440609.png"
+alt="image-20230823144440609" />
+<figcaption aria-hidden="true">image-20230823144440609</figcaption>
+</figure>
+<h3 id="空闲状态">空闲状态</h3>
+<p>当IIC总线的数据线SDA和时钟线SCL两条信号线同时处于高电平时，规定为总线的空闲状态。此时各个器件的输出级场效应管均处在截止状态，即释放总线，由两条信号线各自的上拉电阻把电平拉高。</p>
+<h3 id="起始信号与停止信号">起始信号与停止信号</h3>
+<ul>
+<li><p>起始信号：当时钟线SCL为高期间，数据线SDA由高到低的跳变；启动信号是一种<strong>电平跳变</strong>时序信号，而不是一个电平信号；</p></li>
+<li><p>停止信号：当时钟线SCL为高期间，数据线SDA由低到高的跳变；停止信号也是一种<strong>电平跳变</strong>时序信号，而不是一个电平信号。</p></li>
+</ul>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230823144601476.png"
+alt="image-20230823144601476" />
+<figcaption aria-hidden="true">image-20230823144601476</figcaption>
+</figure>
+<h3 id="应答信号">应答信号</h3>
+<p>发送器每发送一个字节（8个bit），就在时钟脉冲9期间释放数据线，由接收器反馈一个应答信号。</p>
+<ul>
+<li><p>应答信号为低电平时，规定为有效应答位（ACK，简称应答位），表示接收器已经成功地接收了该字节；</p></li>
+<li><p>应答信号为高电平时，规定为非应答位（NACK），一般表示接收器接收该字节没有成功。</p></li>
+</ul>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230823144726977.png"
+alt="接收器是其他设备" />
+<figcaption aria-hidden="true">接收器是其他设备</figcaption>
+</figure>
+<p>对于反馈有效应答位ACK的要求是：接收器在第9个时钟脉冲之前的低电平期间将数据线SDA拉低，并且确保在该时钟的高电平期间为稳定的低电平。</p>
+<p>如果接收器是主控器，则在它收到最后一个字节后，发送一个NACK信号，以通知被控发送器结束数据发送，并释放数据线SDA，以便主控接收器发送一个停止信号P。</p>
+<h3 id="数据有效性">数据有效性</h3>
+<p>IIC总线进行数据传送时，时钟信号为高电平期间，数据线上的数据必须保持稳定；只有在时钟线上的信号为低电平期间，数据线上的高电平或低电平状态才允许变化。</p>
+<blockquote>
+<p>Tips:即数据在时钟线SCL的上升沿到来之前就需准备好。并在在下降沿到来之前必须稳定。</p>
+</blockquote>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230823145103033.png"
+alt="image-20230823145103033" />
+<figcaption aria-hidden="true">image-20230823145103033</figcaption>
+</figure>
+<h3 id="数据的传达">数据的传达</h3>
+<p>每个时钟脉冲传送一位数据（或同步控制），即在SCL串行时钟的配合下，在SDA上逐位地串行传送每一位数据。数据位的传输是边沿触发。</p>
+<p>SCL为高时SDA必须保持稳定，因为此时SDA的改变被认为是控制信号。</p>
+<h3 id="延时时间">延时时间</h3>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230823145157628.png"
+alt="image-20230823145157628" />
+<figcaption aria-hidden="true">image-20230823145157628</figcaption>
+</figure>
+<h3 id="iic总线的数据传送">IIC总线的数据传送</h3>
+<p>IIC总线上的每一个设备都可以作为主设备或者从设备，而且每一个设备都会对应一个唯一的地址（地址通过物理接地或者拉高），主从设备之间就通过这个地址来确定与哪个器件进行通信。</p>
+<ul>
+<li>主设备在传输有效数据之前要先指定从设备的地址，地址指定的过程和上面数据传输的过程一样（大多数从设备的地址是7位的）</li>
+<li>然后协议规定再给地址添加一个最低位用来表示接下来数据传输的方向：
+<ul>
+<li>0表示主设备向从设备写数据</li>
+<li>1表示主设备向从设备读数据。</li>
+</ul></li>
+</ul>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230823145336894.png"
+alt="image-20230823145336894" />
+<figcaption aria-hidden="true">image-20230823145336894</figcaption>
+</figure>
+<p>主设备往从设备中<strong>写数据</strong>。数据传输格式如下：</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230823145510667.png"
+alt="image-20230823145510667" />
+<figcaption aria-hidden="true">image-20230823145510667</figcaption>
+</figure>
+<blockquote>
+<p>Tips:淡蓝色部分表示数据由主机向从机传送，粉红色部分则表示数据由从机向主机传送。写用0来表示（高电平），读用1来表示（低电平）。</p>
+</blockquote>
+<p>主设备从从设备中<strong>读数据</strong>。数据传输格式如下：</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230823145521220.png"
+alt="image-20230823145521220" />
+<figcaption aria-hidden="true">image-20230823145521220</figcaption>
+</figure>
+<p><strong>Notes:</strong>在从机产生响应时，主机从发送变成接收，从机从接收变成发送。之后，数据由从机发送，主机接收，每个应答由主机产生，时钟信号仍由主机产生。若主机要终止本次传输，则发送一个非应答信号，接着主机产生停止条件。</p>
+<h3 id="iic仲裁">IIC仲裁</h3>
+<p>如果有两个或两个以上的节点都向总线上发送启动信号并开始传送数据，这样就形成了冲突。要解决这种冲突，就要进行仲裁的判决，这就是I2C总线上的仲裁。</p>
+<p>高阻态，当有2个设备同时发送数据，当发送的1和0相冲突（高阻态变为0），发送1的设备检测到不对自动退出。（和CAN差不多）</p>
+<h1 id="eeprom">EEPROM</h1>
+<h2 id="简介-1">简介</h2>
+<p>EEPROM的全称是电可擦除可编程只读存储器（Electrically Erasable
+Programmable Read-Only
+Memory）。是一种非易失性存储器，它可以在不断电的情况下保持数据的完整性。EEPROM的特点是可以通过电子信号来擦除和重写其中的数据，而不需要像EPROM那样使用紫外线。EEPROM的最小擦写单位是字节，这意味着可以对单个字节进行修改，而不必擦除整个芯片。</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230823150140273.png"
+alt="image-20230823150140273" />
+<figcaption aria-hidden="true">image-20230823150140273</figcaption>
+</figure>
+<h2 id="器件寻址">器件寻址</h2>
+<p>起始条件使能芯片读写操作后，EEPROM都要求有8位的器件地址信息:</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230823151310476.png"
+alt="image-20230823151310476" />
+<figcaption aria-hidden="true">image-20230823151310476</figcaption>
+</figure>
+<p>器件地址信息由"1"、"0"序列组成，前4位如图中所示，对于所有串行EEPROM都是一样的。对于24C02/32/64,
+随后3位A2、A1和A0为器件地址位，必须与硬件输入引脚保持一致。</p>
+<blockquote>
+<p>Tips:如上面的A0,A1,A2跟GND连接,所以为0</p>
+</blockquote>
+<p>对于24C04,
+随后2位A2和A1为器件地址位，另1位为页地址位。A2和A1必须与硬件输入引脚保挣一致，而A0是空脚。</p>
+<p>对于24C08,
+随后1位A2为器件地址位，另2位为页地址位。A2必须与硬件输入引脚保持一致，而A1和A0是空脚。</p>
+<p>对于24C06, 无器件地址位，3位都为页地址位，而A2、A1和A0是空脚。</p>
+<p>器件地址信息的LSB为读/写操作选择位，高为读操作1，低为写操作0。</p>
+<p>若比较器件地址一致，EEPROM将输出应答"0"。如果不一致，则返回到待机状态。</p>
+<h1 id="实验">实验</h1>
+<p>实验还是选择用硬件实现IIC，并向EEPROM写入和读出数据</p>
+<h2 id="cubemx">CubeMX</h2>
+<p>现在开发板原理图中找到想要使用的IIC</p>
+<p>选择Fast Mode:400000Hz，其他保持默认即可</p>
+<blockquote>
+<p>Tips:这个实验没用任何中断，所以没有设置</p>
+</blockquote>
+<h2 id="code">Code</h2>
+<p>哈工深提供了EEPROM库的代码，然后直接利用I2C_EEPROM_WriteBuffer()，I2C_EEPROM_ReadBuffer()两个函数来进行读写</p>
+<h1 id="j-scope">J-Scope</h1>
+<h2 id="简介-2">简介</h2>
+<p>J-Scope是J-link的功能之一：实时分析数据并图形化显示的软件。</p>
+<p>J-Scope可以以类似示波器的方式显示多个变量的值。它读取elf或axf文件并允许选择多个变量进行可视化。</p>
+<p>只需将目标微控制器连接到J-Link并启动J-Scope，几个步骤即可配置J-Scope，并选择要显示的符号。</p>
+<h2 id="工作模式">工作模式</h2>
+<p>J-Scope主要有RTT和HSS两种工作模式。</p>
+<p>RTT模式：需要用户在MCU上添加代码，有点类似串口上传数据，因为有额外的代码，所以需要占用MCU的资源。优点是速度快，缺点是需要额外的代码。</p>
+<p>HSS模式：不需要用户在MCU上添加任何代码，只需要使用J_Scope加载MDK或IAR的可执行文件即可，而且可以随时链接MCU，不影响MCU的正常功能，不需要额外的资源。使用标准的SWD接口即可。优点是不需要添加代码，缺点是速度较慢，一般为1K。</p>
+<figure>
+<img
+src="https://pic4.zhimg.com/80/v2-892c5372b0ce4dc97fee2ccd513bc327_720w.webp"
+alt="img" />
+<figcaption aria-hidden="true">img</figcaption>
+</figure>
+<blockquote>
+<p>J-Scope这么强大，但是<strong>依旧取代不了</strong>通过硬件串口发送给PC虚拟示波器的软件，因为J-Scope只能读取全局变量的数据，我们使用硬件串口可以将函数的局部变量发给虚拟示波器。</p>
+</blockquote>
+<h1 id="references">References</h1>
+<ul>
+<li><p>哈工深B站视频</p></li>
+<li><p><a
+href="https://blog.csdn.net/qq_38410730/article/details/80312357">【STM32】IIC的基本原理（实例：普通IO口模拟IIC时序读取24C02）_Yngz_Miao的博客-CSDN博客</a></p></li>
+<li><p>EEPROM存储器24C02手册(中文)：13.详细操作说明</p></li>
+<li><p><a
+href="https://zhuanlan.zhihu.com/p/511232168">EEPROM和Flash这样讲，我早就懂了
+- 知乎 (zhihu.com)</a></p></li>
+<li><p><a
+href="https://zhuanlan.zhihu.com/p/413285767">Jlink之J-Scope虚拟示波器 -
+知乎 (zhihu.com)</a></p></li>
+</ul>
+]]></content>
+      <categories>
+        <category>嵌入式</category>
+      </categories>
+      <tags>
+        <tag>嵌入式</tag>
+        <tag>robomaster</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Hollow Knight——空洞骑士通关！</title>
+    <url>/2023/08/27/Hollow-Knight/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>完结撒花！Hollow Knight空洞骑士通关！</p>
+<p>以后应该只会待在神居里玩玩了。</p>
+<span id="more"></span>
+<h1 id="brief">Brief</h1>
+<p>以前沉迷LOL，现在下定决心弃坑，空洞骑士成了我通关的第一个游戏，战胜辐光那一刻还是很激动的！</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/248554db4b7048a8c987acd2f0025ee.jpg"
+alt="248554db4b7048a8c987acd2f0025ee" />
+<figcaption
+aria-hidden="true">248554db4b7048a8c987acd2f0025ee</figcaption>
+</figure>
+<blockquote>
+<p>虽然但是，只是主线剧情通关，神居呀，苦痛之路啊，还有什么无上辐光之类的都还没有尝试。。。</p>
+</blockquote>
+<p>用时40h，完成度98%，感觉自己有点肿</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/e1ac75cd52f42761ccfb3ead6fe736c.jpg"
+alt="e1ac75cd52f42761ccfb3ead6fe736c" />
+<figcaption
+aria-hidden="true">e1ac75cd52f42761ccfb3ead6fe736c</figcaption>
+</figure>
+<h1 id="过程体验">过程体验</h1>
+<p>让我一个人直接玩是玩不了一点的，纯靠攻略视频做任务、跑图、拿物品，当然BOSS都是自己尝试打，没有什么比失败无数次后最终战胜他爽了。</p>
+<h2 id="前期">前期</h2>
+<p>u1s1前期挺劝退的，没什么花里胡哨的东西，跑得慢，攻击慢，受不了一点。不过建议大家直接看攻略去获得技能和护符，安稳度过新手期就好了。</p>
+<p>但新手训练师——三螳螂+小姐姐，还是很有意思的，让我慢慢找到了上手游戏的节奏吧</p>
+<blockquote>
+<p>Tips:喜欢探索的玩家就加油吧。</p>
+</blockquote>
+<h2 id="中期">中期</h2>
+<p>感觉中期就是一直在收集各种各样的护符，增加血量上限，升级骨钉，进化技能，开拓地图，跑图让我挺难受的，感觉跑路清小怪太麻烦了（可能我比较浮躁，希望自己能改善）。</p>
+<p>也会遇到一些奇奇怪怪的BOSS，当然拿了梦钉后也会出现真正的挑战：梦境表哥+失败冠军，二者我都打了挺久的（头一次发现哥们儿是真有点菜）。</p>
+<p>偶最不会打的就是那个竞技场3最后那两只，就是打不过。。。（在神居偷偷练都打不过，没道理）</p>
+<h2 id="后期">后期</h2>
+<p>后期真有点爽吧，会遇到各种各样的BOSS，虽然他们的技能仍然只有几个，不过需要判断了不再那么单一。</p>
+<p>格林（梦魇之王）——佐特（把下砸练熟了）——空洞骑士——辐光（虽然过每个BOSS花的时间比失败冠军少多了）</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/8ac1b2bfcbb5ae20585d19c6a70c64d.jpg"
+alt="8ac1b2bfcbb5ae20585d19c6a70c64d" />
+<figcaption
+aria-hidden="true">8ac1b2bfcbb5ae20585d19c6a70c64d</figcaption>
+</figure>
+<h1 id="剧情">剧情</h1>
+<p>很惭愧，剧情偶是没注意一点的，在此立誓下款游戏我要代入设定。</p>
+]]></content>
+      <categories>
+        <category>life</category>
+      </categories>
+      <tags>
+        <tag>game</tag>
       </tags>
   </entry>
   <entry>
@@ -3023,290 +3689,6 @@ Branching</a></li>
       </tags>
   </entry>
   <entry>
-    <title>Hollow Knight——空洞骑士通关！</title>
-    <url>/2023/08/27/Hollow-Knight/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>完结撒花！Hollow Knight空洞骑士通关！</p>
-<p>以后应该只会待在神居里玩玩了。</p>
-<span id="more"></span>
-<h1 id="brief">Brief</h1>
-<p>以前沉迷LOL，现在下定决心弃坑，空洞骑士成了我通关的第一个游戏，战胜辐光那一刻还是很激动的！</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/248554db4b7048a8c987acd2f0025ee.jpg"
-alt="248554db4b7048a8c987acd2f0025ee" />
-<figcaption
-aria-hidden="true">248554db4b7048a8c987acd2f0025ee</figcaption>
-</figure>
-<blockquote>
-<p>虽然但是，只是主线剧情通关，神居呀，苦痛之路啊，还有什么无上辐光之类的都还没有尝试。。。</p>
-</blockquote>
-<p>用时40h，完成度98%，感觉自己有点肿</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/e1ac75cd52f42761ccfb3ead6fe736c.jpg"
-alt="e1ac75cd52f42761ccfb3ead6fe736c" />
-<figcaption
-aria-hidden="true">e1ac75cd52f42761ccfb3ead6fe736c</figcaption>
-</figure>
-<h1 id="过程体验">过程体验</h1>
-<p>让我一个人直接玩是玩不了一点的，纯靠攻略视频做任务、跑图、拿物品，当然BOSS都是自己尝试打，没有什么比失败无数次后最终战胜他爽了。</p>
-<h2 id="前期">前期</h2>
-<p>u1s1前期挺劝退的，没什么花里胡哨的东西，跑得慢，攻击慢，受不了一点。不过建议大家直接看攻略去获得技能和护符，安稳度过新手期就好了。</p>
-<p>但新手训练师——三螳螂+小姐姐，还是很有意思的，让我慢慢找到了上手游戏的节奏吧</p>
-<blockquote>
-<p>Tips:喜欢探索的玩家就加油吧。</p>
-</blockquote>
-<h2 id="中期">中期</h2>
-<p>感觉中期就是一直在收集各种各样的护符，增加血量上限，升级骨钉，进化技能，开拓地图，跑图让我挺难受的，感觉跑路清小怪太麻烦了（可能我比较浮躁，希望自己能改善）。</p>
-<p>也会遇到一些奇奇怪怪的BOSS，当然拿了梦钉后也会出现真正的挑战：梦境表哥+失败冠军，二者我都打了挺久的（头一次发现哥们儿是真有点菜）。</p>
-<p>偶最不会打的就是那个竞技场3最后那两只，就是打不过。。。（在神居偷偷练都打不过，没道理）</p>
-<h2 id="后期">后期</h2>
-<p>后期真有点爽吧，会遇到各种各样的BOSS，虽然他们的技能仍然只有几个，不过需要判断了不再那么单一。</p>
-<p>格林（梦魇之王）——佐特（把下砸练熟了）——空洞骑士——辐光（虽然过每个BOSS花的时间比失败冠军少多了）</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/8ac1b2bfcbb5ae20585d19c6a70c64d.jpg"
-alt="8ac1b2bfcbb5ae20585d19c6a70c64d" />
-<figcaption
-aria-hidden="true">8ac1b2bfcbb5ae20585d19c6a70c64d</figcaption>
-</figure>
-<h1 id="剧情">剧情</h1>
-<p>很惭愧，剧情偶是没注意一点的，在此立誓下款游戏我要代入设定。</p>
-]]></content>
-      <categories>
-        <category>life</category>
-      </categories>
-      <tags>
-        <tag>game</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>IIC-EEPROM入门</title>
-    <url>/2023/08/23/IIC-EEPROM%E5%85%A5%E9%97%A8/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>Following
-哈工深上传到B站的电控组培训来入门robomaster电控组，我购买了普中科技玄武套餐开发板作为硬件。</p>
-<p>本篇介绍我学习IIC,EEPROM的见闻，并顺带介绍了J-scope软件的使用</p>
-<blockquote>
-<p>Tips:基本全是copy仅添加一点个人的理解和整理，再次感谢前辈的分享。</p>
-</blockquote>
-<span id="more"></span>
-<h1 id="iic">IIC</h1>
-<h2 id="简介">简介</h2>
-<p>IIC（Inter－Integrated
-Circuit）总线是一种由PHILIPS公司在80年代开发的两线式串行总线，用于连接微控制器及其外围设备。它是<strong>半双工</strong>多设备通信方式。</p>
-<ul>
-<li><p>IIC总线最主要的优点是其简单性和有效性。由于接口直接在组件之上，因此IIC总线占用的空间非常小，减少了电路板的空间和芯片管脚的数量，降低了互联成本。总线的长度可高达25英尺，并且能够以10Kbps的最大传输速率支持40个组件。</p></li>
-<li><p>IIC总线的另一个优点是，它支持<strong>多主控(multimastering)</strong>，
-其中任何能够进行发送和接收的设备都可以成为主总线。一个主控能够控制信号的传输和时钟频率。</p></li>
-</ul>
-<blockquote>
-<p>Tips:当然，在任何时间点上只能有一个主控。</p>
-</blockquote>
-<p>IIC串行总线一般有两根信号线，一根是双向的数据线SDA，另一根是时钟线SCL，其时钟信号是由主控器件产生。所有接到IIC总线设备上的串行数据SDA都接到总线的SDA上，各设备的时钟线SCL接到总线的SCL上。对于并联在一条总线上的每个IC都有唯一的地址。</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230823150431794.png"
-alt="image-20230823150431794" />
-<figcaption aria-hidden="true">image-20230823150431794</figcaption>
-</figure>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230823144159053.png"
-alt="image-20230823144159053" />
-<figcaption aria-hidden="true">image-20230823144159053</figcaption>
-</figure>
-<blockquote>
-<p>Tips:高阻态，有一个低电平信号全为低电平</p>
-</blockquote>
-<p>一般情况下，数据线SDA和时钟线SCL都是处于<strong>上拉电阻状态</strong>。</p>
-<blockquote>
-<p>Tips:因为在总线空闲状态时，这两根线一般被上面所接的上拉电阻拉高，保持着高电平。</p>
-</blockquote>
-<p>目前绝大多数的MCU都附带IIC总线接口，STM32也不例外。但我们不使用STM32的硬件IIC，而是通过<strong>软件的方式来模拟</strong>（会占用MCU），因为STM32的硬件IIC非常复杂，更重要的是它并不稳定，故不推荐使用。</p>
-<ul>
-<li>总线上发送数据的器件被称作发送器</li>
-<li>接收数据的器件被称作接收器</li>
-<li>控制信息交换的器件被称作主器件</li>
-<li>受主器件控制的器件则被称作从器件</li>
-<li>主器件产生串行时钟SCL, 控制总线的访问状态、产生START和STOP条件</li>
-</ul>
-<h2 id="iic时序图详解">IIC时序图详解</h2>
-<p>IIC总线在传输数据的过程中一共有三种类型信号，分别为：开始信号、结束信号和应答信号。</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230823144440609.png"
-alt="image-20230823144440609" />
-<figcaption aria-hidden="true">image-20230823144440609</figcaption>
-</figure>
-<h3 id="空闲状态">空闲状态</h3>
-<p>当IIC总线的数据线SDA和时钟线SCL两条信号线同时处于高电平时，规定为总线的空闲状态。此时各个器件的输出级场效应管均处在截止状态，即释放总线，由两条信号线各自的上拉电阻把电平拉高。</p>
-<h3 id="起始信号与停止信号">起始信号与停止信号</h3>
-<ul>
-<li><p>起始信号：当时钟线SCL为高期间，数据线SDA由高到低的跳变；启动信号是一种<strong>电平跳变</strong>时序信号，而不是一个电平信号；</p></li>
-<li><p>停止信号：当时钟线SCL为高期间，数据线SDA由低到高的跳变；停止信号也是一种<strong>电平跳变</strong>时序信号，而不是一个电平信号。</p></li>
-</ul>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230823144601476.png"
-alt="image-20230823144601476" />
-<figcaption aria-hidden="true">image-20230823144601476</figcaption>
-</figure>
-<h3 id="应答信号">应答信号</h3>
-<p>发送器每发送一个字节（8个bit），就在时钟脉冲9期间释放数据线，由接收器反馈一个应答信号。</p>
-<ul>
-<li><p>应答信号为低电平时，规定为有效应答位（ACK，简称应答位），表示接收器已经成功地接收了该字节；</p></li>
-<li><p>应答信号为高电平时，规定为非应答位（NACK），一般表示接收器接收该字节没有成功。</p></li>
-</ul>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230823144726977.png"
-alt="接收器是其他设备" />
-<figcaption aria-hidden="true">接收器是其他设备</figcaption>
-</figure>
-<p>对于反馈有效应答位ACK的要求是：接收器在第9个时钟脉冲之前的低电平期间将数据线SDA拉低，并且确保在该时钟的高电平期间为稳定的低电平。</p>
-<p>如果接收器是主控器，则在它收到最后一个字节后，发送一个NACK信号，以通知被控发送器结束数据发送，并释放数据线SDA，以便主控接收器发送一个停止信号P。</p>
-<h3 id="数据有效性">数据有效性</h3>
-<p>IIC总线进行数据传送时，时钟信号为高电平期间，数据线上的数据必须保持稳定；只有在时钟线上的信号为低电平期间，数据线上的高电平或低电平状态才允许变化。</p>
-<blockquote>
-<p>Tips:即数据在时钟线SCL的上升沿到来之前就需准备好。并在在下降沿到来之前必须稳定。</p>
-</blockquote>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230823145103033.png"
-alt="image-20230823145103033" />
-<figcaption aria-hidden="true">image-20230823145103033</figcaption>
-</figure>
-<h3 id="数据的传达">数据的传达</h3>
-<p>每个时钟脉冲传送一位数据（或同步控制），即在SCL串行时钟的配合下，在SDA上逐位地串行传送每一位数据。数据位的传输是边沿触发。</p>
-<p>SCL为高时SDA必须保持稳定，因为此时SDA的改变被认为是控制信号。</p>
-<h3 id="延时时间">延时时间</h3>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230823145157628.png"
-alt="image-20230823145157628" />
-<figcaption aria-hidden="true">image-20230823145157628</figcaption>
-</figure>
-<h3 id="iic总线的数据传送">IIC总线的数据传送</h3>
-<p>IIC总线上的每一个设备都可以作为主设备或者从设备，而且每一个设备都会对应一个唯一的地址（地址通过物理接地或者拉高），主从设备之间就通过这个地址来确定与哪个器件进行通信。</p>
-<ul>
-<li>主设备在传输有效数据之前要先指定从设备的地址，地址指定的过程和上面数据传输的过程一样（大多数从设备的地址是7位的）</li>
-<li>然后协议规定再给地址添加一个最低位用来表示接下来数据传输的方向：
-<ul>
-<li>0表示主设备向从设备写数据</li>
-<li>1表示主设备向从设备读数据。</li>
-</ul></li>
-</ul>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230823145336894.png"
-alt="image-20230823145336894" />
-<figcaption aria-hidden="true">image-20230823145336894</figcaption>
-</figure>
-<p>主设备往从设备中<strong>写数据</strong>。数据传输格式如下：</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230823145510667.png"
-alt="image-20230823145510667" />
-<figcaption aria-hidden="true">image-20230823145510667</figcaption>
-</figure>
-<blockquote>
-<p>Tips:淡蓝色部分表示数据由主机向从机传送，粉红色部分则表示数据由从机向主机传送。写用0来表示（高电平），读用1来表示（低电平）。</p>
-</blockquote>
-<p>主设备从从设备中<strong>读数据</strong>。数据传输格式如下：</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230823145521220.png"
-alt="image-20230823145521220" />
-<figcaption aria-hidden="true">image-20230823145521220</figcaption>
-</figure>
-<p><strong>Notes:</strong>在从机产生响应时，主机从发送变成接收，从机从接收变成发送。之后，数据由从机发送，主机接收，每个应答由主机产生，时钟信号仍由主机产生。若主机要终止本次传输，则发送一个非应答信号，接着主机产生停止条件。</p>
-<h3 id="iic仲裁">IIC仲裁</h3>
-<p>如果有两个或两个以上的节点都向总线上发送启动信号并开始传送数据，这样就形成了冲突。要解决这种冲突，就要进行仲裁的判决，这就是I2C总线上的仲裁。</p>
-<p>高阻态，当有2个设备同时发送数据，当发送的1和0相冲突（高阻态变为0），发送1的设备检测到不对自动退出。（和CAN差不多）</p>
-<h1 id="eeprom">EEPROM</h1>
-<h2 id="简介-1">简介</h2>
-<p>EEPROM的全称是电可擦除可编程只读存储器（Electrically Erasable
-Programmable Read-Only
-Memory）。是一种非易失性存储器，它可以在不断电的情况下保持数据的完整性。EEPROM的特点是可以通过电子信号来擦除和重写其中的数据，而不需要像EPROM那样使用紫外线。EEPROM的最小擦写单位是字节，这意味着可以对单个字节进行修改，而不必擦除整个芯片。</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230823150140273.png"
-alt="image-20230823150140273" />
-<figcaption aria-hidden="true">image-20230823150140273</figcaption>
-</figure>
-<h2 id="器件寻址">器件寻址</h2>
-<p>起始条件使能芯片读写操作后，EEPROM都要求有8位的器件地址信息:</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230823151310476.png"
-alt="image-20230823151310476" />
-<figcaption aria-hidden="true">image-20230823151310476</figcaption>
-</figure>
-<p>器件地址信息由"1"、"0"序列组成，前4位如图中所示，对于所有串行EEPROM都是一样的。对于24C02/32/64,
-随后3位A2、A1和A0为器件地址位，必须与硬件输入引脚保持一致。</p>
-<blockquote>
-<p>Tips:如上面的A0,A1,A2跟GND连接,所以为0</p>
-</blockquote>
-<p>对于24C04,
-随后2位A2和A1为器件地址位，另1位为页地址位。A2和A1必须与硬件输入引脚保挣一致，而A0是空脚。</p>
-<p>对于24C08,
-随后1位A2为器件地址位，另2位为页地址位。A2必须与硬件输入引脚保持一致，而A1和A0是空脚。</p>
-<p>对于24C06, 无器件地址位，3位都为页地址位，而A2、A1和A0是空脚。</p>
-<p>器件地址信息的LSB为读/写操作选择位，高为读操作1，低为写操作0。</p>
-<p>若比较器件地址一致，EEPROM将输出应答"0"。如果不一致，则返回到待机状态。</p>
-<h1 id="实验">实验</h1>
-<p>实验还是选择用硬件实现IIC，并向EEPROM写入和读出数据</p>
-<h2 id="cubemx">CubeMX</h2>
-<p>现在开发板原理图中找到想要使用的IIC</p>
-<p>选择Fast Mode:400000Hz，其他保持默认即可</p>
-<blockquote>
-<p>Tips:这个实验没用任何中断，所以没有设置</p>
-</blockquote>
-<h2 id="code">Code</h2>
-<p>哈工深提供了EEPROM库的代码，然后直接利用I2C_EEPROM_WriteBuffer()，I2C_EEPROM_ReadBuffer()两个函数来进行读写</p>
-<h1 id="j-scope">J-Scope</h1>
-<h2 id="简介-2">简介</h2>
-<p>J-Scope是J-link的功能之一：实时分析数据并图形化显示的软件。</p>
-<p>J-Scope可以以类似示波器的方式显示多个变量的值。它读取elf或axf文件并允许选择多个变量进行可视化。</p>
-<p>只需将目标微控制器连接到J-Link并启动J-Scope，几个步骤即可配置J-Scope，并选择要显示的符号。</p>
-<h2 id="工作模式">工作模式</h2>
-<p>J-Scope主要有RTT和HSS两种工作模式。</p>
-<p>RTT模式：需要用户在MCU上添加代码，有点类似串口上传数据，因为有额外的代码，所以需要占用MCU的资源。优点是速度快，缺点是需要额外的代码。</p>
-<p>HSS模式：不需要用户在MCU上添加任何代码，只需要使用J_Scope加载MDK或IAR的可执行文件即可，而且可以随时链接MCU，不影响MCU的正常功能，不需要额外的资源。使用标准的SWD接口即可。优点是不需要添加代码，缺点是速度较慢，一般为1K。</p>
-<figure>
-<img
-src="https://pic4.zhimg.com/80/v2-892c5372b0ce4dc97fee2ccd513bc327_720w.webp"
-alt="img" />
-<figcaption aria-hidden="true">img</figcaption>
-</figure>
-<blockquote>
-<p>J-Scope这么强大，但是<strong>依旧取代不了</strong>通过硬件串口发送给PC虚拟示波器的软件，因为J-Scope只能读取全局变量的数据，我们使用硬件串口可以将函数的局部变量发给虚拟示波器。</p>
-</blockquote>
-<h1 id="references">References</h1>
-<ul>
-<li><p>哈工深B站视频</p></li>
-<li><p><a
-href="https://blog.csdn.net/qq_38410730/article/details/80312357">【STM32】IIC的基本原理（实例：普通IO口模拟IIC时序读取24C02）_Yngz_Miao的博客-CSDN博客</a></p></li>
-<li><p>EEPROM存储器24C02手册(中文)：13.详细操作说明</p></li>
-<li><p><a
-href="https://zhuanlan.zhihu.com/p/511232168">EEPROM和Flash这样讲，我早就懂了
-- 知乎 (zhihu.com)</a></p></li>
-<li><p><a
-href="https://zhuanlan.zhihu.com/p/413285767">Jlink之J-Scope虚拟示波器 -
-知乎 (zhihu.com)</a></p></li>
-</ul>
-]]></content>
-      <categories>
-        <category>嵌入式</category>
-      </categories>
-      <tags>
-        <tag>嵌入式</tag>
-        <tag>robomaster</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Linear_algebra</title>
     <url>/2023/09/08/Linear-algebra/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
@@ -3349,103 +3731,6 @@ href="https://zhuanlan.zhihu.com/p/454870189">线性代数中四个基本子空�
       </categories>
       <tags>
         <tag>Math</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Markdown_in_Typora</title>
-    <url>/2023/08/09/Markdown-in-Typora/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>Typora写markdown是必修课，在此学习Typora常用的快捷键操作，以更方便地使用</p>
-<span id="more"></span>
-<h1 id="快捷键集合">快捷键集合</h1>
-<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">Typora快捷键整合</span><br><span class="line">```</span><br><span class="line">Ctrl+1  一阶标题    Ctrl+B  字体加粗</span><br><span class="line">Ctrl+2  二阶标题    Ctrl+I  字体倾斜</span><br><span class="line">Ctrl+3  三阶标题    Ctrl+U  下划线</span><br><span class="line">Ctrl+4  四阶标题    Ctrl+Home   返回Typora顶部</span><br><span class="line">Ctrl+5  五阶标题    Ctrl+End    返回Typora底部</span><br><span class="line">Ctrl+6  六阶标题    Ctrl+T  创建表格</span><br><span class="line">Ctrl+L  选中某句话   Ctrl+K  创建超链接</span><br><span class="line">Ctrl+D  选中某个单词  Ctrl+F  搜索</span><br><span class="line">Ctrl+E  选中相同格式的文字   Ctrl+H  搜索并替换</span><br><span class="line">Alt+Shift+5 删除线 Ctrl+Shift+I    插入图片</span><br><span class="line">Ctrl+Shift+M    公式块 Ctrl+Shift+Q    引用</span><br><span class="line"></span><br><span class="line">注：一些实体符号需要在实体符号之前加”\”才能够显示</span><br></pre></td></tr></table></figure>
-<h1 id="换行符">换行符</h1>
-<p>在markdown中，段落由多个空格分隔。在Typora中，只需回车即可创建新段落。</p>
-<h1 id="标题级别">标题级别</h1>
-<p># 一级标题 快捷键为 Ctrl + 1 ## 二级标题 快捷键为 Ctrl + 2 ......
-###### 六级标题 快捷键为 Ctrl + 6</p>
-<h1 id="引用文字">引用文字</h1>
-<p>&gt; + 空格 + 引用文字</p>
-<h1 id="无序列表">无序列表</h1>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Ctrl+Shift+}</span><br></pre></td></tr></table></figure>
-<p>使用 * + - 都可以创建一个无序列表</p>
-<ul>
-<li><p>AAA</p></li>
-<li><p>BBB</p></li>
-<li><p>CCC</p></li>
-</ul>
-<h1 id="有序列表">有序列表</h1>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Ctrl+Shift+{</span><br></pre></td></tr></table></figure>
-<p>使用 1. 2. 3. 创建有序列表</p>
-<ol type="1">
-<li>AAA</li>
-<li>BBB</li>
-<li>CCC</li>
-</ol>
-<h1 id="任务列表">任务列表</h1>
-<p> -[ ] 不勾选  -[x] 勾选</p>
-<h1 id="代码块">代码块</h1>
-<p>在Typora中插入程序代码的方式有两种：使用反引号 `（~
-键）、使用缩进（Tab）。</p>
-<ul>
-<li>插入行内代码，即插入一个单词或者一句代码的情况，使用
-<code>code</code> 这样的形式插入。</li>
-<li>插入多行代码输入3个反引号（`） +
-回车，并在后面选择一个语言名称即可实现语法高亮。</li>
-</ul>
-<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">def helloworld():</span><br><span class="line">    print("hello, world!")</span><br></pre></td></tr></table></figure>
-<h1 id="数学表达式">数学表达式</h1>
-<p><a href="https://blog.csdn.net/mingzhuo_126/article/details/82722455">(15条消息)
-使用Typora添加数学公式_typora数学公式_姚明明的博客-CSDN博客</a></p>
-<p><a href="https://blog.csdn.net/qq_43444349/article/details/105400052">(15条消息)
-全面整理Typora的Latex数学公式语法_M010K的博客-CSDN博客</a></p>
-<p>当你需要在编辑器中插入数学公式时，可以使用两个美元符 $$ 包裹 TeX 或
-LaTeX 格式的数学公式来实现。根据需要加载 Mathjax
-对数学公式进行渲染。</p>
-<p>按下 <code>$$</code>，然后按下回车键，即可进行数学公式的编辑。</p>
-<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">$$</span><br><span class="line">\mathbf{V}_1\times\mathbf{V}_2 = \mathbf{X}_3</span><br><span class="line">$$</span><br></pre></td></tr></table></figure>
-<h1 id="插入表格">插入表格</h1>
-<p>输入
-<code>| 表头1 | 表头2 |</code>并回车。即可创建一个包含2列表。快捷键
-<code>Ctrl + T</code>弹出对话框。</p>
-<div class="line-block">id | number | | ---- | ------ | | | |</div>
-<ul>
-<li>不管是哪种方式，第一行为表头，第二行为分割表头和主体部分，第三行开始每一行为一个表格行</li>
-<li>列与列之间用管道符号<code>|</code> 隔开</li>
-<li>还可设置对齐方式(表头与内容之间)，如果不使用对齐标记，内容默认左对齐，表头居中对齐</li>
-<li>左对齐 ：|</li>
-<li>右对齐 |：</li>
-<li>中对齐 ：|：</li>
-<li>为了美观，可以使用空格对齐不同行的单元格，并在左右两侧都使用 |
-来标记单元格边界</li>
-<li>为了使 Markdown 更清晰，| 和 -
-两侧需要至少有一个空格（最左侧和最右侧的 | 外就不需要了）。</li>
-</ul>
-<h1 id="脚注">脚注</h1>
-<p>这个例子的脚注为[<a href="https://link.zhihu.com/?target=https%3A//www.cnblogs.com/hider/p/11614688.html%23fn1">1]</a>。</p>
-<p>注意：该例子脚注标识是1，脚注标识可以为字母数字下划线，但是暂不支持中文。脚注内容可为任意字符，包括中文。</p>
-<h1 id="分割线">分割线</h1>
-<p>输入 <code>***</code> 或者 <code>---</code>
-再按回车即可绘制一条水平线，如下：</p>
-<hr>
-<h1 id="目录toc">目录（TOC）</h1>
-<p>输入 <code>[ toc ]</code>
-然后回车，即可创建一个“目录”。TOC从文档中提取所有标题，其内容将自动更新。</p>
-<h1 id="图片">图片</h1>
-<p>以我的github库作为image
-host，利用PicGo作为上传工具，再连接Typora，实现一条龙服务</p>
-<h1 id="plugins-in-vs-code">plugins in VS Code</h1>
-<ul>
-<li><p>Markdown All in One：支持markdown语法</p></li>
-<li><p>Markdown Preview Github：预览</p></li>
-<li><p>Markmap：markdown自动生成思维导图</p></li>
-</ul>
-]]></content>
-      <categories>
-        <category>奇技淫巧</category>
-      </categories>
-      <tags>
-        <tag>奇技淫巧</tag>
       </tags>
   </entry>
   <entry>
@@ -3632,6 +3917,121 @@ k_{i}= ,
       </tags>
   </entry>
   <entry>
+    <title>STM8初探</title>
+    <url>/2023/10/19/STM8%E5%88%9D%E6%8E%A2/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>这学期上了一门硬件电路设计基础与实训，主要焊了一个以STM8为core的板子,设计一个板子然后完成一个项目，浅浅学习了一下，在此做相应的一些记录。</p>
+<h1 id="references">References</h1>
+<ul>
+<li><a
+href="https://blog.csdn.net/u014074954/article/details/47170453">晶振OSC概述、分类、工作原理及作用-CSDN博客</a></li>
+</ul>
+]]></content>
+      <categories>
+        <category>嵌入式</category>
+      </categories>
+      <tags>
+        <tag>嵌入式</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Markdown_in_Typora</title>
+    <url>/2023/08/09/Markdown-in-Typora/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>Typora写markdown是必修课，在此学习Typora常用的快捷键操作，以更方便地使用</p>
+<span id="more"></span>
+<h1 id="快捷键集合">快捷键集合</h1>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">Typora快捷键整合</span><br><span class="line">```</span><br><span class="line">Ctrl+1  一阶标题    Ctrl+B  字体加粗</span><br><span class="line">Ctrl+2  二阶标题    Ctrl+I  字体倾斜</span><br><span class="line">Ctrl+3  三阶标题    Ctrl+U  下划线</span><br><span class="line">Ctrl+4  四阶标题    Ctrl+Home   返回Typora顶部</span><br><span class="line">Ctrl+5  五阶标题    Ctrl+End    返回Typora底部</span><br><span class="line">Ctrl+6  六阶标题    Ctrl+T  创建表格</span><br><span class="line">Ctrl+L  选中某句话   Ctrl+K  创建超链接</span><br><span class="line">Ctrl+D  选中某个单词  Ctrl+F  搜索</span><br><span class="line">Ctrl+E  选中相同格式的文字   Ctrl+H  搜索并替换</span><br><span class="line">Alt+Shift+5 删除线 Ctrl+Shift+I    插入图片</span><br><span class="line">Ctrl+Shift+M    公式块 Ctrl+Shift+Q    引用</span><br><span class="line"></span><br><span class="line">注：一些实体符号需要在实体符号之前加”\”才能够显示</span><br></pre></td></tr></table></figure>
+<h1 id="换行符">换行符</h1>
+<p>在markdown中，段落由多个空格分隔。在Typora中，只需回车即可创建新段落。</p>
+<h1 id="标题级别">标题级别</h1>
+<p># 一级标题 快捷键为 Ctrl + 1 ## 二级标题 快捷键为 Ctrl + 2 ......
+###### 六级标题 快捷键为 Ctrl + 6</p>
+<h1 id="引用文字">引用文字</h1>
+<p>&gt; + 空格 + 引用文字</p>
+<h1 id="无序列表">无序列表</h1>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Ctrl+Shift+}</span><br></pre></td></tr></table></figure>
+<p>使用 * + - 都可以创建一个无序列表</p>
+<ul>
+<li><p>AAA</p></li>
+<li><p>BBB</p></li>
+<li><p>CCC</p></li>
+</ul>
+<h1 id="有序列表">有序列表</h1>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Ctrl+Shift+{</span><br></pre></td></tr></table></figure>
+<p>使用 1. 2. 3. 创建有序列表</p>
+<ol type="1">
+<li>AAA</li>
+<li>BBB</li>
+<li>CCC</li>
+</ol>
+<h1 id="任务列表">任务列表</h1>
+<p> -[ ] 不勾选  -[x] 勾选</p>
+<h1 id="代码块">代码块</h1>
+<p>在Typora中插入程序代码的方式有两种：使用反引号 `（~
+键）、使用缩进（Tab）。</p>
+<ul>
+<li>插入行内代码，即插入一个单词或者一句代码的情况，使用
+<code>code</code> 这样的形式插入。</li>
+<li>插入多行代码输入3个反引号（`） +
+回车，并在后面选择一个语言名称即可实现语法高亮。</li>
+</ul>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">def helloworld():</span><br><span class="line">    print("hello, world!")</span><br></pre></td></tr></table></figure>
+<h1 id="数学表达式">数学表达式</h1>
+<p><a href="https://blog.csdn.net/mingzhuo_126/article/details/82722455">(15条消息)
+使用Typora添加数学公式_typora数学公式_姚明明的博客-CSDN博客</a></p>
+<p><a href="https://blog.csdn.net/qq_43444349/article/details/105400052">(15条消息)
+全面整理Typora的Latex数学公式语法_M010K的博客-CSDN博客</a></p>
+<p>当你需要在编辑器中插入数学公式时，可以使用两个美元符 $$ 包裹 TeX 或
+LaTeX 格式的数学公式来实现。根据需要加载 Mathjax
+对数学公式进行渲染。</p>
+<p>按下 <code>$$</code>，然后按下回车键，即可进行数学公式的编辑。</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">$$</span><br><span class="line">\mathbf{V}_1\times\mathbf{V}_2 = \mathbf{X}_3</span><br><span class="line">$$</span><br></pre></td></tr></table></figure>
+<h1 id="插入表格">插入表格</h1>
+<p>输入
+<code>| 表头1 | 表头2 |</code>并回车。即可创建一个包含2列表。快捷键
+<code>Ctrl + T</code>弹出对话框。</p>
+<div class="line-block">id | number | | ---- | ------ | | | |</div>
+<ul>
+<li>不管是哪种方式，第一行为表头，第二行为分割表头和主体部分，第三行开始每一行为一个表格行</li>
+<li>列与列之间用管道符号<code>|</code> 隔开</li>
+<li>还可设置对齐方式(表头与内容之间)，如果不使用对齐标记，内容默认左对齐，表头居中对齐</li>
+<li>左对齐 ：|</li>
+<li>右对齐 |：</li>
+<li>中对齐 ：|：</li>
+<li>为了美观，可以使用空格对齐不同行的单元格，并在左右两侧都使用 |
+来标记单元格边界</li>
+<li>为了使 Markdown 更清晰，| 和 -
+两侧需要至少有一个空格（最左侧和最右侧的 | 外就不需要了）。</li>
+</ul>
+<h1 id="脚注">脚注</h1>
+<p>这个例子的脚注为[<a href="https://link.zhihu.com/?target=https%3A//www.cnblogs.com/hider/p/11614688.html%23fn1">1]</a>。</p>
+<p>注意：该例子脚注标识是1，脚注标识可以为字母数字下划线，但是暂不支持中文。脚注内容可为任意字符，包括中文。</p>
+<h1 id="分割线">分割线</h1>
+<p>输入 <code>***</code> 或者 <code>---</code>
+再按回车即可绘制一条水平线，如下：</p>
+<hr>
+<h1 id="目录toc">目录（TOC）</h1>
+<p>输入 <code>[ toc ]</code>
+然后回车，即可创建一个“目录”。TOC从文档中提取所有标题，其内容将自动更新。</p>
+<h1 id="图片">图片</h1>
+<p>以我的github库作为image
+host，利用PicGo作为上传工具，再连接Typora，实现一条龙服务</p>
+<h1 id="plugins-in-vs-code">plugins in VS Code</h1>
+<ul>
+<li><p>Markdown All in One：支持markdown语法</p></li>
+<li><p>Markdown Preview Github：预览</p></li>
+<li><p>Markmap：markdown自动生成思维导图</p></li>
+</ul>
+]]></content>
+      <categories>
+        <category>奇技淫巧</category>
+      </categories>
+      <tags>
+        <tag>奇技淫巧</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>TIM入门</title>
     <url>/2023/08/22/TIM%E5%85%A5%E9%97%A8/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
@@ -3789,655 +4189,6 @@ href="https://zhuanlan.zhihu.com/p/123295629">STM32第六章-TIM定时器详解
       <tags>
         <tag>嵌入式</tag>
         <tag>robomaster</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Vim（1）</title>
-    <url>/2023/08/12/Vim%EF%BC%881%EF%BC%89/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>Following missing semester of MIT to learn Vim.</p>
-<p>希望通过<a
-href="https://learnvimscriptthehardway.stevelosh.com/">Learn Vimscript
-the Hard Way (stevelosh.com)</a>+<a
-href="https://vim-adventures.com/">Vim Adventures</a>
-来进一步练习Vim的使用</p>
-<p>Vim（1）——Vim的基础知识和基本操作</p>
-<blockquote>
-<p>双手离开鼠标！</p>
-</blockquote>
-<span id="more"></span>
-<h1 id="why-do-i-choose-vim">Why do I choose Vim</h1>
-<p><strong>Vim is an evergreen skill.</strong></p>
-<ul>
-<li><p>双手离开鼠标！</p></li>
-<li><p>不同编辑器操作不同，但所偶有主流ide都支持vim编辑模式，一劳永逸</p>
-<p>不同编程语言ide，桌面dwm，浏览器vimium，操作spreadsheet啥的全统一成vim操作了</p></li>
-<li><p>高度可扩展<a href="https://vimawesome.com/">Vim
-Awesome</a></p></li>
-<li><p>高度可定制</p>
-<p>Vim有数以百计的选项供我们定制其行为，.vimrc 就是控制 vim
-行为的配置文件，位于 ~/.vimrc</p></li>
-</ul>
-<h1 id="vim-的哲学">Vim 的哲学</h1>
-<p><strong>Vim 的接口其实是一种编程语言：</strong></p>
-<p>Vim 最重要的设计思想是 Vim
-的界面本身是一个程序语言。键入操作（以及他们的助记名）
-本身是命令，这些命令可以组合使用。这使得移动和编辑更加高效，特别是一旦形成肌肉记忆。</p>
-<p>在编程的时候，你会把大量时间花在阅读/编辑而不是在写代码上。所以，Vim
-是一个<em>多模态</em>编辑器：它对于插入文字和操纵文字有不同的模式。Vim
-是可编程的（可以使用 Vimscript 或者像 Python
-一样的其他程序语言），<strong>Vim
-的接口本身也是一个程序语言：键入操作（以及其助记名）
-是命令，这些命令也是可组合的</strong>。Vim
-避免了使用鼠标，因为那样太慢了；Vim 甚至避免用
-上下左右键因为那样需要太多的手指移动。</p>
-<p>这样的设计哲学使得 Vim 成为了一个能跟上你思维速度的编辑器。</p>
-<blockquote>
-<p>vim 中有一些术语：</p>
-<ul>
-<li>mode：模式</li>
-<li>verb：vim 里执行的操作，比如删除 <code>d</code>、修改
-<code>c</code>、拷贝 <code>y</code>、查找 <code>f</code> 等。verb
-后面需要跟一个 motion，表示该操作生效的范围。</li>
-<li>motion：vim 里移动的范围，比如向右一个字母 <code>l</code>、向下一行
-<code>j</code>、向右一个单词 <code>w</code> 等。</li>
-</ul>
-</blockquote>
-<h1 id="编辑模式">编辑模式</h1>
-<p>Vim
-的设计以大多数时间都花在阅读、浏览和进行少量编辑改动为基础，因此它具有多种操作模式：</p>
-<ul>
-<li><strong>正常模式</strong>：在文件中四处移动光标进行修改</li>
-<li><strong>插入模式</strong>：插入文本</li>
-<li><strong>替换模式</strong>：替换文本</li>
-<li><strong>可视化模式</strong>（一般，行，块）：选中文本块</li>
-<li><strong>命令模式</strong>：用于执行命令</li>
-</ul>
-<p>在不同的操作模式下，键盘敲击的含义也不同。</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230811142738743.png"
-alt="Vim cheatsheet" />
-<figcaption aria-hidden="true">Vim cheatsheet</figcaption>
-</figure>
-<h2 id="模式切换">模式切换</h2>
-<p>你可以按下
-<code>&lt;ESC&gt;</code>（退出键）从任何其他模式返回正常模式。在正常模式，键入
-<code>i</code>
-进入插入模式（a也可以，在当前字母后进行插入）(shift+i在行开始进入insert
-mode，shift+a在行末尾进入insert mode)，<code>R</code>
-进入替换模式，<code>v</code> 进入可视（一般）模式，<code>V</code>
-进入可视（行）模式，<code>&lt;C-v&gt;</code> （Ctrl-V, 有时也写作
-<code>^V</code>）进入可视（块）模式，<code>:</code> 进入命令模式。</p>
-<p>因为你会在使用 Vim 时大量使用 <code>&lt;ESC&gt;</code>
-键，所以可以考虑把大小写锁定键重定义成 <code>&lt;ESC&gt;</code> 键。</p>
-<h2 id="替换模式">替换模式</h2>
-<p>替换模式切换 --Replace–</p>
-<ul>
-<li>r：替换光标所在字符</li>
-<li>R：进入替换模式</li>
-</ul>
-<h2 id="插入模式">插入模式</h2>
-<p><strong>insert</strong></p>
-<ul>
-<li>i：在光标前插入</li>
-<li>I：在行首插入</li>
-</ul>
-<p><strong>append</strong></p>
-<ul>
-<li>a：在光标后插入</li>
-<li>A：在行尾插入</li>
-</ul>
-<p><strong>oneLine</strong></p>
-<ul>
-<li>o：在下一行插入</li>
-<li>O：在上一行插入</li>
-</ul>
-<p><strong>change</strong></p>
-<ul>
-<li>c：删除字符后进插入模式</li>
-<li>C：删除光标处至行尾进编辑模式</li>
-</ul>
-<h2 id="正常模式">正常模式</h2>
-<h3 id="移动">移动</h3>
-<p>多数时候你会在正常模式下，使用移动命令在缓存中导航。在 Vim
-里面移动也被称为 “名词”， 因为它们指向文字块。（均可以改）</p>
-<ul>
-<li><p>基本移动: <code>hjkl</code> （左， 下， 上， 右）</p></li>
-<li><p>词： <code>w</code> （下一个词）， <code>b</code> （词初begin），
-<code>e</code> （词尾end）</p></li>
-<li><p>行： <code>0</code> （行初）， <code>^</code>
-（第一个非空格字符）， <code>$</code> （行尾）</p></li>
-<li><p>屏幕： <code>H</code> （屏幕首行）， <code>M</code>
-（屏幕中间）， <code>L</code> （屏幕底部）</p></li>
-<li><p>翻页： <code>Ctrl-u</code> （上翻半页）， <code>Ctrl-d</code>
-（下翻半页）；<code>Ctrl-b</code> （上翻）， <code>Ctrl-f</code>
-（下翻）</p></li>
-<li><p><code>zz</code>使当前行位于中间，<code>zb</code>使当前行位于末尾，<code>zt</code>使当前行置顶</p></li>
-<li><p><code>za</code>快捷，切换代码块状态(zc：快捷，折叠代码块,zo：快捷，打开代码块)</p></li>
-<li><p>文件： <code>gg</code> （文件头）， <code>G</code>
-（文件尾）</p></li>
-<li><p>行数： <code>:&#123;行数&#125;&lt;CR&gt;</code> 或者 <code>&#123;行数&#125;G</code>
-({行数}为行数)</p></li>
-<li><p>杂项： <code>%</code> （找到配对，比如括号或者 /* */
-之类的注释对）</p></li>
-<li><p>查找：大写往后找，小写往前找（同一行内）</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">f&#123;字符&#125;：落在字母上</span><br></pre></td></tr></table></figure>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">t&#123;字符&#125;：落在字母前</span><br></pre></td></tr></table></figure>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">F&#123;字符&#125;</span><br></pre></td></tr></table></figure>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">T&#123;字符&#125;</span><br></pre></td></tr></table></figure>
-<ul>
-<li>查找/到 向前/向后 在本行的{字符}</li>
-<li><strong><code>,</code> / <code>;</code>
-用于导航匹配</strong>,非常有用！，/{word}
-enter，n(next)可以搜索下一个</li>
-</ul></li>
-<li><p>搜索: <code>/&#123;正则表达式&#125;</code>, <code>n</code> / <code>N</code>
-用于导航匹配</p></li>
-</ul>
-<h3 id="编辑">编辑</h3>
-<p>所有你需要用鼠标做的事，
-你现在都可以用键盘：采用编辑命令和移动命令的组合来完成。 这就是 Vim
-的界面开始看起来像一个程序语言的时候。Vim 的编辑命令也被称为 “动词”，
-因为动词可以施动于名词。</p>
-<ul>
-<li><p>i/a</p>
-<p>进入插入模式</p>
-<ul>
-<li>但是对于操纵/编辑文本，不单想用退格键完成</li>
-</ul></li>
-<li><p><code>O</code> / <code>o</code> 在之上/之下插入行</p></li>
-<li><p>d{移动命令}</p>
-<blockquote>
-<p>Tips:d理解为剪切比较好，因为vim有缓存区，所以删除的可以再p粘贴</p>
-</blockquote>
-<p>d删除 {移动命令}</p>
-<ul>
-<li>例如，<code>dw</code> 删除词, <code>d$</code> 删除到行尾,
-<code>d0</code>
-删除到行头,<code>dd</code>删除整行，<code>D</code>直接删除到末尾</li>
-</ul></li>
-<li><p>c{移动命令}</p>
-<p>c改变 {移动命令}</p>
-<ul>
-<li>例如，<code>cw</code> 改变词</li>
-<li>等价于 <code>d&#123;移动命令&#125;</code> 再 <code>i</code></li>
-</ul></li>
-<li><p><code>x</code> 删除字符（等同于 <code>dl</code>）</p></li>
-<li><p><code>s</code> 删除字符并进入insert mode（等同于
-<code>xi</code>）</p></li>
-<li><p><code>r</code>替换字符（无副作用即不会进入insert
-mode）一般f{字母}+r</p></li>
-<li><p>可视化模式 + 操作</p>
-<ul>
-<li>选中文字, <code>d</code> 删除 或者 <code>c</code> 改变</li>
-</ul></li>
-<li><p><number><code>u</code> 撤销, <code>&lt;C-r&gt;</code>
-重做</p></li>
-<li><p><code>y&#123;移动命令&#125;</code> 复制 / “yank” （其他一些命令比如
-<code>d</code> 也会复制）yy复制当前行</p></li>
-<li><p><code>p</code> 粘贴在后面，<code>P</code>在前面粘贴</p></li>
-<li><p><code>.</code>重复刚才的操作（当想在不同的地方写相同的东西，很有用）</p></li>
-<li><p>更多值得学习的: 比如 <code>~</code> 改变字符的大小写</p></li>
-<li><p><code>J</code>:合并两行(删除当前行行尾的换行符)</p></li>
-<li><p><code>~</code>切换将光标所在位置的字符大小写互换</p></li>
-<li><p>可视模式下，选中字母后，按U将其换成大写</p></li>
-<li><p>可视模式下，选中字母后，按u将其换成小写</p></li>
-</ul>
-<h3 id="计数">计数</h3>
-<p>你可以用一个计数来结合“名词”和“动词”，这会执行指定操作若干次。</p>
-<ul>
-<li><code>3w</code> 向前移动三个词</li>
-<li><code>5j</code> 向下移动5行</li>
-<li><code>7dw</code> 删除7个词</li>
-</ul>
-<h3 id="修饰语">修饰语</h3>
-<p>你可以用修饰语改变“名词”的意义。修饰语有
-<code>i</code>，表示“内部”或者“inside“，和 <code>a</code>，
-表示”around“。</p>
-<ul>
-<li><code>ci(</code> 改变当前括号内的内容</li>
-<li><code>ci[</code> 改变当前方括号内的内容</li>
-<li><code>da'</code> 删除一个单引号字符串， 包括周围的单引号</li>
-</ul>
-<h2 id="命令模式">命令模式</h2>
-<p>在正常模式下键入 <code>:</code> 进入命令行模式。 在键入
-<code>:</code> 后，你的光标会立即跳到屏幕下方的命令行。
-这个模式有很多功能，包括打开，保存，关闭文件，以及 <a
-href="https://twitter.com/iamdevloper/status/435555976687923200">退出
-Vim</a>。</p>
-<ul>
-<li><p><code>:set number</code>对行进行编号，想要到哪行就:<number>即可</p></li>
-<li><p><code>:q</code> 退出（关闭窗口）</p></li>
-<li><p><code>:w</code> 保存（写）</p></li>
-<li><p><code>:wq</code> 保存然后退出</p></li>
-<li><p><code>:q!</code>放弃更改并退出</p></li>
-<li><p><code>:e &#123;文件名&#125;</code> 打开要编辑的文件</p></li>
-<li><p><code>:ls</code> 显示打开的缓存</p></li>
-<li><p>:help {标题}</p>
-<p>打开帮助文档</p>
-<ul>
-<li><code>:help :w</code> 打开 <code>:w</code> 命令的帮助文档</li>
-<li><code>:help w</code> 打开 <code>w</code> 移动的帮助文档</li>
-</ul></li>
-<li><p><code>+p</code>粘贴</p></li>
-<li><p><code>:!+&lt;command line&gt;</code>不退出vim界面也可以直接运行命令</p></li>
-</ul>
-<h2 id="可视化模式">可视化模式</h2>
-<ul>
-<li>可视化：<code>v</code></li>
-<li>可视化行： <code>V</code></li>
-<li>可视化块（矩形）：<code>Ctrl+v</code></li>
-</ul>
-<p>可以用移动命令来选中。</p>
-<h1 id="references">References</h1>
-<ul>
-<li><p><a
-href="https://missing-semester-cn.github.io/2020/editors/">编辑器 (Vim)
-· the missing semester of your cs education
-(missing-semester-cn.github.io)</a></p></li>
-<li><p>【VS Code ×
-Vim：提高你的编码效率】https://www.bilibili.com/video/BV1MX4y1b7nM?vd_source=93bb338120537438ee9180881deab9c1</p></li>
-<li><p><a href="https://zhuanlan.zhihu.com/p/430603620">vscode + vim
-全键盘操作高效搭配方案 - 知乎 (zhihu.com)</a></p></li>
-<li><p><a href="https://zhuanlan.zhihu.com/p/44044896">VS Code
-的常用快捷键 - 知乎 (zhihu.com)</a></p></li>
-<li><p><a
-href="https://blog.csdn.net/weixin_42514042/article/details/124169302">VSCode
-vim 使用vimrc配置 vim使用系统剪切板配置_vscode
-vimrc_未知褶皱的博客-CSDN博客</a></p></li>
-<li><p><a
-href="https://blog.csdn.net/m0_47670683/article/details/125160391?spm=1001.2101.3001.6661.1&amp;utm_medium=distribute.pc_relevant_t0.none-task-blog-2~default~CTRLIST~Rate-1-125160391-blog-121179927.235%5Ev38%5Epc_relevant_sort_base3&amp;depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-2~default~CTRLIST~Rate-1-125160391-blog-121179927.235%5Ev38%5Epc_relevant_sort_base3&amp;utm_relevant_index=1">VSCode使用Vim插件心得_vscode
-vim插件_皛心的博客-CSDN博客</a></p></li>
-</ul>
-]]></content>
-      <categories>
-        <category>CS</category>
-      </categories>
-      <tags>
-        <tag>CS</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Git进阶（2）</title>
-    <url>/2023/08/10/Git%E8%BF%9B%E9%98%B6%EF%BC%882%EF%BC%89/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>Git进阶（2）——了解Git Branching—”killer feature“</p>
-<p>希望通过<a href="https://git-scm.com/book/zh/v2">Git - Book
-(git-scm.com)</a>+<a
-href="https://learngitbranching.js.org/?locale=zh_CN">Learn Git
-Branching</a>来进一步掌握Git</p>
-<p><strong>Learn to love the command line. Leave the IDE
-behind.</strong></p>
-<span id="more"></span>
-<h1 id="git-branching">Git Branching</h1>
-<h2 id="branches-in-a-nutshell">Branches in a Nutshell</h2>
-<p>Git保存一系列不同时刻的snapshots,When you make a commit, Git stores a
-commit object that contains a pointer to the snapshot of the content you
-staged. 暂存操作会为每一个文件计算校验和。当使用 <code>git commit</code>
-进行提交操作时，Git
-会先计算每一个子目录（本例中只有项目根目录）的校验和， 然后在 Git
-仓库中这些校验和保存为树对象。随后，Git 便会创建一个提交对象，
-它除了包含上面提到的那些信息外，还包含指向这个树对象（项目根目录）的指针。
-如此一来，Git 就可以在需要的时候重现此次保存的快照。</p>
-<p>现在，Git 仓库中有五个对象：三个 <em>blob</em>
-对象（保存着文件快照）、一个 <strong>树</strong> 对象 （记录着目录结构和
-blob 对象索引）以及一个 <strong>提交</strong>
-对象（包含着指向前述树对象的指针和所有提交信息）。</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/commit-and-tree.png"
-alt="commit-and-tree" />
-<figcaption aria-hidden="true">commit-and-tree</figcaption>
-</figure>
-<p>Git 的分支，其实本质上仅仅是指向提交对象的可变指针</p>
-<p>Git有一个名为 <code>HEAD</code>
-的特殊指针，指向当前所在的本地分支（HEAD即当前你所在的位置）</p>
-<blockquote>
-<p>Tips:Git 的分支实质上仅是包含所指对象校验和（长度为 40 的 SHA-1
-值字符串）的文件，所以它的创建和销毁都异常高效。</p>
-</blockquote>
-<h2 id="分支创建">分支创建</h2>
-<p>使用 <code>git branch</code> 命令：只是为我创建了一个新的指针</p>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git branch testing</span></span><br></pre></td></tr></table></figure>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/head-to-master.png"
-alt="head-to-master" />
-<figcaption aria-hidden="true">head-to-master</figcaption>
-</figure>
-<p><strong>创建新分支的同时切换过去</strong></p>
-<p>通常我们会在创建一个新分支后立即切换过去，这可以用
-<code>git checkout -b &lt;newbranchname&gt;</code> 一条命令搞定</p>
-<h2 id="分支删除">分支删除</h2>
-<p>使用带 <code>-d</code> 选项的 <code>git branch</code>
-命令来删除分支：</p>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git branch -d &lt;branch-name&gt;</span></span><br></pre></td></tr></table></figure>
-<h2 id="分支检查">分支检查</h2>
-<p><code>git log</code> 命令查看各个分支当前所指的对象。
-提供这一功能的参数是 <code>--decorate</code>。（仅检查当前分支）</p>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git <span class="built_in">log</span> --oneline --decorate</span></span><br></pre></td></tr></table></figure>
-<p>查看<strong>分叉历史</strong>。 运行
-<code>git log --oneline --decorate --graph --all</code>
-会输出你的提交历史、各个分支的指向以及项目的分支分叉情况。</p>
-<h2 id="分支切换">分支切换</h2>
-<p>在 Git 2.23 版本中，引入了一个名为 <code>git switch</code>
-的新命令，最终会取代 <code>git checkout</code>，因为
-<code>checkout</code> 作为单个命令有点超载（它承载了很多独立的功能）</p>
-<p>使用 <code>git checkout</code> 命令</p>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout testing</span></span><br></pre></td></tr></table></figure>
-<p>HEAD会随当前指针移动</p>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout master</span></span><br></pre></td></tr></table></figure>
-<ul>
-<li><p>HEAD 指回 <code>master</code> 分支</p></li>
-<li><p>将工作目录恢复成 <code>master</code>
-分支所指向的快照内容</p></li>
-</ul>
-<blockquote>
-<p>Tips:切换前保持干净（留意未提交的修改）</p>
-</blockquote>
-<h2 id="分支合并">分支合并</h2>
-<p><code>git merge</code> 命令来达到上述目的：先切换到主分支，然后
-<code>git merge &lt;想要合并的branch&gt;</code></p>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout master</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git merge hotfix</span></span><br></pre></td></tr></table></figure>
-<h3 id="一脉相承的分支合并">一脉相承的分支合并</h3>
-<p>当你试图合并两个分支时，
-如果顺着一个分支走下去能够到达另一个分支，那么 Git 在合并两者的时候，
-只会简单的将指针向前推进（指针右移），因为这种情况下的合并操作没有需要解决的分歧——这就叫做
-“快进（fast-forward）</p>
-<h3 id="diverged-branches">diverged branches:</h3>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/basic-merging-2.png"
-alt="basic-merging-2" />
-<figcaption aria-hidden="true">basic-merging-2</figcaption>
-</figure>
-<p>Git 会使用两个分支的末端所指的快照（<code>C4</code> 和
-<code>C5</code>）以及这两个分支的公共祖先（<code>C2</code>），做一个简单的三方合并。</p>
-<blockquote>
-<p>Tips:多余的分支记得删除 <code>git branch -d ...</code></p>
-</blockquote>
-<h3 id="遇到冲突时的分支合并">遇到冲突时的分支合并</h3>
-<p>如果你在两个不同的分支中，对同一个文件的同一个部分进行了不同的修改，Git
-就没法干净的合并它们。</p>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git merge iss53</span></span><br></pre></td></tr></table></figure>
-<p>此时 Git 做了合并，但是没有自动地创建一个新的合并提交。 Git
-会暂停下来，等待你去解决合并产生的冲突。
-你可以在合并冲突后的任意时刻使用 <code>git status</code>
-命令来查看那些因包含合并冲突而处于未合并（unmerged）状态的文件：</p>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git status</span></span><br></pre></td></tr></table></figure>
-<p><code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code> , <code>=======</code> , 和
-<code>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code> 这些行被完全删除了。
-在你解决了所有文件里的冲突之后，对每个文件使用 <code>git add</code>
-命令来将其标记为冲突已解决。 一旦暂存这些原本有冲突的文件，Git
-就会将它们标记为冲突已解决。</p>
-<h2 id="rebasing">Rebasing</h2>
-<p>在 Git 中整合来自不同分支的修改主要有两种方法：<code>merge</code>
-(最容易)以及 <code>rebase</code>。</p>
-<p><strong>变基（rebase）</strong>：使用 <code>rebase</code>
-命令将提交到某一分支上的所有修改都移至另一分支上（先转到要rebase的分支上去，master是目标基底分支）</p>
-<p>变基是将一系列提交按照原有次序依次应用到另一分支上<code>git rebase &lt;basebranch&gt; &lt;topicbranch&gt;</code></p>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout experiment</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git rebase master</span>   </span><br></pre></td></tr></table></figure>
-<p>首先找到这两个分支（即当前分支
-<code>experiment</code>、变基操作的目标基底分支 <code>master</code>）
-的最近共同祖先
-<code>C2</code>然后对比当前分支相对于该祖先的历次提交，提取相应的修改并存为临时文件，
-然后将当前分支指向目标基底 <code>C3</code>,
-最后以此将之前另存为临时文件的修改依序应用。</p>
-<p>现在回到 <code>master</code> 分支，进行一次快进合并。</p>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout master</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git merge experiment</span></span><br></pre></td></tr></table></figure>
-<h3 id="rebasing-进阶">Rebasing 进阶</h3>
-<p>使用 <code>git rebase</code> 命令的 <code>--onto</code> 选项， 选中在
-<code>client</code> 分支里但不在 <code>server</code> 分支里的修改（即
-<code>C8</code> 和 <code>C9</code>），将它们在 <code>master</code>
-分支上重放：</p>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git rebase --onto master server client</span></span><br></pre></td></tr></table></figure>
-<p>理解：取出 <code>client</code> 分支，找出它从 <code>server</code>
-分支分歧之后的补丁， 然后把这些补丁在 <code>master</code>
-分支上重放一遍，让 <code>client</code> 看起来像直接基于
-<code>master</code> 修改一样<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/interesting-rebase-2.png"
-alt="interesting-rebase-2" /></p>
-<h3 id="变基的风险">变基的风险</h3>
-<p>总的原则是，只对尚未推送或分享给别人的本地修改执行变基操作清理历史，
-从不对已推送至别处的提交执行变基操作</p>
-<h2 id="分支管理">分支管理</h2>
-<p>git branch命令的使用</p>
-<ul>
-<li>查看所有分支</li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">$ git branch</span><br><span class="line">* master</span><br></pre></td></tr></table></figure>
-<p>不加任何参数运行它，会得到当前所有分支的一个列表,<code>master</code>
-分支前的 <code>*</code> 字符：它代表现在检出的那一个分支（也就是说，当前
-<code>HEAD</code> 指针所指向的分支）</p>
-<ul>
-<li>查看每一个分支的最后一次提交</li>
-</ul>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git branch -v</span></span><br></pre></td></tr></table></figure>
-<ul>
-<li><p>--merged与 --no-merged
-这两个有用的选项可以过滤这个列表中已经合并或尚未合并到当前分支的分支。
-如果要查看哪些分支已经合并到当前分支，可以运行
-<code>git branch --merged</code></p>
-<blockquote>
-<p>Tips:你总是可以提供一个附加的参数来查看其它分支的合并状态而不必检出它们。
-例如，尚未合并到 <code>master</code> 分支的有哪些？</p>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout testing</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git branch --no-merged master</span></span><br><span class="line">  topicA</span><br><span class="line">  featureB</span><br></pre></td></tr></table></figure>
-</blockquote></li>
-</ul>
-<h2 id="在tree上移动">在tree上移动</h2>
-<p>分离<code>HEAD</code>:git checkout C1(一个snapshot的checksum)</p>
-<p>Git识别checksum比较智能，只需能唯一标识的前几个字符即可</p>
-<h3 id="相对引用">相对引用</h3>
-<p>通过哈希值指定提交记录很不方便，所以 Git
-引入了相对引用，这里我介绍两个简单的用法：</p>
-<ul>
-<li>使用 <code>^</code> 向上移动 1 个提交记录（寻找parent
-node，可以连续使用eg:<code>main^^</code>）,其后也可以跟数字，指明回到哪一个parent
-node</li>
-<li>使用 <code>~&lt;num&gt;</code> 向上移动多个提交记录，如
-<code>~3</code>（可选，不加数字时与 <code>^</code>
-相同，向上移动一次）</li>
-</ul>
-<blockquote>
-<p>Tips:modifiers可以复合使用：<code>git checkout HEAD\~2^2~3</code></p>
-</blockquote>
-<h3 id="强制修改分支位置">强制修改分支位置</h3>
-<p>使用相对引用最多的就是移动分支。可以直接使用 <code>-f</code>
-选项让分支指向另一个提交。例如:</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">git branch -f main HEAD~3</span><br></pre></td></tr></table></figure>
-<p>上面的命令会将 main 分支强制指向 HEAD 的第 3 级 parent 提交。</p>
-<h2 id="整理提交记录">整理提交记录</h2>
-<h3 id="cherry-pick">cherry-pick</h3>
-<p>“整理提交记录” —— 开发人员有时会说“我想要把这个提交放到这里,
-那个提交放到刚才那个提交的后面”</p>
-<ul>
-<li><code>git cherry-pick &lt;提交号&gt;...</code></li>
-</ul>
-<p>如果你想将一些提交复制到当前所在的位置（<code>HEAD</code>）下面的话，
-Cherry-pick 是最直接的方式了。（如果知道提交记录则very simple）</p>
-<h3 id="交互式的rebase">交互式的rebase</h3>
-<p>if 不清楚你想要的提交记录的哈希值</p>
-<blockquote>
-<p>Tips:COOL!!!</p>
-</blockquote>
-<p>交互式 rebase 指的是使用带参数 <code>--interactive</code> 的 rebase
-命令, 简写为 <code>-i</code>，Git 会打开一个 UI
-界面（vim）并列出将要被复制到目标分支的备选提交记录，它还会显示每个提交记录的哈希值和提交说明，提交说明有助于你理解这个提交进行了哪些更改。</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">git rebase -i HEAD~4</span><br></pre></td></tr></table></figure>
-<p>当 rebase UI界面打开时, 你能做3件事:</p>
-<ul>
-<li>调整提交记录的顺序（通过鼠标拖放来完成）</li>
-<li>删除你不想要的提交（通过切换 <code>pick</code>
-的状态来完成，关闭就意味着你不想要这个提交记录）</li>
-<li>合并提交。</li>
-</ul>
-<h3 id="如何整理">如何整理</h3>
-<p>来看一个在开发中经常会遇到的情况：我正在解决某个特别棘手的
-Bug，为了便于调试而在代码中添加了一些调试命令并向控制台打印了一些信息。解决后并不想在commit中包含这些信息，实际我们只要让
-Git 复制解决问题的那一个提交记录就可以了。我们可以使用</p>
-<ul>
-<li><code>git rebase -i</code></li>
-<li><code>git cherry-pick</code></li>
-</ul>
-<p>来达到目的。</p>
-<ul>
-<li><p>我们可以使用 <code>rebase -i</code>
-对提交记录进行重新排序。只要把我们想要的提交记录挪到最前端，我们就可以很轻松的用
-<code>--amend</code> 修改它，然后把它们重新排成我们想要的顺序</p></li>
-<li><p>or只是把C2单独提出来，修改后，再用cherry-pick添加进去</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230815110958607.png"
-alt="image-20230815110958607" />
-<figcaption aria-hidden="true">image-20230815110958607</figcaption>
-</figure></li>
-</ul>
-<h2 id="分支开发工作流">分支开发工作流</h2>
-<h3 id="长期分支">长期分支</h3>
-<p>非必要，但常很有帮助</p>
-<p>许多使用 Git 的开发者都喜欢使用这种方式来工作，比如只在
-<code>master</code>
-分支上保留完全稳定的代码——有可能仅仅是已经发布或即将发布的代码。
-他们还有一些名为 <code>develop</code> 或者 <code>next</code>
-的平行分支，被用来做后续开发或者测试稳定性——这些分支不必保持绝对稳定，但是一旦达到稳定状态，它们就可以被合并入
-<code>master</code> 分支了。</p>
-<p>趋于稳定分支的流水线（“silo”）视图：</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/lr-branches-2.png"
-alt="lr-branches-2" />
-<figcaption aria-hidden="true">lr-branches-2</figcaption>
-</figure>
-<h3 id="主题分支">主题分支</h3>
-<p>主题分支对任何规模的项目都适用。
-主题分支是一种短期分支，它被用来实现单一特性或其相关工作。 在 Git
-中一天之内多次创建、使用、合并、删除分支都很常见。</p>
-<h2 id="远程分支">远程分支</h2>
-<p>远程引用是对远程仓库的引用（指针），包括分支、标签等等。 你可以通过
-<code>git ls-remote &lt;remote&gt;</code>
-来显式地获得远程引用的完整列表， 或者通过
-<code>git remote show &lt;remote&gt;</code> 获得远程分支的更多信息。</p>
-<h3 id="远程跟踪分支">远程跟踪分支</h3>
-<p>远程跟踪分支是远程分支状态的引用。它们是你无法移动的本地引用。一旦你进行了网络通信，
-Git
-就会为你移动它们以精确反映远程仓库的状态。提醒你该分支在远程仓库中的位置就是你最后一次连接到它们的位置。</p>
-<p>命名形式：<remote>/<branch></p>
-<p>Git 的 <code>clone</code> 命令会为你自动将其命名为
-<code>origin</code>，拉取它的所有数据， 创建一个指向它的
-<code>master</code> 分支的指针，并且在本地将其命名为
-<code>origin/master</code>。 Git 也会给你一个与 origin 的
-<code>master</code> 分支在指向同一个地方的本地 <code>master</code>
-分支，这样你就有工作的基础。</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/remote-branches-1.png"
-alt="remote-branches-1" />
-<figcaption aria-hidden="true">remote-branches-1</figcaption>
-</figure>
-<blockquote>
-<p>Tips:运行
-<code>git clone -o booyah</code>，那么你默认的远程分支名字将会是
-<code>booyah/master</code>。-o远程库的命名。</p>
-<p><code>git remote add name remote(url)</code></p>
-</blockquote>
-<h3 id="同步远程仓库">同步远程仓库</h3>
-<p>程仓库同步数据，运行 <code>git fetch &lt;remote&gt;</code></p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/remote-branches-3.png"
-alt="remote-branches-3" />
-<figcaption aria-hidden="true">remote-branches-3</figcaption>
-</figure>
-<blockquote>
-<p>Tips:本地与远程的工作可以分叉</p>
-</blockquote>
-<p>多个远程仓库可以：<code>git remote add name remote(url)</code></p>
-<h3 id="推送">推送</h3>
-<p><code>git push &lt;remote&gt; &lt;branch&gt;</code> Git 自动将
-<code>serverfix</code> 分支名字展开为
-<code>refs/heads/serverfix:refs/heads/serverfix</code>，
-那意味着，“推送本地的 <code>serverfix</code> 分支来更新远程仓库上的
-<code>serverfix</code> 分支。”</p>
-<p>运行 <code>git push origin serverfix:awesomebranch</code> 来将本地的
-<code>serverfix</code> 分支推送到远程仓库上的 <code>awesomebranch</code>
-分支</p>
-<blockquote>
-<p>Tips:<避免每次输入密码>使用 HTTPS URL 来推送，Git
-服务器会询问用户名与密码。</p>
-<p>如果不想在每一次推送时都输入用户名与密码，你可以设置一个 “credential
-cache”。 最简单的方式就是将其保存在内存中几分钟，可以简单地运行
-<code>git config --global credential.helper cache</code> 来设置它。</p>
-</blockquote>
-<p>当重新抓取到新的远程跟踪分支时，不会有一个新的 <code>serverfix</code>
-分支——只有一个不可以修改的 <code>origin/serverfix</code> 指针。</p>
-<p>可以运行 <code>git merge origin/serverfix</code>
-将这些工作合并到当前所在的分支。 如果想要在自己的 <code>serverfix</code>
-分支上工作，可以将其建立在远程跟踪分支之上：</p>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout -b serverfix origin/serverfix</span></span><br><span class="line">Branch serverfix set up to track remote branch serverfix from origin.</span><br><span class="line">Switched to a new branch &#x27;serverfix&#x27;</span><br></pre></td></tr></table></figure>
-<p>这会给你一个用于工作的本地分支，并且起点位于
-<code>origin/serverfix</code>。</p>
-<h3 id="跟踪分支">跟踪分支</h3>
-<p>从一个远程跟踪分支检出一个本地分支会自动创建所谓的“跟踪分支”（它跟踪的分支叫做“上游分支”）。
-跟踪分支是与远程分支有直接关系的本地分支。 如果在一个跟踪分支上输入
-<code>git pull</code>，Git
-能自动地识别去哪个服务器上抓取、合并到哪个分支。</p>
-<p><code>git checkout -b &lt;branch&gt; &lt;remote&gt;/&lt;branch&gt;</code>。可以自己命名</p>
-<p>这是一个十分常用的操作所以 Git 提供了 <code>--track</code>
-快捷方式：</p>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout --track origin/serverfix</span></span><br></pre></td></tr></table></figure>
-<p>该捷径本身还有一个捷径。 如果你尝试检出的分支 (a) 不存在且 (b)
-刚好只有一个名字与之匹配的远程分支，那么 Git
-就会为你创建一个跟踪分支：</p>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git checkout serverfix</span></span><br></pre></td></tr></table></figure>
-<p><strong>设置已有的本地分支</strong>跟踪一个刚刚拉取下来的远程分支，或者想要修改正在跟踪的上游分支，
-你可以在任意时间使用 <code>-u</code> 或 <code>--set-upstream-to</code>
-选项运行 <code>git branch</code> 来显式地设置。</p>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git branch -u origin/serverfix</span></span><br><span class="line">Branch serverfix set up to track remote branch serverfix from origin.</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>Tips:<上游快捷方式>当设置好跟踪分支后，可以通过简写
-<code>@&#123;upstream&#125;</code> 或 <code>@&#123;u&#125;</code> 来引用它的上游分支。
-所以在 <code>master</code> 分支时并且它正在跟踪
-<code>origin/master</code> 时，如果愿意的话可以使用
-<code>git merge @&#123;u&#125;</code> 来取代
-<code>git merge origin/master</code>。</p>
-</blockquote>
-<p>查看设置的所有跟踪分支，可以使用 <code>git branch</code> 的
-<code>-vv</code> 选项。 这会将所有的本地分支列出来并且包含更多的信息</p>
-<h3 id="拉取">拉取</h3>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git fetch --all; git branch -vv</span></span><br></pre></td></tr></table></figure>
-<p><code>git fetch</code>
-命令从服务器上抓取本地没有的数据时，它并不会修改工作目录中的内容。
-它只会获取数据然后让你自己合并。</p>
-<blockquote>
-<p>Tips:<code>git pull</code> 在大多数情况下它的含义是一个
-<code>git fetch</code> 紧接着一个 <code>git merge</code> 命令。</p>
-<p>由于 <code>git pull</code> 的魔法经常令人困惑所以通常单独显式地使用
-<code>fetch</code> 与 <code>merge</code> 命令会更好一些。</p>
-</blockquote>
-<h3 id="删除远程分支">删除远程分支</h3>
-<p>可以运行带有 <code>--delete</code> 选项的 <code>git push</code>
-命令来删除一个远程分支。 如果想要从服务器上删除 <code>serverfix</code>
-分支，运行下面的命令：</p>
-<figure class="highlight console"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git push origin --delete serverfix</span></span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>Tips:基本上这个命令做的只是从服务器上移除这个指针。 Git
-服务器通常会保留数据一段时间直到垃圾回收运行，所以如果不小心删除掉了，通常是很容易恢复的。</p>
-</blockquote>
-<h1 id="references">References</h1>
-<ul>
-<li><a href="https://git-scm.com/book/zh/v2">Git - Book
-(git-scm.com)</a></li>
-<li><a href="https://learngitbranching.js.org/?locale=zh_CN">Learn Git
-Branching</a></li>
-</ul>
-]]></content>
-      <categories>
-        <category>CS</category>
-      </categories>
-      <tags>
-        <tag>CS</tag>
-        <tag>Git</tag>
       </tags>
   </entry>
   <entry>
@@ -4744,6 +4495,273 @@ href="https://blog.csdn.net/weixin_43281206/article/details/116279189">STM32串�
       </tags>
   </entry>
   <entry>
+    <title>Vim（1）</title>
+    <url>/2023/08/12/Vim%EF%BC%881%EF%BC%89/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>Following missing semester of MIT to learn Vim.</p>
+<p>希望通过<a
+href="https://learnvimscriptthehardway.stevelosh.com/">Learn Vimscript
+the Hard Way (stevelosh.com)</a>+<a
+href="https://vim-adventures.com/">Vim Adventures</a>
+来进一步练习Vim的使用</p>
+<p>Vim（1）——Vim的基础知识和基本操作</p>
+<blockquote>
+<p>双手离开鼠标！</p>
+</blockquote>
+<span id="more"></span>
+<h1 id="why-do-i-choose-vim">Why do I choose Vim</h1>
+<p><strong>Vim is an evergreen skill.</strong></p>
+<ul>
+<li><p>双手离开鼠标！</p></li>
+<li><p>不同编辑器操作不同，但所偶有主流ide都支持vim编辑模式，一劳永逸</p>
+<p>不同编程语言ide，桌面dwm，浏览器vimium，操作spreadsheet啥的全统一成vim操作了</p></li>
+<li><p>高度可扩展<a href="https://vimawesome.com/">Vim
+Awesome</a></p></li>
+<li><p>高度可定制</p>
+<p>Vim有数以百计的选项供我们定制其行为，.vimrc 就是控制 vim
+行为的配置文件，位于 ~/.vimrc</p></li>
+</ul>
+<h1 id="vim-的哲学">Vim 的哲学</h1>
+<p><strong>Vim 的接口其实是一种编程语言：</strong></p>
+<p>Vim 最重要的设计思想是 Vim
+的界面本身是一个程序语言。键入操作（以及他们的助记名）
+本身是命令，这些命令可以组合使用。这使得移动和编辑更加高效，特别是一旦形成肌肉记忆。</p>
+<p>在编程的时候，你会把大量时间花在阅读/编辑而不是在写代码上。所以，Vim
+是一个<em>多模态</em>编辑器：它对于插入文字和操纵文字有不同的模式。Vim
+是可编程的（可以使用 Vimscript 或者像 Python
+一样的其他程序语言），<strong>Vim
+的接口本身也是一个程序语言：键入操作（以及其助记名）
+是命令，这些命令也是可组合的</strong>。Vim
+避免了使用鼠标，因为那样太慢了；Vim 甚至避免用
+上下左右键因为那样需要太多的手指移动。</p>
+<p>这样的设计哲学使得 Vim 成为了一个能跟上你思维速度的编辑器。</p>
+<blockquote>
+<p>vim 中有一些术语：</p>
+<ul>
+<li>mode：模式</li>
+<li>verb：vim 里执行的操作，比如删除 <code>d</code>、修改
+<code>c</code>、拷贝 <code>y</code>、查找 <code>f</code> 等。verb
+后面需要跟一个 motion，表示该操作生效的范围。</li>
+<li>motion：vim 里移动的范围，比如向右一个字母 <code>l</code>、向下一行
+<code>j</code>、向右一个单词 <code>w</code> 等。</li>
+</ul>
+</blockquote>
+<h1 id="编辑模式">编辑模式</h1>
+<p>Vim
+的设计以大多数时间都花在阅读、浏览和进行少量编辑改动为基础，因此它具有多种操作模式：</p>
+<ul>
+<li><strong>正常模式</strong>：在文件中四处移动光标进行修改</li>
+<li><strong>插入模式</strong>：插入文本</li>
+<li><strong>替换模式</strong>：替换文本</li>
+<li><strong>可视化模式</strong>（一般，行，块）：选中文本块</li>
+<li><strong>命令模式</strong>：用于执行命令</li>
+</ul>
+<p>在不同的操作模式下，键盘敲击的含义也不同。</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230811142738743.png"
+alt="Vim cheatsheet" />
+<figcaption aria-hidden="true">Vim cheatsheet</figcaption>
+</figure>
+<h2 id="模式切换">模式切换</h2>
+<p>你可以按下
+<code>&lt;ESC&gt;</code>（退出键）从任何其他模式返回正常模式。在正常模式，键入
+<code>i</code>
+进入插入模式（a也可以，在当前字母后进行插入）(shift+i在行开始进入insert
+mode，shift+a在行末尾进入insert mode)，<code>R</code>
+进入替换模式，<code>v</code> 进入可视（一般）模式，<code>V</code>
+进入可视（行）模式，<code>&lt;C-v&gt;</code> （Ctrl-V, 有时也写作
+<code>^V</code>）进入可视（块）模式，<code>:</code> 进入命令模式。</p>
+<p>因为你会在使用 Vim 时大量使用 <code>&lt;ESC&gt;</code>
+键，所以可以考虑把大小写锁定键重定义成 <code>&lt;ESC&gt;</code> 键。</p>
+<h2 id="替换模式">替换模式</h2>
+<p>替换模式切换 --Replace–</p>
+<ul>
+<li>r：替换光标所在字符</li>
+<li>R：进入替换模式</li>
+</ul>
+<h2 id="插入模式">插入模式</h2>
+<p><strong>insert</strong></p>
+<ul>
+<li>i：在光标前插入</li>
+<li>I：在行首插入</li>
+</ul>
+<p><strong>append</strong></p>
+<ul>
+<li>a：在光标后插入</li>
+<li>A：在行尾插入</li>
+</ul>
+<p><strong>oneLine</strong></p>
+<ul>
+<li>o：在下一行插入</li>
+<li>O：在上一行插入</li>
+</ul>
+<p><strong>change</strong></p>
+<ul>
+<li>c：删除字符后进插入模式</li>
+<li>C：删除光标处至行尾进编辑模式</li>
+</ul>
+<h2 id="正常模式">正常模式</h2>
+<h3 id="移动">移动</h3>
+<p>多数时候你会在正常模式下，使用移动命令在缓存中导航。在 Vim
+里面移动也被称为 “名词”， 因为它们指向文字块。（均可以改）</p>
+<ul>
+<li><p>基本移动: <code>hjkl</code> （左， 下， 上， 右）</p></li>
+<li><p>词： <code>w</code> （下一个词）， <code>b</code> （词初begin），
+<code>e</code> （词尾end）</p></li>
+<li><p>行： <code>0</code> （行初）， <code>^</code>
+（第一个非空格字符）， <code>$</code> （行尾）</p></li>
+<li><p>屏幕： <code>H</code> （屏幕首行）， <code>M</code>
+（屏幕中间）， <code>L</code> （屏幕底部）</p></li>
+<li><p>翻页： <code>Ctrl-u</code> （上翻半页）， <code>Ctrl-d</code>
+（下翻半页）；<code>Ctrl-b</code> （上翻）， <code>Ctrl-f</code>
+（下翻）</p></li>
+<li><p><code>zz</code>使当前行位于中间，<code>zb</code>使当前行位于末尾，<code>zt</code>使当前行置顶</p></li>
+<li><p><code>za</code>快捷，切换代码块状态(zc：快捷，折叠代码块,zo：快捷，打开代码块)</p></li>
+<li><p>文件： <code>gg</code> （文件头）， <code>G</code>
+（文件尾）</p></li>
+<li><p>行数： <code>:&#123;行数&#125;&lt;CR&gt;</code> 或者 <code>&#123;行数&#125;G</code>
+({行数}为行数)</p></li>
+<li><p>杂项： <code>%</code> （找到配对，比如括号或者 /* */
+之类的注释对）</p></li>
+<li><p>查找：大写往后找，小写往前找（同一行内）</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">f&#123;字符&#125;：落在字母上</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">t&#123;字符&#125;：落在字母前</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">F&#123;字符&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">T&#123;字符&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>查找/到 向前/向后 在本行的{字符}</li>
+<li><strong><code>,</code> / <code>;</code>
+用于导航匹配</strong>,非常有用！，/{word}
+enter，n(next)可以搜索下一个</li>
+</ul></li>
+<li><p>搜索: <code>/&#123;正则表达式&#125;</code>, <code>n</code> / <code>N</code>
+用于导航匹配</p></li>
+</ul>
+<h3 id="编辑">编辑</h3>
+<p>所有你需要用鼠标做的事，
+你现在都可以用键盘：采用编辑命令和移动命令的组合来完成。 这就是 Vim
+的界面开始看起来像一个程序语言的时候。Vim 的编辑命令也被称为 “动词”，
+因为动词可以施动于名词。</p>
+<ul>
+<li><p>i/a</p>
+<p>进入插入模式</p>
+<ul>
+<li>但是对于操纵/编辑文本，不单想用退格键完成</li>
+</ul></li>
+<li><p><code>O</code> / <code>o</code> 在之上/之下插入行</p></li>
+<li><p>d{移动命令}</p>
+<blockquote>
+<p>Tips:d理解为剪切比较好，因为vim有缓存区，所以删除的可以再p粘贴</p>
+</blockquote>
+<p>d删除 {移动命令}</p>
+<ul>
+<li>例如，<code>dw</code> 删除词, <code>d$</code> 删除到行尾,
+<code>d0</code>
+删除到行头,<code>dd</code>删除整行，<code>D</code>直接删除到末尾</li>
+</ul></li>
+<li><p>c{移动命令}</p>
+<p>c改变 {移动命令}</p>
+<ul>
+<li>例如，<code>cw</code> 改变词</li>
+<li>等价于 <code>d&#123;移动命令&#125;</code> 再 <code>i</code></li>
+</ul></li>
+<li><p><code>x</code> 删除字符（等同于 <code>dl</code>）</p></li>
+<li><p><code>s</code> 删除字符并进入insert mode（等同于
+<code>xi</code>）</p></li>
+<li><p><code>r</code>替换字符（无副作用即不会进入insert
+mode）一般f{字母}+r</p></li>
+<li><p>可视化模式 + 操作</p>
+<ul>
+<li>选中文字, <code>d</code> 删除 或者 <code>c</code> 改变</li>
+</ul></li>
+<li><p><number><code>u</code> 撤销, <code>&lt;C-r&gt;</code>
+重做</p></li>
+<li><p><code>y&#123;移动命令&#125;</code> 复制 / “yank” （其他一些命令比如
+<code>d</code> 也会复制）yy复制当前行</p></li>
+<li><p><code>p</code> 粘贴在后面，<code>P</code>在前面粘贴</p></li>
+<li><p><code>.</code>重复刚才的操作（当想在不同的地方写相同的东西，很有用）</p></li>
+<li><p>更多值得学习的: 比如 <code>~</code> 改变字符的大小写</p></li>
+<li><p><code>J</code>:合并两行(删除当前行行尾的换行符)</p></li>
+<li><p><code>~</code>切换将光标所在位置的字符大小写互换</p></li>
+<li><p>可视模式下，选中字母后，按U将其换成大写</p></li>
+<li><p>可视模式下，选中字母后，按u将其换成小写</p></li>
+</ul>
+<h3 id="计数">计数</h3>
+<p>你可以用一个计数来结合“名词”和“动词”，这会执行指定操作若干次。</p>
+<ul>
+<li><code>3w</code> 向前移动三个词</li>
+<li><code>5j</code> 向下移动5行</li>
+<li><code>7dw</code> 删除7个词</li>
+</ul>
+<h3 id="修饰语">修饰语</h3>
+<p>你可以用修饰语改变“名词”的意义。修饰语有
+<code>i</code>，表示“内部”或者“inside“，和 <code>a</code>，
+表示”around“。</p>
+<ul>
+<li><code>ci(</code> 改变当前括号内的内容</li>
+<li><code>ci[</code> 改变当前方括号内的内容</li>
+<li><code>da'</code> 删除一个单引号字符串， 包括周围的单引号</li>
+</ul>
+<h2 id="命令模式">命令模式</h2>
+<p>在正常模式下键入 <code>:</code> 进入命令行模式。 在键入
+<code>:</code> 后，你的光标会立即跳到屏幕下方的命令行。
+这个模式有很多功能，包括打开，保存，关闭文件，以及 <a
+href="https://twitter.com/iamdevloper/status/435555976687923200">退出
+Vim</a>。</p>
+<ul>
+<li><p><code>:set number</code>对行进行编号，想要到哪行就:<number>即可</p></li>
+<li><p><code>:q</code> 退出（关闭窗口）</p></li>
+<li><p><code>:w</code> 保存（写）</p></li>
+<li><p><code>:wq</code> 保存然后退出</p></li>
+<li><p><code>:q!</code>放弃更改并退出</p></li>
+<li><p><code>:e &#123;文件名&#125;</code> 打开要编辑的文件</p></li>
+<li><p><code>:ls</code> 显示打开的缓存</p></li>
+<li><p>:help {标题}</p>
+<p>打开帮助文档</p>
+<ul>
+<li><code>:help :w</code> 打开 <code>:w</code> 命令的帮助文档</li>
+<li><code>:help w</code> 打开 <code>w</code> 移动的帮助文档</li>
+</ul></li>
+<li><p><code>+p</code>粘贴</p></li>
+<li><p><code>:!+&lt;command line&gt;</code>不退出vim界面也可以直接运行命令</p></li>
+</ul>
+<h2 id="可视化模式">可视化模式</h2>
+<ul>
+<li>可视化：<code>v</code></li>
+<li>可视化行： <code>V</code></li>
+<li>可视化块（矩形）：<code>Ctrl+v</code></li>
+</ul>
+<p>可以用移动命令来选中。</p>
+<h1 id="references">References</h1>
+<ul>
+<li><p><a
+href="https://missing-semester-cn.github.io/2020/editors/">编辑器 (Vim)
+· the missing semester of your cs education
+(missing-semester-cn.github.io)</a></p></li>
+<li><p>【VS Code ×
+Vim：提高你的编码效率】https://www.bilibili.com/video/BV1MX4y1b7nM?vd_source=93bb338120537438ee9180881deab9c1</p></li>
+<li><p><a href="https://zhuanlan.zhihu.com/p/430603620">vscode + vim
+全键盘操作高效搭配方案 - 知乎 (zhihu.com)</a></p></li>
+<li><p><a href="https://zhuanlan.zhihu.com/p/44044896">VS Code
+的常用快捷键 - 知乎 (zhihu.com)</a></p></li>
+<li><p><a
+href="https://blog.csdn.net/weixin_42514042/article/details/124169302">VSCode
+vim 使用vimrc配置 vim使用系统剪切板配置_vscode
+vimrc_未知褶皱的博客-CSDN博客</a></p></li>
+<li><p><a
+href="https://blog.csdn.net/m0_47670683/article/details/125160391?spm=1001.2101.3001.6661.1&amp;utm_medium=distribute.pc_relevant_t0.none-task-blog-2~default~CTRLIST~Rate-1-125160391-blog-121179927.235%5Ev38%5Epc_relevant_sort_base3&amp;depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-2~default~CTRLIST~Rate-1-125160391-blog-121179927.235%5Ev38%5Epc_relevant_sort_base3&amp;utm_relevant_index=1">VSCode使用Vim插件心得_vscode
+vim插件_皛心的博客-CSDN博客</a></p></li>
+</ul>
+]]></content>
+      <categories>
+        <category>CS</category>
+      </categories>
+      <tags>
+        <tag>CS</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Vim（2）</title>
     <url>/2023/08/13/Vim%EF%BC%882%EF%BC%89/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
@@ -5029,91 +5047,6 @@ Vim：提高你的编码效率】https://www.bilibili.com/video/BV1MX4y1b7nM?vd_
       </categories>
       <tags>
         <tag>CS</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>用户名更改and下载cubeMX和keil的一些问题</title>
-    <url>/2023/08/17/cubeMX%E5%92%8Ckeil%E7%9A%84%E5%AE%89%E8%A3%85%E4%B8%8E%E5%8D%B8%E8%BD%BD/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>cubeMX和keil的安装+卸载及集成到VSCode</p>
-<p>被两个软件安装和卸载折磨了！！！,终获成功！！！</p>
-<p>多次卸载+安装始终无法正确使用，反而把两个软件的安装+卸载搞熟悉了</p>
-<span id="more"></span>
-<h1 id="改用户名">改用户名</h1>
-<p>主要的错误应该是我的用户名用的中文吧，所以决定壮士断腕改为英文名，看了很多失败的案例，还是选择在淘宝上请一个师傅远程操作（这种事情还是安全为上！）</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/_-721152154__465acad98c72f8e17ea03c287d76d4af_207603416_IMG_20230815_173354_0_xg_0.jpg"
-alt="error1" />
-<figcaption aria-hidden="true">error1</figcaption>
-</figure>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/_-639538789__b14d87141ec83c2e90a4fa2c3b7ca94e_210373979_IMG_20230815_173357_0_xg_0.jpg"
-alt="error2" />
-<figcaption aria-hidden="true">error2</figcaption>
-</figure>
-<p>但改了用户名后就会有很多软件不能用，必要的还是重新下载为好</p>
-<h1 id="stm32cubemx">STM32CubeMX</h1>
-<h2 id="下载">下载</h2>
-<p>在官网直接下载即可</p>
-<p>但是使用时必须下载相应的库才行：在首页HELP-&gt;Manage embedded
-software packages中可以直接install/update</p>
-<blockquote>
-<p>Tips:旧版可以直接下，最新版必须要ST公司的账号（注册是免费的）</p>
-</blockquote>
-<h2 id="firmware-packages">Firmware packages</h2>
-<p>我的路径仍然有问题，且无法修改，所以还是选择从官网上下载.zip文件，然后在固件管理中选择from
-local</p>
-<h2 id="卸载">卸载</h2>
-<p>现在控制面板的程序和功能中删除STM32CubeMX,然后清除C盘的一些残留数据文件夹</p>
-<ul>
-<li>C:Files32Cube32CubeMX</li>
-<li>C:<username>32CubeMX</li>
-<li>C:<username>32CubeMX</li>
-</ul>
-<p>最后删除注册表中的相关项：在Win+R中输入regedit进入注册表编辑器，进入以下路径：HKEY_CURRENT_USER32CubeMX，右键单击“STM32CubeMX”文件夹，选择“删除”。</p>
-<h1 id="keil5">keil5</h1>
-<h2 id="下载-1">下载</h2>
-<p>找好心人（知乎，B站，贴吧。。。）的网盘资源下载，按指令要求安装完后进行注册</p>
-<p>然后使用注册机，之前的注册机2020年失效，寻找最新的可以到2032年</p>
-<blockquote>
-<p>Tips:注册时，注册机和keil的打开都必须以管理员的方式打开</p>
-</blockquote>
-<h2 id="pack-install">Pack install</h2>
-<p>进入keil后点击pack install(一个绿绿的选项)下载必要的pack</p>
-<blockquote>
-<p>Tips:可以直接在官网上下载（最新），然后双击会自动下载到keil里面</p>
-</blockquote>
-<h2 id="卸载-1">卸载</h2>
-<p>有unstall固然挺好，否则把文件夹卸载后，要在Win+R中输入regedit进入注册表编辑器在里面将HKEY_CLASSES_ROOT目录下的
-所有UV开头的文件删除，然后将HKEY_CURRENT_USER</p>
-<h1 id="vscode">VSCode</h1>
-<p>在keil中配置好后在VSCode中打开：</p>
-<p>先在VSCode中下载<code>Keil Assistance</code>,然后在管理扩展中给出<code>MDK UV4.exe path</code>即可</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230817224831344.png"
-alt="image-20230817224831344" />
-<figcaption aria-hidden="true">image-20230817224831344</figcaption>
-</figure>
-<blockquote>
-<p>看到这一幕好激动！！！</p>
-</blockquote>
-<h1 id="references">References</h1>
-<ul>
-<li><a
-href="https://wenku.csdn.net/answer/564b100e9b124f08943a2fe894a8c7c4#:~:text=stm32cubemx卸载干净教程%201%20关闭STM32CubeMX软件及其相关的进程。%202%20打开控制面板，选择“程序和功能”。%203%20在已安装的程序列表中，找到并选择“STMicroelectronics%20STM32CubeMX”。,7%20删除Java%20Runtime%20Environment（JRE）中的缓存：%20打开控制面板，选择“Java”。%20...%208%20最后，重新启动计算机。">stm32cubemx卸载干净教程
-- CSDN文库</a></li>
-<li><a
-href="https://blog.csdn.net/Damon_Sandy/article/details/130314186">如何彻底删除keil5_keil卸载_胜折宇的博客-CSDN博客</a></li>
-</ul>
-]]></content>
-      <categories>
-        <category>嵌入式</category>
-      </categories>
-      <tags>
-        <tag>嵌入式</tag>
       </tags>
   </entry>
   <entry>
@@ -5936,6 +5869,91 @@ at master · jackfrued/Python-100-Days (github.com)</a></p>
       </tags>
   </entry>
   <entry>
+    <title>用户名更改and下载cubeMX和keil的一些问题</title>
+    <url>/2023/08/17/cubeMX%E5%92%8Ckeil%E7%9A%84%E5%AE%89%E8%A3%85%E4%B8%8E%E5%8D%B8%E8%BD%BD/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>cubeMX和keil的安装+卸载及集成到VSCode</p>
+<p>被两个软件安装和卸载折磨了！！！,终获成功！！！</p>
+<p>多次卸载+安装始终无法正确使用，反而把两个软件的安装+卸载搞熟悉了</p>
+<span id="more"></span>
+<h1 id="改用户名">改用户名</h1>
+<p>主要的错误应该是我的用户名用的中文吧，所以决定壮士断腕改为英文名，看了很多失败的案例，还是选择在淘宝上请一个师傅远程操作（这种事情还是安全为上！）</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/_-721152154__465acad98c72f8e17ea03c287d76d4af_207603416_IMG_20230815_173354_0_xg_0.jpg"
+alt="error1" />
+<figcaption aria-hidden="true">error1</figcaption>
+</figure>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/_-639538789__b14d87141ec83c2e90a4fa2c3b7ca94e_210373979_IMG_20230815_173357_0_xg_0.jpg"
+alt="error2" />
+<figcaption aria-hidden="true">error2</figcaption>
+</figure>
+<p>但改了用户名后就会有很多软件不能用，必要的还是重新下载为好</p>
+<h1 id="stm32cubemx">STM32CubeMX</h1>
+<h2 id="下载">下载</h2>
+<p>在官网直接下载即可</p>
+<p>但是使用时必须下载相应的库才行：在首页HELP-&gt;Manage embedded
+software packages中可以直接install/update</p>
+<blockquote>
+<p>Tips:旧版可以直接下，最新版必须要ST公司的账号（注册是免费的）</p>
+</blockquote>
+<h2 id="firmware-packages">Firmware packages</h2>
+<p>我的路径仍然有问题，且无法修改，所以还是选择从官网上下载.zip文件，然后在固件管理中选择from
+local</p>
+<h2 id="卸载">卸载</h2>
+<p>现在控制面板的程序和功能中删除STM32CubeMX,然后清除C盘的一些残留数据文件夹</p>
+<ul>
+<li>C:Files32Cube32CubeMX</li>
+<li>C:<username>32CubeMX</li>
+<li>C:<username>32CubeMX</li>
+</ul>
+<p>最后删除注册表中的相关项：在Win+R中输入regedit进入注册表编辑器，进入以下路径：HKEY_CURRENT_USER32CubeMX，右键单击“STM32CubeMX”文件夹，选择“删除”。</p>
+<h1 id="keil5">keil5</h1>
+<h2 id="下载-1">下载</h2>
+<p>找好心人（知乎，B站，贴吧。。。）的网盘资源下载，按指令要求安装完后进行注册</p>
+<p>然后使用注册机，之前的注册机2020年失效，寻找最新的可以到2032年</p>
+<blockquote>
+<p>Tips:注册时，注册机和keil的打开都必须以管理员的方式打开</p>
+</blockquote>
+<h2 id="pack-install">Pack install</h2>
+<p>进入keil后点击pack install(一个绿绿的选项)下载必要的pack</p>
+<blockquote>
+<p>Tips:可以直接在官网上下载（最新），然后双击会自动下载到keil里面</p>
+</blockquote>
+<h2 id="卸载-1">卸载</h2>
+<p>有unstall固然挺好，否则把文件夹卸载后，要在Win+R中输入regedit进入注册表编辑器在里面将HKEY_CLASSES_ROOT目录下的
+所有UV开头的文件删除，然后将HKEY_CURRENT_USER</p>
+<h1 id="vscode">VSCode</h1>
+<p>在keil中配置好后在VSCode中打开：</p>
+<p>先在VSCode中下载<code>Keil Assistance</code>,然后在管理扩展中给出<code>MDK UV4.exe path</code>即可</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20230817224831344.png"
+alt="image-20230817224831344" />
+<figcaption aria-hidden="true">image-20230817224831344</figcaption>
+</figure>
+<blockquote>
+<p>看到这一幕好激动！！！</p>
+</blockquote>
+<h1 id="references">References</h1>
+<ul>
+<li><a
+href="https://wenku.csdn.net/answer/564b100e9b124f08943a2fe894a8c7c4#:~:text=stm32cubemx卸载干净教程%201%20关闭STM32CubeMX软件及其相关的进程。%202%20打开控制面板，选择“程序和功能”。%203%20在已安装的程序列表中，找到并选择“STMicroelectronics%20STM32CubeMX”。,7%20删除Java%20Runtime%20Environment（JRE）中的缓存：%20打开控制面板，选择“Java”。%20...%208%20最后，重新启动计算机。">stm32cubemx卸载干净教程
+- CSDN文库</a></li>
+<li><a
+href="https://blog.csdn.net/Damon_Sandy/article/details/130314186">如何彻底删除keil5_keil卸载_胜折宇的博客-CSDN博客</a></li>
+</ul>
+]]></content>
+      <categories>
+        <category>嵌入式</category>
+      </categories>
+      <tags>
+        <tag>嵌入式</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>stm32进阶（1）</title>
     <url>/2023/09/11/stm32%E8%BF%9B%E9%98%B6%EF%BC%881%EF%BC%89/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
@@ -6051,6 +6069,9 @@ HAL 库的 SPI通信函数 <code>HAL_SPI_TransmitReceive</code></p>
 <p><a
 href="https://blog.csdn.net/weixin_44080304/article/details/125065724">陀螺仪数据处理(BMI088)_lilei668的博客-CSDN博客</a></p>
 <h1 id="spi协议">SPI协议</h1>
+<p><a
+href="https://zhuanlan.zhihu.com/p/290620901#:~:text=除了配置串行时钟速率（频率）外，SPI主设备还需要配置%20时钟极性%20。%20根据硬件制造商的命名规则不同，时钟极性通常写为%20CKP,或%20CPOL%20。%20时钟极性和相位共同决定读取数据的方式，比如信号上升沿读取数据还是信号下降沿读取数据；%20CKP%20可以配置为1或0。">SPI协议详解（图文并茂+超详细）
+- 知乎 (zhihu.com)</a></p>
 <h2 id="简介">简介</h2>
 <p>SPI
 协议是摩托罗拉公司开发的一种高速的，全双工，同步的通信总线，使用四根线进行通信，具有简单易用，通讯速度高的特点。
@@ -6143,6 +6164,40 @@ alt="image-20230911163747659" />
 <figcaption aria-hidden="true">image-20230911163747659</figcaption>
 </figure>
 <p>当主设备和从设备通信时，双方内部同时使用一个移位寄存器进行数据的存储和发送，每当主设备（从设备）完成一位发送的同时，移位寄存器进行一位的移位，并将接收到的数据存储入移位产生的新空间内，这样双方就可以同步同时的完成数据收发</p>
+<h3 id="时钟极性-ckpclock-polarity"><strong>时钟极性 CKP/Clock
+Polarity</strong></h3>
+<p>除了配置串行时钟速率（频率）外，SPI主设备还需要配置<strong>时钟极性</strong>。</p>
+<p>根据硬件制造商的命名规则不同，时钟极性通常写为<strong>CKP</strong>或<strong>CPOL</strong>。时钟极性和相位共同决定读取数据的方式，比如信号上升沿读取数据还是信号下降沿读取数据；</p>
+<p><strong>CKP</strong>可以配置为1或0。这意味着您可以根据需要将时钟的默认状态（IDLE）设置为高或低。极性反转可以通过简单的逻辑逆变器实现。您必须参考设备的数据手册才能正确设置CKP和CKE。</p>
+<ul>
+<li><code>CKP = 0</code>：时钟空闲<code>IDLE</code>为低电平
+<code>0</code>；</li>
+<li><code>CKP = 1</code>：时钟空闲<code>IDLE</code>为高电平<code>1</code>；</li>
+</ul>
+<h3 id="时钟相位-cke-clock-phase-edge"><strong>时钟相位 CKE /Clock Phase
+(Edge)</strong></h3>
+<p>除配置串行时钟速率和极性外，SPI主设备还应配置时钟相位（或边沿）。根据硬件制造商的不同，时钟相位通常写为<strong>CKE</strong>或<strong>CPHA</strong>；</p>
+<p>顾名思义，时钟相位/边沿，也就是采集数据时是在时钟信号的具体相位或者边沿；</p>
+<ul>
+<li><code>CKE = 0</code>：在时钟信号<code>SCK</code>的第一个跳变沿采样；</li>
+<li><code>CKE = 1</code>：在时钟信号<code>SCK</code>的第二个跳变沿采样；</li>
+</ul>
+<p>下图总结了所有时钟配置组合，并突出显示了实际采样数据的时刻；</p>
+<blockquote>
+<p>其中黑色线为采样数据的时刻； 蓝色线为SCK时钟信号；</p>
+</blockquote>
+<figure>
+<img
+src="https://pic1.zhimg.com/80/v2-ed078045bc5e1095e39fcf3bce765f9c_720w.webp"
+alt="img" />
+<figcaption aria-hidden="true">img</figcaption>
+</figure>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/image-20231022113718449.png"
+alt="image-20231022113718449" />
+<figcaption aria-hidden="true">image-20231022113718449</figcaption>
+</figure>
 <h2 id="通信过程">通信过程</h2>
 <p>SPI 的通信过程如下：</p>
 <ol type="1">
@@ -6211,6 +6266,10 @@ Motorola（摩托罗拉）格式和TI（德州仪器）格式</td>
 </tr>
 </tbody>
 </table>
+<p>在 cube 中，可以再 Connectivity 中找到 SPI
+的外设，将模式选择为全双工的主节点，片选信号的模式我们选择为软件修改的形式，即需要在程序中自行调用函数拉高或者拉低引脚的电平。时钟的分频值我们选择为16，需要使得通信的波特率低于从设备允许的最高波特率。同时
+SPI 中还需要设置时钟极性以及相位，总共有4中情况。</p>
+<p>以上部分的设置均要根据从设备的情况设置。</p>
 <h1 id="references">References</h1>
 <ul>
 <li><p><a
@@ -6227,193 +6286,6 @@ href="https://blog.csdn.net/weixin_44080304/article/details/125065724">陀螺仪
       <tags>
         <tag>嵌入式</tag>
         <tag>robomaster</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>workflow——STM32(2)</title>
-    <url>/2023/09/01/workflow%E2%80%94%E2%80%94STM32%EF%BC%882%EF%BC%89/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>记录我搭建CubeMX+VSCode+Ozone的STM32开发工作流的过程。</p>
-<p>workflow——STM32(1)跟随知乎大佬<strong>NeoAndrew</strong>的博客搭建，并且适应浙大HW电控组的要求</p>
-<p>该篇记录之前搭建workflow遇到的一些不明白的东西——包括FPU、DSP库、gcc-arm-none-eabi、GDB调试</p>
-<span id="more"></span>
-<h1 id="fpu">FPU</h1>
-<h2 id="简介">简介</h2>
-<p>FPU(floating point
-unit)浮点运算单元，专用于执行十进制数计算的处理器。
-也称为数学协处理器，用于执行算术运算</p>
-<h2 id="硬件fpu的开启">硬件FPU的开启</h2>
-<ol type="1">
-<li><p>通过修改代码实现</p>
-<p>默认情况下，STM32F4xx的FPU是禁用的，可以通过设置协处理器控制寄存器（CPACR）来开启硬件FPU。在keil编程环境下，可以通过定义全局宏定义标识符_FPU_PRESENT和_FPU_USED都为1来开启硬件FPU。其中宏定义标识符_FPU_PRESENT用来确认处理是否带有FPU功能，标识符_FPU_USED用来确定是否开启FPU功能。实际上，因为STM32F4是带有FPU功能的，所以在stm32f4xx.h头文件中，默认定义_FPU_PRESENT为1。可以在文件stm32f4xx.h中找到如下定义。</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/v2-2d602b30af5dc870f5cde77950d871e0_720w.webp"
-alt="img" />
-<figcaption aria-hidden="true">img</figcaption>
-</figure>
-<p>若要开启FPU还需要在头文件stm32f4xx.h中定义标示符_FPU_USED的值为1。即在刚才的宏定义下边添加一个宏定义。</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/v2-541e124369294feb57798bf8d91dc9bc_720w.webp"
-alt="img" />
-<figcaption aria-hidden="true">img</figcaption>
-</figure></li>
-<li><p>通过软件设置实现</p>
-<p>在魔术棒中点击Target选项卡，在Code Generation区域的Floating Point
-Hardware中选择Use
-FPU即可，经过设置之后，在程序编译时编译器会自动加入宏定义标识符_FPU_USED为1。</p></li>
-</ol>
-<h1 id="dsp库">DSP库</h1>
-<p>STM32F4xx属于Cortex M4F架构，带有32位的单精度硬件FPU(Float Point
-Unit)，支持浮点指令集，相对比M0和M3架构，浮点运算性能高出数十倍甚至上百倍。CortexTMM4
-FPU是ARMTMFPv4-SP单精度FPU一种实现形式。</p>
-<p>STM32F4的Cortex-M4内核不仅内置硬件FPU单元，还支持DSP多种指令集</p>
-<h2 id="简介-1">简介</h2>
-<p>DSP(Digital Signal
-Processing)数字信号处理技术，DSP库就是为了让MCU能够使用像DSP（数字信号处理的芯片）功能弄的一些官方库函数。</p>
-<p>强大数据处理能力、数字信号处理的实时性和高运行速度。</p>
-<p>DSP库主要包含以下几个分库：</p>
-<ul>
-<li><p>BasicMathFunctions基本数学函数：提供浮点数的各种基本运算函数，如向量加减乘除等运算。</p></li>
-<li><p>CommonTables，arm_common_tables.c文件提供位翻转或相关参数表。</p></li>
-<li><p>ComplexMathFunctions复杂数学功能，如向量处理，求模运算的。</p></li>
-<li><p>ControllerFunctions控制功能函数。包括正弦余弦，PID电机控制，矢量Clarke变换，矢量Clarke逆变换等。</p></li>
-<li><p>FastMathFunctions快速数学功能函数。提供了一种快速的近似正弦，余弦和平方根等相比CMSIS计算库要快的数学函数。</p></li>
-<li><p>FilteringFunctions滤波函数功能，主要为FIR和LMS（最小均方根）等滤波函数。</p></li>
-<li><p>MatrixFunctions矩阵处理函数。包括矩阵加法、矩阵初始化、矩阵反、矩阵乘法、矩阵规模、矩阵减法、矩阵转置等函数。</p></li>
-<li><p>StatisticsFunctions统计功能函数。如求平均值、最大值、最小值、计算均方根RMS、计算方差/标准差等。</p></li>
-<li><p>SupportFunctions支持功能函数，如数据拷贝，Q格式和浮点格式相互转换，Q任意格式相互转换。</p></li>
-<li><p>TransformFunctions变换功能。包括复数FFT（CFFT）/复数FFT逆运算（CIFFT）、实数FFT（RFFT）/实数FFT逆运算（RIFFT）、和DCT（离散余弦变换）和配套的初始化函数。</p></li>
-</ul>
-<h2 id="使用">使用</h2>
-<p>DSP库移植的一些步骤（移植也分两种，一种是使用lib文件，另一种是直接的C语言函数库）</p>
-<ol type="1">
-<li><p>在STM32CubeMX中选择copy all used libraries</p></li>
-<li><p>在keil中添加DSP库到工程：DSP库文件就在工程目录中，位于.</p>
-<p>arm_cortexM4bf_math.lib(浮点Cortex-M4大端模式)</p>
-<p>arm_cortexM4lf_math.lib(浮点Cortex-M4小端模式)</p>
-<p>STM32F4的内核CortexM4F采用小端模式，所以选择：arm_cortexM4lf_math.lib(浮点Cortex-M4小端模式)。</p>
-<blockquote>
-<p>Tips:‘b’表示大端格式（Big Endian），‘l’表示小端格式（Little
-Endian），‘f’表示带浮点数。要根据自己使用的硬件平台来选择（看是大端还是小端，是否带有FPU（浮点运算单元））</p>
-</blockquote></li>
-<li><p>在魔术棒中点击Target选项卡，在Code Generation区域的Floating Point
-Hardware中选择Single Precision（单精度）</p>
-<p>点击C/C++选项卡，在Preprocessor
-Symbols区域的Define中添加如下内容：<code>ARM_MATH_CM4,__TARGET_FPU_VFP,__FPU_PRESENT=1</code></p>
-<ul>
-<li><p>ARM_MATH_CM4表示在CM4中使用MATH库</p></li>
-<li><p>__TARGET_FPU_VFP表示在目标设备中使用FPU</p></li>
-<li><p>__FPU_PRESENT=1表示开启FPU，这个宏其实在stm32f407xx.h中有定义时，但是它并没有在core_cm4.h中起作用，在编译的时候会报错，应该是跟文件的编译顺序有关系，因此为了正常编译，在这里添加它。</p></li>
-</ul></li>
-<li><p>在相应的.c文件中添加头文件：arm_math.h、arm_const_structs.h即可使用。</p>
-<blockquote>
-<p>Tips:在官方的HAL库中有DSP库相关的使用例程，<code>STM32Cube_FW_F4_V1.21.0\Drivers\CMSIS\DSP_Lib\Examples</code></p>
-</blockquote></li>
-</ol>
-<h1 id="gcc-arm-none-eabi">gcc-arm-none-eabi</h1>
-<h2 id="简介-2">简介</h2>
-<p>gcc-arm-none-eabi是GNU项目下的软件，是一个面向裸机arm的编译器，更专业的，在嵌入式开发中我们一般将它叫做工具链。（工具链：一般由编译器、连接器、解释器和调试器组成）</p>
-<h2
-id="gcc-arm-none-eabi工具链工具使用方法及介绍">gcc-arm-none-eabi工具链工具使用方法及介绍</h2>
-<p>在我们安装好gcc-arm-none-eabi后，我们可以在终端中输入指令来调用gcc-arm-none-eabi的功能了，那么这个工具链下茫茫多的执行软件都是做什么的呢，可以看到在路径下一共有28个工具。接下来我们就来介绍一下我们将会用到的工具和他的功能及使用方式。</p>
-<ul>
-<li><p>arm-none-eabi-gcc这个工具为c语言编译器，可以将<em>.c</em>文件转化为<em>.o</em>的执行文件。
-它的使用方法是，在终端中cd到工作目录，如编译当前目录下的<em>hello.c</em>文件，生成<em>hello.o</em>文件：
-<code>arm-none-eabi-gcc -c hello.c</code></p></li>
-<li><p>arm-none-eabi-g++这个工具为c++语言编译器，可以将<em>.cpp</em>文件转化为<em>.o</em>的执行文件，使用方式如上。</p></li>
-<li><p>arm-none-eabi-ld这个工具为链接器即最后链接所有 <em>.o</em>
-文件生成可执行文件的工具。一般我们不使用 <em>arm-none-eabi-ld</em>
-的指令调用它，而是通过使用<em>arm-none-eabi-gcc</em>
-来调用，因为前者对c/cpp文件混合型生成的.o文件们的支持性不好，所以官方的说明书中也推荐使用<em>arm-none-eabi-gcc</em>
-指令来代替<em>arm-none-eabi-ld</em>，如下：
-<code>arm-none-eabi-gcc -o hello hello.o</code></p></li>
-<li><p>arm-none-eabi-objcopy此工具将链接器生成的文件转化为bin/hex等烧写的格式，用以下载进入单片机。如下：</p>
-<p><code>arm-none-eabi-objcopy hello hello.bin</code></p></li>
-<li><p>arm-none-eabi-gdb工具链中的调试器，将它连接到调试器硬件产生的网络端口，就可以进行硬件和代码的调试了。GDB是gnu下一个独特的调试软件，它具有很多自己的特性，也许大家无法想象使用命令行调试的景象，但是之后我们会看到它的强大。</p></li>
-</ul>
-<p>当然这一系列的指令只是一个简单且包含用法错误的例子，实际的使用中我们要输入很多设置参数，才能适配我们的单片机。</p>
-<h1 id="gdb调试">GDB调试</h1>
-<h2 id="简介-3">简介</h2>
-<p>GDB 全称“GNU symbolic debugger”，从名称上不难看出，它诞生于 GNU
-计划（同时诞生的还有 GCC、Emacs 等），是 Linux
-下常用的<strong>命令行程序调试工具</strong>。实际场景中，GDB
-更常用来调试 C 和 C++ 程序。</p>
-<blockquote>
-<p>Tips:使用 Vim+GDB 可以在任意一台电脑上直接调试，不用花时间安装复杂的
-IDE 环境。</p>
-</blockquote>
-<p>一般来说，GDB主要帮助我们完成以下四个方面的功能：</p>
-<ol type="1">
-<li>启动你的程序，可以按照你的自定义的要求随心所欲的运行程序。</li>
-<li>在某个指定的地方或条件下暂停程序。</li>
-<li>当程序被停住时，可以检查此时你的程序中所发生的事。</li>
-<li>在程序执行过程中修改程序中的变量或条件，将一个bug产生的影响修正从而测试其他bug。</li>
-</ol>
-<blockquote>
-<p>如何进行调试我没有学习因为现在还没有在Linux上进行调试，以后有需要的话填坑！！！</p>
-</blockquote>
-<h2 id="调试arm">调试ARM</h2>
-<p>windows使用gdb调试stm32可以使用几套环境：</p>
-<ol type="1">
-<li>stlink硬件+openocd软件+arm-none-eabi-gdb</li>
-<li>jlink硬件+openocd软件+arm-none-eabi-gdb</li>
-<li>jlink硬件+jlink_gdb_server软件+arm-none-eabi-gdb</li>
-</ol>
-<h1 id="references">References</h1>
-<ul>
-<li><p><a
-href="https://zhuanlan.zhihu.com/p/584903079">CubeMX+VSCode+Ozone的STM32开发工作流（一）背景知识介绍
-- 知乎 (zhihu.com)</a></p></li>
-<li><p><a
-href="https://zhuanlan.zhihu.com/p/584912052">CubeMX+VSCode+Ozone的STM32开发工作流（二）VSCode环境配置
-- 知乎 (zhihu.com)</a></p></li>
-<li><p><a
-href="https://zhuanlan.zhihu.com/p/584915369">CubeMX+VSCode+Ozone的STM32开发工作流（三）利用Ozone进行可视化调试和代码分析
-- 知乎 (zhihu.com)</a></p></li>
-<li><p><a
-href="https://zhuanlan.zhihu.com/p/584953490">CubeMX+VSCode+Ozone的STM32开发工作流（四）VSCode动态变量监视和可视化插件开发
-- 知乎 (zhihu.com)</a></p></li>
-<li><p><a
-href="https://zhuanlan.zhihu.com/p/584954096">CubeMX+VSCode+Ozone的STM32开发工作流（五）无线J-Link和DAP-Link开发
-- 知乎 (zhihu.com)</a></p></li>
-<li><p><a
-href="https://zju-helloworld.github.io/Wiki/开发指南/开发环境/CubeMX%2BVSCode%2BOzone%20配置STM32开发环境/">CubeMX
-+ VS Code + Ozone 配置 STM32 开发环境 - Hello World 技术知识库
-(zju-helloworld.github.io)</a>当然还有我们浙大HW电控组的Wiki</p></li>
-<li><p><a
-href="https://zhuanlan.zhihu.com/p/462911261">在STM32中使用DSP库 - 知乎
-(zhihu.com)</a>DSP库的使用</p></li>
-<li><p><a
-href="https://zhuanlan.zhihu.com/p/435278301">开源调试软件OpenOCD调试stm32
-- 知乎 (zhihu.com)</a>开源调试软件OpenOCD</p></li>
-<li><p><a
-href="https://zhuanlan.zhihu.com/p/568080861">STM32高级开发——gcc-arm-none-eabi
-- 知乎 (zhihu.com)</a></p></li>
-<li><p><a
-href="https://blog.csdn.net/u010058695/article/details/108864001">openOCD安装
-极简教程_openocd教程_spic_jackmaster的博客-CSDN博客</a></p></li>
-<li><p><a
-href="https://blog.csdn.net/qq_40833810/article/details/106713462">Cortex-debug
-调试器使用介绍_cortex debug_「已注销」的博客-CSDN博客</a></p></li>
-<li><p><a
-href="https://zhuanlan.zhihu.com/p/431118510">浅析Makefile、make、cmake
-- 知乎 (zhihu.com)</a></p></li>
-<li><p><a
-href="https://blog.csdn.net/guoshaobei/article/details/4747965">浮点运算单元(FPU)的理解_fpu
-verilog_Lanttor的博客-CSDN博客</a></p></li>
-<li><p><a
-href="https://zhuanlan.zhihu.com/p/196763202">一文教你快速上手GDB程序调试
-- 知乎 (zhihu.com)</a></p></li>
-</ul>
-]]></content>
-      <categories>
-        <category>嵌入式</category>
-      </categories>
-      <tags>
-        <tag>嵌入式</tag>
-        <tag>workflow</tag>
       </tags>
   </entry>
   <entry>
@@ -6662,87 +6534,182 @@ href="https://zhuanlan.zhihu.com/p/431118510">浅析Makefile、make、cmake
       </tags>
   </entry>
   <entry>
-    <title>各种通信方式</title>
-    <url>/2023/07/29/%E5%90%84%E7%A7%8D%E9%80%9A%E4%BF%A1%E6%96%B9%E5%BC%8F/</url>
+    <title>workflow——STM32(2)</title>
+    <url>/2023/09/01/workflow%E2%80%94%E2%80%94STM32%EF%BC%882%EF%BC%89/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>了解及总结（同步通信-异步通信-全双工通信-串行通信-并行通信）各种通信方法</p>
+<p>记录我搭建CubeMX+VSCode+Ozone的STM32开发工作流的过程。</p>
+<p>workflow——STM32(1)跟随知乎大佬<strong>NeoAndrew</strong>的博客搭建，并且适应浙大HW电控组的要求</p>
+<p>该篇记录之前搭建workflow遇到的一些不明白的东西——包括FPU、DSP库、gcc-arm-none-eabi、GDB调试</p>
 <span id="more"></span>
-<h1 id="并行通信-and-串行通信">并行通信 and 串行通信</h1>
-<h2 id="并行通信">并行通信</h2>
-<p>Parallel communication</p>
-<h4 id="传输方式">传输方式</h4>
-<p>多个数据bit位同时传输</p>
-<h4 id="常用总线">常用总线</h4>
-<p>local bus, DDR</p>
-<h4 id="特点">特点</h4>
+<h1 id="fpu">FPU</h1>
+<h2 id="简介">简介</h2>
+<p>FPU(floating point
+unit)浮点运算单元，专用于执行十进制数计算的处理器。
+也称为数学协处理器，用于执行算术运算</p>
+<h2 id="硬件fpu的开启">硬件FPU的开启</h2>
+<ol type="1">
+<li><p>通过修改代码实现</p>
+<p>默认情况下，STM32F4xx的FPU是禁用的，可以通过设置协处理器控制寄存器（CPACR）来开启硬件FPU。在keil编程环境下，可以通过定义全局宏定义标识符_FPU_PRESENT和_FPU_USED都为1来开启硬件FPU。其中宏定义标识符_FPU_PRESENT用来确认处理是否带有FPU功能，标识符_FPU_USED用来确定是否开启FPU功能。实际上，因为STM32F4是带有FPU功能的，所以在stm32f4xx.h头文件中，默认定义_FPU_PRESENT为1。可以在文件stm32f4xx.h中找到如下定义。</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/v2-2d602b30af5dc870f5cde77950d871e0_720w.webp"
+alt="img" />
+<figcaption aria-hidden="true">img</figcaption>
+</figure>
+<p>若要开启FPU还需要在头文件stm32f4xx.h中定义标示符_FPU_USED的值为1。即在刚才的宏定义下边添加一个宏定义。</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/v2-541e124369294feb57798bf8d91dc9bc_720w.webp"
+alt="img" />
+<figcaption aria-hidden="true">img</figcaption>
+</figure></li>
+<li><p>通过软件设置实现</p>
+<p>在魔术棒中点击Target选项卡，在Code Generation区域的Floating Point
+Hardware中选择Use
+FPU即可，经过设置之后，在程序编译时编译器会自动加入宏定义标识符_FPU_USED为1。</p></li>
+</ol>
+<h1 id="dsp库">DSP库</h1>
+<p>STM32F4xx属于Cortex M4F架构，带有32位的单精度硬件FPU(Float Point
+Unit)，支持浮点指令集，相对比M0和M3架构，浮点运算性能高出数十倍甚至上百倍。CortexTMM4
+FPU是ARMTMFPv4-SP单精度FPU一种实现形式。</p>
+<p>STM32F4的Cortex-M4内核不仅内置硬件FPU单元，还支持DSP多种指令集</p>
+<h2 id="简介-1">简介</h2>
+<p>DSP(Digital Signal
+Processing)数字信号处理技术，DSP库就是为了让MCU能够使用像DSP（数字信号处理的芯片）功能弄的一些官方库函数。</p>
+<p>强大数据处理能力、数字信号处理的实时性和高运行速度。</p>
+<p>DSP库主要包含以下几个分库：</p>
 <ul>
-<li>同时传输，效率高</li>
-<li>数据线多，设计复杂</li>
+<li><p>BasicMathFunctions基本数学函数：提供浮点数的各种基本运算函数，如向量加减乘除等运算。</p></li>
+<li><p>CommonTables，arm_common_tables.c文件提供位翻转或相关参数表。</p></li>
+<li><p>ComplexMathFunctions复杂数学功能，如向量处理，求模运算的。</p></li>
+<li><p>ControllerFunctions控制功能函数。包括正弦余弦，PID电机控制，矢量Clarke变换，矢量Clarke逆变换等。</p></li>
+<li><p>FastMathFunctions快速数学功能函数。提供了一种快速的近似正弦，余弦和平方根等相比CMSIS计算库要快的数学函数。</p></li>
+<li><p>FilteringFunctions滤波函数功能，主要为FIR和LMS（最小均方根）等滤波函数。</p></li>
+<li><p>MatrixFunctions矩阵处理函数。包括矩阵加法、矩阵初始化、矩阵反、矩阵乘法、矩阵规模、矩阵减法、矩阵转置等函数。</p></li>
+<li><p>StatisticsFunctions统计功能函数。如求平均值、最大值、最小值、计算均方根RMS、计算方差/标准差等。</p></li>
+<li><p>SupportFunctions支持功能函数，如数据拷贝，Q格式和浮点格式相互转换，Q任意格式相互转换。</p></li>
+<li><p>TransformFunctions变换功能。包括复数FFT（CFFT）/复数FFT逆运算（CIFFT）、实数FFT（RFFT）/实数FFT逆运算（RIFFT）、和DCT（离散余弦变换）和配套的初始化函数。</p></li>
 </ul>
-<h2 id="串行通信">串行通信</h2>
-<p>Serial communication</p>
-<h4 id="传输方式-1">传输方式</h4>
-<p>数据bit一位一位传输</p>
-<h4 id="常用总线-1">常用总线</h4>
-<p>local bus, DDR</p>
-<h4 id="特点-1">特点</h4>
+<h2 id="使用">使用</h2>
+<p>DSP库移植的一些步骤（移植也分两种，一种是使用lib文件，另一种是直接的C语言函数库）</p>
+<ol type="1">
+<li><p>在STM32CubeMX中选择copy all used libraries</p></li>
+<li><p>在keil中添加DSP库到工程：DSP库文件就在工程目录中，位于.</p>
+<p>arm_cortexM4bf_math.lib(浮点Cortex-M4大端模式)</p>
+<p>arm_cortexM4lf_math.lib(浮点Cortex-M4小端模式)</p>
+<p>STM32F4的内核CortexM4F采用小端模式，所以选择：arm_cortexM4lf_math.lib(浮点Cortex-M4小端模式)。</p>
+<blockquote>
+<p>Tips:‘b’表示大端格式（Big Endian），‘l’表示小端格式（Little
+Endian），‘f’表示带浮点数。要根据自己使用的硬件平台来选择（看是大端还是小端，是否带有FPU（浮点运算单元））</p>
+</blockquote></li>
+<li><p>在魔术棒中点击Target选项卡，在Code Generation区域的Floating Point
+Hardware中选择Single Precision（单精度）</p>
+<p>点击C/C++选项卡，在Preprocessor
+Symbols区域的Define中添加如下内容：<code>ARM_MATH_CM4,__TARGET_FPU_VFP,__FPU_PRESENT=1</code></p>
 <ul>
-<li>按bit逐位传输，效率低</li>
-<li>只需一根数据线，设计简单</li>
-</ul>
-<h1 id="异步串行通信-and-同步串行通信">异步串行通信 and
-同步串行通信</h1>
-<h2 id="异步串行通信">异步串行通信</h2>
-<p>Asynchronous serial communication</p>
-<h4 id="特点-2">特点</h4>
+<li><p>ARM_MATH_CM4表示在CM4中使用MATH库</p></li>
+<li><p>__TARGET_FPU_VFP表示在目标设备中使用FPU</p></li>
+<li><p>__FPU_PRESENT=1表示开启FPU，这个宏其实在stm32f407xx.h中有定义时，但是它并没有在core_cm4.h中起作用，在编译的时候会报错，应该是跟文件的编译顺序有关系，因此为了正常编译，在这里添加它。</p></li>
+</ul></li>
+<li><p>在相应的.c文件中添加头文件：arm_math.h、arm_const_structs.h即可使用。</p>
+<blockquote>
+<p>Tips:在官方的HAL库中有DSP库相关的使用例程，<code>STM32Cube_FW_F4_V1.21.0\Drivers\CMSIS\DSP_Lib\Examples</code></p>
+</blockquote></li>
+</ol>
+<h1 id="gcc-arm-none-eabi">gcc-arm-none-eabi</h1>
+<h2 id="简介-2">简介</h2>
+<p>gcc-arm-none-eabi是GNU项目下的软件，是一个面向裸机arm的编译器，更专业的，在嵌入式开发中我们一般将它叫做工具链。（工具链：一般由编译器、连接器、解释器和调试器组成）</p>
+<h2
+id="gcc-arm-none-eabi工具链工具使用方法及介绍">gcc-arm-none-eabi工具链工具使用方法及介绍</h2>
+<p>在我们安装好gcc-arm-none-eabi后，我们可以在终端中输入指令来调用gcc-arm-none-eabi的功能了，那么这个工具链下茫茫多的执行软件都是做什么的呢，可以看到在路径下一共有28个工具。接下来我们就来介绍一下我们将会用到的工具和他的功能及使用方式。</p>
 <ul>
-<li>信息发送设备与接收设备之间无时钟连接</li>
-<li>信息中包含特殊标志位Start/Stop</li>
-<li>接收设备根据特殊标志位利用本地时钟对数据采样</li>
+<li><p>arm-none-eabi-gcc这个工具为c语言编译器，可以将<em>.c</em>文件转化为<em>.o</em>的执行文件。
+它的使用方法是，在终端中cd到工作目录，如编译当前目录下的<em>hello.c</em>文件，生成<em>hello.o</em>文件：
+<code>arm-none-eabi-gcc -c hello.c</code></p></li>
+<li><p>arm-none-eabi-g++这个工具为c++语言编译器，可以将<em>.cpp</em>文件转化为<em>.o</em>的执行文件，使用方式如上。</p></li>
+<li><p>arm-none-eabi-ld这个工具为链接器即最后链接所有 <em>.o</em>
+文件生成可执行文件的工具。一般我们不使用 <em>arm-none-eabi-ld</em>
+的指令调用它，而是通过使用<em>arm-none-eabi-gcc</em>
+来调用，因为前者对c/cpp文件混合型生成的.o文件们的支持性不好，所以官方的说明书中也推荐使用<em>arm-none-eabi-gcc</em>
+指令来代替<em>arm-none-eabi-ld</em>，如下：
+<code>arm-none-eabi-gcc -o hello hello.o</code></p></li>
+<li><p>arm-none-eabi-objcopy此工具将链接器生成的文件转化为bin/hex等烧写的格式，用以下载进入单片机。如下：</p>
+<p><code>arm-none-eabi-objcopy hello hello.bin</code></p></li>
+<li><p>arm-none-eabi-gdb工具链中的调试器，将它连接到调试器硬件产生的网络端口，就可以进行硬件和代码的调试了。GDB是gnu下一个独特的调试软件，它具有很多自己的特性，也许大家无法想象使用命令行调试的景象，但是之后我们会看到它的强大。</p></li>
 </ul>
-<h4 id="example">Example</h4>
-<p>UART，无时钟线连接</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">接收器   发送器</span><br><span class="line">TxD-----&gt;RxD</span><br><span class="line">RxD&lt;-----TxD</span><br></pre></td></tr></table></figure>
-<h2 id="同步串行通信">同步串行通信</h2>
-<p>Synchronous serial communciation</p>
-<h4 id="特点-3">特点</h4>
-<ul>
-<li>信息发送设备与接收设备需要时钟同步</li>
-<li>两者间出数据线连接，还需要额外的时钟线连接</li>
-</ul>
-<h4 id="example-1">Example</h4>
-<p>IIC,需要时钟线SCL连接</p>
-<h1
-id="三种数据通路单工半双工全双工">三种数据通路：单工，半双工，全双工</h1>
-<h2 id="单工通信">单工通信</h2>
-<p>Simplex communciation</p>
-<h4 id="特点-4">特点</h4>
-<ul>
-<li>信息只能单一方向传输</li>
-</ul>
-<h4 id="example-2">Example</h4>
-<p>广播，遥控器</p>
-<h2 id="半双工通信">半双工通信</h2>
-<p>Half-duplex communciation</p>
-<h4 id="特点-5">特点</h4>
-<ul>
-<li>数据支持双向传输</li>
-<li>发送和接收不能同时进行，同一时间只能发送or接收数据</li>
-</ul>
-<h4 id="example-3">Example</h4>
-<p>IIC</p>
-<h2 id="全双工通信">全双工通信</h2>
-<p>Full-duplex communciation</p>
-<h4 id="特点-6">特点</h4>
-<ul>
-<li>数据支持双向传输</li>
-<li>数据接收和发送同时进行</li>
-</ul>
-<h4 id="example-4">Example</h4>
-<p>电话、网口、UART</p>
+<p>当然这一系列的指令只是一个简单且包含用法错误的例子，实际的使用中我们要输入很多设置参数，才能适配我们的单片机。</p>
+<h1 id="gdb调试">GDB调试</h1>
+<h2 id="简介-3">简介</h2>
+<p>GDB 全称“GNU symbolic debugger”，从名称上不难看出，它诞生于 GNU
+计划（同时诞生的还有 GCC、Emacs 等），是 Linux
+下常用的<strong>命令行程序调试工具</strong>。实际场景中，GDB
+更常用来调试 C 和 C++ 程序。</p>
+<blockquote>
+<p>Tips:使用 Vim+GDB 可以在任意一台电脑上直接调试，不用花时间安装复杂的
+IDE 环境。</p>
+</blockquote>
+<p>一般来说，GDB主要帮助我们完成以下四个方面的功能：</p>
+<ol type="1">
+<li>启动你的程序，可以按照你的自定义的要求随心所欲的运行程序。</li>
+<li>在某个指定的地方或条件下暂停程序。</li>
+<li>当程序被停住时，可以检查此时你的程序中所发生的事。</li>
+<li>在程序执行过程中修改程序中的变量或条件，将一个bug产生的影响修正从而测试其他bug。</li>
+</ol>
+<blockquote>
+<p>如何进行调试我没有学习因为现在还没有在Linux上进行调试，以后有需要的话填坑！！！</p>
+</blockquote>
+<h2 id="调试arm">调试ARM</h2>
+<p>windows使用gdb调试stm32可以使用几套环境：</p>
+<ol type="1">
+<li>stlink硬件+openocd软件+arm-none-eabi-gdb</li>
+<li>jlink硬件+openocd软件+arm-none-eabi-gdb</li>
+<li>jlink硬件+jlink_gdb_server软件+arm-none-eabi-gdb</li>
+</ol>
 <h1 id="references">References</h1>
 <ul>
-<li>B站视频：【四分钟搞定【同步通信-异步通信-全双工通信-串行通信-并行通信】】https://www.bilibili.com/video/BV1q64y1R72M?vd_source=93bb338120537438ee9180881deab9c1</li>
+<li><p><a
+href="https://zhuanlan.zhihu.com/p/584903079">CubeMX+VSCode+Ozone的STM32开发工作流（一）背景知识介绍
+- 知乎 (zhihu.com)</a></p></li>
+<li><p><a
+href="https://zhuanlan.zhihu.com/p/584912052">CubeMX+VSCode+Ozone的STM32开发工作流（二）VSCode环境配置
+- 知乎 (zhihu.com)</a></p></li>
+<li><p><a
+href="https://zhuanlan.zhihu.com/p/584915369">CubeMX+VSCode+Ozone的STM32开发工作流（三）利用Ozone进行可视化调试和代码分析
+- 知乎 (zhihu.com)</a></p></li>
+<li><p><a
+href="https://zhuanlan.zhihu.com/p/584953490">CubeMX+VSCode+Ozone的STM32开发工作流（四）VSCode动态变量监视和可视化插件开发
+- 知乎 (zhihu.com)</a></p></li>
+<li><p><a
+href="https://zhuanlan.zhihu.com/p/584954096">CubeMX+VSCode+Ozone的STM32开发工作流（五）无线J-Link和DAP-Link开发
+- 知乎 (zhihu.com)</a></p></li>
+<li><p><a
+href="https://zju-helloworld.github.io/Wiki/开发指南/开发环境/CubeMX%2BVSCode%2BOzone%20配置STM32开发环境/">CubeMX
++ VS Code + Ozone 配置 STM32 开发环境 - Hello World 技术知识库
+(zju-helloworld.github.io)</a>当然还有我们浙大HW电控组的Wiki</p></li>
+<li><p><a
+href="https://zhuanlan.zhihu.com/p/462911261">在STM32中使用DSP库 - 知乎
+(zhihu.com)</a>DSP库的使用</p></li>
+<li><p><a
+href="https://zhuanlan.zhihu.com/p/435278301">开源调试软件OpenOCD调试stm32
+- 知乎 (zhihu.com)</a>开源调试软件OpenOCD</p></li>
+<li><p><a
+href="https://zhuanlan.zhihu.com/p/568080861">STM32高级开发——gcc-arm-none-eabi
+- 知乎 (zhihu.com)</a></p></li>
+<li><p><a
+href="https://blog.csdn.net/u010058695/article/details/108864001">openOCD安装
+极简教程_openocd教程_spic_jackmaster的博客-CSDN博客</a></p></li>
+<li><p><a
+href="https://blog.csdn.net/qq_40833810/article/details/106713462">Cortex-debug
+调试器使用介绍_cortex debug_「已注销」的博客-CSDN博客</a></p></li>
+<li><p><a
+href="https://zhuanlan.zhihu.com/p/431118510">浅析Makefile、make、cmake
+- 知乎 (zhihu.com)</a></p></li>
+<li><p><a
+href="https://blog.csdn.net/guoshaobei/article/details/4747965">浮点运算单元(FPU)的理解_fpu
+verilog_Lanttor的博客-CSDN博客</a></p></li>
+<li><p><a
+href="https://zhuanlan.zhihu.com/p/196763202">一文教你快速上手GDB程序调试
+- 知乎 (zhihu.com)</a></p></li>
 </ul>
 ]]></content>
       <categories>
@@ -6750,7 +6717,7 @@ id="三种数据通路单工半双工全双工">三种数据通路：单工，�
       </categories>
       <tags>
         <tag>嵌入式</tag>
-        <tag>通信</tag>
+        <tag>workflow</tag>
       </tags>
   </entry>
   <entry>
@@ -7100,313 +7067,95 @@ alt="image-20230606131804276" />
       </tags>
   </entry>
   <entry>
-    <title>探CMake</title>
-    <url>/2023/09/04/%E6%8E%A2CMake/</url>
+    <title>各种通信方式</title>
+    <url>/2023/07/29/%E5%90%84%E7%A7%8D%E9%80%9A%E4%BF%A1%E6%96%B9%E5%BC%8F/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>使用CubeMX遇到使用makefile的时候，且HW要求使用CMake来编译项目，特此记录学习make,makefile
-and CMake——仅基础知识以看懂为主</p>
-<p>此章学习CMake</p>
+<p>了解及总结（同步通信-异步通信-全双工通信-串行通信-并行通信）各种通信方法</p>
 <span id="more"></span>
-<h1 id="简介">简介</h1>
-<p>CMake是服务于将源代码转换成可执行的文件的工具。本身是一个<strong>工具集</strong>由五个可执行的程序组成：cmake、ctest、cpack、cmake-gui和ccmake</p>
+<h1 id="并行通信-and-串行通信">并行通信 and 串行通信</h1>
+<h2 id="并行通信">并行通信</h2>
+<p>Parallel communication</p>
+<h4 id="传输方式">传输方式</h4>
+<p>多个数据bit位同时传输</p>
+<h4 id="常用总线">常用总线</h4>
+<p>local bus, DDR</p>
+<h4 id="特点">特点</h4>
 <ul>
-<li>cmake用于在构建项目的第一步，进行项目的配置、生成和构建项目的主要可执行文件的工作。</li>
-<li>ctest用于运行和报告测试结果的测试驱动程序。</li>
-<li>cpack用来生成安装程序和源包的打包程序。</li>
-<li>cmake-gui是 cmake 的图形界面。</li>
-<li>ccmake（注意ccmake比cmake多了一个c）也是用于图形界面，与cmake-gui不同的地方在于ccmake是基于控制台（terminal）的图形界面</li>
+<li>同时传输，效率高</li>
+<li>数据线多，设计复杂</li>
 </ul>
-<p>CMake就是“协调器”——它清楚哪些步骤需要完成，理解最终目标是什么，以及忙碌于为构建工作找到合适的“工人”和“材料”。<strong>这个过程有三个阶段：配置、生成、构建阶段</strong></p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/v2-dc969937345ed270b37200353a50f20e_720w.webp"
-alt="CMake在三个阶段：配置、生成、构建阶段的示意图" />
-<figcaption
-aria-hidden="true">CMake在三个阶段：配置、生成、构建阶段的示意图</figcaption>
-</figure>
-<h2 id="设计初衷">设计初衷</h2>
-<p>设计、编码和测试。在更改了代码之后，工具将以智能的、快速的、可扩展的方式，在不同的操作系统和环境中以相同的方式工作。支持多个集成开发环境(IDE)
-和持续集成(CI)
-流水，这些流水在更改提交到代码库后，就能对代码进行测试。</p>
-<blockquote>
-<p>两个概念需要区分：<build tree>
-和<source tree>，分别对应构建树和源码树；构建树是目标/输出目录的路径，源码树是源码所在的路径。</p>
-</blockquote>
-<h1 id="基本语法">基本语法</h1>
-<h2 id="注释">注释</h2>
-<p><code>CMake</code> 使用 <code>#</code>
-进行<code>行注释</code>，可以放在任何位置。</p>
-<p><code>CMake</code> 使用 <code>#[[  ]]</code>
-形式进行<code>块注释</code>。</p>
-<h2 id="变量">变量</h2>
-<p>三大类：普通变量、缓存变量、环境变量。注意作用域</p>
-<blockquote>
+<h2 id="串行通信">串行通信</h2>
+<p>Serial communication</p>
+<h4 id="传输方式-1">传输方式</h4>
+<p>数据bit一位一位传输</p>
+<h4 id="常用总线-1">常用总线</h4>
+<p>local bus, DDR</p>
+<h4 id="特点-1">特点</h4>
 <ul>
-<li>${} 用于引用普通变量或缓存变量。</li>
-<li>$ENV{} 用于引用环境变量。</li>
-<li>$CACHE{} 用于引用缓存变量。</li>
+<li>按bit逐位传输，效率低</li>
+<li>只需一根数据线，设计简单</li>
 </ul>
-</blockquote>
-<p>基本的变量操作指令是set()()，建议在变量名中只使用字母数字字符、减号(-)
-和下划线(_)，具体的使用方式为在设置变量时只需使用set()并提供名称和值，要取消变量的设置时可以使用unset()并提供名称。</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">set(Mystring &quot;Text1&quot;)   </span><br><span class="line">message($(Mystring))</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>Tips:${}告诉CMake遍历<strong>作用域堆栈</strong>，尝试将${MyString1}替换为具体的值供message命令打印出来</p>
-<p>${} 语法进行变量的求值和展开时，是由内而外执行的</p>
-</blockquote>
-<h3 id="作用域">作用域</h3>
-<p>理解“<strong>副本</strong>“的概念是关键，当创建<strong>嵌套</strong>（子）作用域时，CMake只需用来自当前（父）作用域的<strong>所有变量的副本</strong>填充，后续<strong>嵌套</strong>（子）作用域命令将影响这些副本。但若完成了<strong>嵌套</strong>（子）作用域的执行，所有的副本都会删除，而原始的父作用域将恢复，嵌套作用域中操作的变量将不会更新到父作用域中</p>
-<p>不管是针对CMake函数作用域还是CMake目录作用域，其都有两个特点：向下有效和数值拷贝生成副本，在不使用特殊关键字的情况下，嵌套（子）作用域针对普通变量的修改不会影响到父作用域。</p>
-<p>针对变量，普通变量仅仅有效于当前作用域，而缓存变量和环境变量可以在全局作用域中使用。</p>
-<h3 id="环境变量">环境变量</h3>
-<p>使用set(ENV{<variable>} <value>)
-指令用以声明，使用unset(ENV{<variable>})来清除某一个环境变量</p>
-<blockquote>
-<p>Tips:设定或读取环境变量时，都通过ENV前缀来访问环境变量，读取环境变量值时，要在ENV前加$符号；但if判断是否定义时，不用加$符号</p>
-</blockquote>
-<p>设定环境变量后，其作用域只影响当前CMake进程，也就是说环境变量设定后是整个CMake进程的作用域都可用，但是不会影响CMake进程外的整个系统环境。</p>
-<p>环境变量在启动CMake进程后会基于CMake在配置阶段中收集的信息在<strong>CMake生成阶段</strong>生成环境变量的<strong>副本</strong>，该副本会在<strong>单一的、全局的</strong>作用域中可用。即，若使用ENV
-变量作为指令的参数，这些值将在CMake生成构建系统期间（配置阶段+生成阶段）插入，并且会将其嵌入到构建树中，在构建系统完成后即使再通过脚本或者命令行修改环境变量ENV{<variable>}的value，在构建阶段时该环境变量值也不会更新成新的value（因为在构建系统中保存的是之前环境变量的副本）</p>
-<h3 id="缓存变量">缓存变量</h3>
-<p>缓存变量可以通过$CACHE{<name>}
-语法来引用，而设置一个缓存变量使用<strong>set(<variable> <value> CACHE
-<type> <docstring> [FORCE])</strong>指令</p>
+<h1 id="异步串行通信-and-同步串行通信">异步串行通信 and
+同步串行通信</h1>
+<h2 id="异步串行通信">异步串行通信</h2>
+<p>Asynchronous serial communication</p>
+<h4 id="特点-2">特点</h4>
 <ul>
-<li>FORCE：强制选项，强制修改变量值。——建议一直加上</li>
+<li>信息发送设备与接收设备之间无时钟连接</li>
+<li>信息中包含特殊标志位Start/Stop</li>
+<li>接收设备根据特殊标志位利用本地时钟对数据采样</li>
 </ul>
-<p>与环境变量不同的是，缓存变量是CMake进程在配置阶段收集相关信息后存储在在构建树中的CMakeCache.txt
-文件中的变量，缓存变量不可像环境变量中在脚本使用但是可以通过cmake-gui或者ccmake来声明。</p>
-<p>Cache
-Variable缓存变量相当于一个全局变量，在同一个CMake工程中任何地方都可以使用，比如父目录，子目录等</p>
-<h2 id="控制结构">控制结构</h2>
-<h3 id="条件块">条件块</h3>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1、 if(&lt;condition&gt;)</span><br><span class="line">2、  &lt;commands&gt;</span><br><span class="line">3、 elseif(&lt;condition&gt;) # optional block, can be repeated</span><br><span class="line">4、  &lt;commands&gt;</span><br><span class="line">5、 else() # optional block</span><br><span class="line">6、  &lt;commands&gt;</span><br><span class="line">7、 endif()</span><br></pre></td></tr></table></figure>
-<h3 id="循环">循环</h3>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1、 while(&lt;condition&gt;)</span><br><span class="line">2、  &lt;commands&gt;</span><br><span class="line">3、 endwhile()</span><br></pre></td></tr></table></figure>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1、 foreach(&lt;loop_var&gt; RANGE &lt;min&gt; &lt;max&gt; [&lt;step&gt;])</span><br><span class="line">2、  &lt;commands&gt;</span><br><span class="line">3、 endforeach()</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>Tips:<min>和<step>参数变量可选择配置，默认的话从0开始，min和max都必须是非负整数，在RANGE中max和min都是包括在循环内部的</p>
-</blockquote>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1、 foreach(&lt;loop_variable&gt; IN [LISTS &lt;lists&gt;] [ITEMS &lt;items&gt;])</span><br><span class="line"># foreach(VAR 1 2 3 e f)</span><br></pre></td></tr></table></figure>
-<p>eg:</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1、 set(MY_LIST 1 2 3)</span><br><span class="line">2、 foreach(VAR IN LISTS MY_LIST ITEMS e f)</span><br><span class="line">3、  message($&#123;VAR&#125;)</span><br><span class="line">4、 endforeach()</span><br><span class="line"># 1 2 3 e f</span><br></pre></td></tr></table></figure>
-<p>压缩列表(ZIP_LISTS)，</p>
-<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="number">1</span>、 foreach(&lt;loop_var&gt;... IN ZIP_LISTS &lt;lists&gt;)</span><br></pre></td></tr></table></figure>
-<p>在压缩列表中CMake 将为每个提供的列表创建一个num_<N>
-变量，用每个列表中的项填充该变量。同时，除了使用CMake自动创建的num_<N>
-变量，用户也可以自定义传递多个<loop_var>
-变量名(每个列表一个)，每个列表将使用单独的变量来存储.</p>
-<p>针对多个列表的压缩处理，前提条件是这些待处理的多个列表中的元素个数是相同的，若列表之间的项数不同，CMake
-将不会为较短的列表定义变量。</p>
-<h3 id="定义指令">定义指令</h3>
-<h3 id="macro">macro()</h3>
-<p>查找和替换指令</p>
-<p>与函数相反，<strong>宏不会在调用堆栈上创建单独的条目</strong>。所以宏中调用return()
-将比在函数中返回调用语句的级别高一级(若已经在顶层作用域中，可能会终止执行)。在调用者的变量作用域中工作</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1、 //CMake中的宏</span><br><span class="line">2、 macro(&lt;name&gt; [&lt;argument&gt; ])</span><br><span class="line">3、  &lt;commands&gt;</span><br><span class="line">4、 endmacro()</span><br><span class="line">5、 //调用宏</span><br><span class="line">6、 &lt;name&gt;(&quot;called value&quot;)</span><br></pre></td></tr></table></figure>
-<p>宏中对变量进行修改会影响全局作用域中的变量，但在macro()内部该变量没有修改，因为<strong>传递给宏的参数没有视为真正的变量，而是作为常量查找并替换指令</strong></p>
-<h3 id="function">function()</h3>
-<p>实际子例程调用</p>
-<p>为本地变量创建一个单独的作用域，这与macro()
-命令不同，后者在调用者的变量作用域中工作，所以使用CMake的function需要注意变量的作用域问题。任何更改都将是函数的局部更改(除非指定了PARENT_SCOPE)，不影响PARENT
-SCOPE。</p>
-<h2 id="实用指令">实用指令</h2>
+<h4 id="example">Example</h4>
+<p>UART，无时钟线连接</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">接收器   发送器</span><br><span class="line">TxD-----&gt;RxD</span><br><span class="line">RxD&lt;-----TxD</span><br></pre></td></tr></table></figure>
+<h2 id="同步串行通信">同步串行通信</h2>
+<p>Synchronous serial communciation</p>
+<h4 id="特点-3">特点</h4>
 <ul>
-<li><p>message()：将文本打印到标准输出，并且CMake通过提供MODE
-参数，可以自定义输出的样式</p></li>
-<li><p>include()：引用官方和CMake社区中已经配置好了的CMake模板，所谓的CMake模板就是将CMake代码划分到单独的.cmake文件中，以保持内容的有序和独立性。然后通过include()指令，从父列表文件引用</p></li>
-<li><p>file()：为了可以知道CMake
-脚本可以做什么，CMake提供了一个可以快速浏览文件的操作命令：</p>
-<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="number">1</span>、 <span class="built_in">file</span>(READ &lt;filename&gt; &lt;out-var&gt; [...])</span><br><span class="line"><span class="number">2</span>、 <span class="built_in">file</span>(&#123;WRITE | APPEND&#125; &lt;filename&gt; &lt;content&gt;...)</span><br><span class="line"><span class="number">3</span>、 <span class="built_in">file</span>(DOWNLOAD &lt;url&gt; [&lt;file&gt;] [...])</span><br></pre></td></tr></table></figure>
-<p>简而言之，file()
-指令会以一种与系统无关的方式读取、写入和传输文件，并使用文件系统、文件锁、路径和存档</p></li>
-<li><p>execute_process()：有时需要使用系统中可用的工具，CMake提供execute_process()指令以用来运行其他进程，并收集它们的输出</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1、 execute_process(COMMAND &lt;cmd1&gt; [&lt;arguments&gt;]  [OPTIONS])</span><br></pre></td></tr></table></figure></li>
+<li>信息发送设备与接收设备需要时钟同步</li>
+<li>两者间出数据线连接，还需要额外的时钟线连接</li>
 </ul>
-<h1 id="简单的cmake构建">简单的CMake构建</h1>
-<p>建议直接看原文！！！highly recommended</p>
+<h4 id="example-1">Example</h4>
+<p>IIC,需要时钟线SCL连接</p>
+<h1
+id="三种数据通路单工半双工全双工">三种数据通路：单工，半双工，全双工</h1>
+<h2 id="单工通信">单工通信</h2>
+<p>Simplex communciation</p>
+<h4 id="特点-4">特点</h4>
+<ul>
+<li>信息只能单一方向传输</li>
+</ul>
+<h4 id="example-2">Example</h4>
+<p>广播，遥控器</p>
+<h2 id="半双工通信">半双工通信</h2>
+<p>Half-duplex communciation</p>
+<h4 id="特点-5">特点</h4>
+<ul>
+<li>数据支持双向传输</li>
+<li>发送和接收不能同时进行，同一时间只能发送or接收数据</li>
+</ul>
+<h4 id="example-3">Example</h4>
+<p>IIC</p>
+<h2 id="全双工通信">全双工通信</h2>
+<p>Full-duplex communciation</p>
+<h4 id="特点-6">特点</h4>
+<ul>
+<li>数据支持双向传输</li>
+<li>数据接收和发送同时进行</li>
+</ul>
+<h4 id="example-4">Example</h4>
+<p>电话、网口、UART</p>
 <h1 id="references">References</h1>
 <ul>
-<li><a
-href="https://zhuanlan.zhihu.com/p/620839692">CMake入门笔记系列（一）：CMake编译过程详解
-| Micro CMake for C++ - 知乎 (zhihu.com)</a></li>
+<li>B站视频：【四分钟搞定【同步通信-异步通信-全双工通信-串行通信-并行通信】】https://www.bilibili.com/video/BV1q64y1R72M?vd_source=93bb338120537438ee9180881deab9c1</li>
 </ul>
 ]]></content>
       <categories>
-        <category>CS</category>
+        <category>嵌入式</category>
       </categories>
       <tags>
-        <tag>CS</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>探Makefile</title>
-    <url>/2023/09/04/%E6%8E%A2Makefile/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>使用CubeMX遇到使用makefile的时候，且HW要求使用CMake来编译项目，特此记录学习make,makefile
-and CMake——仅基础知识以看懂为主</p>
-<p>此章学习makefile</p>
-<span id="more"></span>
-<h1 id="浅析makemakefilecmake">浅析make,makefile,CMake</h1>
-<p>cmake生成makefile文件给make执行</p>
-<ul>
-<li><p>makefile中设置你想要的编译规则，你想要编译哪些文件，哪些文件不需要编译等等都可以体现在Makefile中，而且支持多线程并发操作，可以减少编译的时间。</p></li>
-<li><p>make就是根据Makefile中写的内容进行编译和链接</p>
-<blockquote>
-<p>Tips:make只会编译我们修改过的文件，没有修改过的就不用重新编译，这样我们debug了一个小bug后重新编译就不用花费大量的编译时间</p>
-</blockquote></li>
-<li><p>CMake跨平台项目管理的工具生成Makefile文件给make去执行，实现跨平台。CMake它仍然是目标、依赖之类的抽象的东西，根据一个叫CMakeLists.txt的文件（还是自己手写）生成Makefile的</p></li>
-</ul>
-<h1 id="makefile">Makefile</h1>
-<h2 id="关于程序的编译和链接">关于程序的编译和链接</h2>
-<p>源文件首先会编译(compile)成中间目标文件（在Windows下也就是 .obj
-文件，UNIX下是 .o 文件，即object file ），然后再把大量的Object
-File合成执行文件，这个动作叫作链接（link）。在编译时，编译器只检测程序语法，和函数、变量是否被声明。如果函数未被声明，
-编译器会给出一个警告，但可以生成Object
-File。而在链接程序时，链接器会在所有的Object
-File中找寻函数的实现，如果找不到，那到就会报链接错误码（Linker
-Error）</p>
-<p>.lib（windows下Library File） .a（linux下Archive
-File）库文件（打包形成，因为文件太多）</p>
-<h2 id="作用">作用</h2>
-<p>makefile关系到了整个工程的编译规则</p>
-<p>makefile定义了一系列的规则来指定，哪些文件需要先编译，哪些文件需要后编译，哪些文件需要重新编译，甚至于进行更复杂的功能操作，因为makefile就像一个Shell
-脚本一样，其中也可以执行操作系统的命令</p>
-<h2 id="好处">好处</h2>
-<p>makefile带来的好处就是——“自动化编译”，一旦写好，只需要一个make命令，整个工程完全自动编译，极大的提高了软件开发的效率</p>
-<p>大部分IDE中都有 </p>
-<p>更省事、准确。对于大的工程（文件多，一个.c对应了一个.o文件，最后还涉及.o文件和.a文件链接）编译汇编工作如果手动操作就会变得繁琐且重复，那么makefile出现能极大的简化这个重复繁琐的过程，而且对于不同的操作系统，也需要让编译自动适应</p>
-<h2 id="makefile介绍">Makefile介绍</h2>
-<p>make命令执行时，需要一个 Makefile
-文件，以告诉make命令需要怎么样的去编译和链接程序。</p>
-<p>说白一点就是说，prerequisites中如果有一个以上的文件比target文件要新的话，command所定义的命令就会被执行。这就是
-Makefile的规则。也就是Makefile中最核心的内容</p>
-<h4 id="makefile规则">Makefile规则</h4>
-<h5 id="举例">举例</h5>
-<p>foo.o : foo.c defs.h # foo模块 cc -c -g foo.c</p>
-<p>1、文件的依赖关系，foo.o依赖于foo.c和defs.h的文件，如果foo.c和defs.h的文件日期要比foo.o文件日期要新，或是foo.o不存在，那么依赖关系发生。
-2、如果生成（或更新）foo.o文件。也就是那个cc命令，其说明了，如何生成foo.o这个文件。（当然foo.c文件include了defs.h文件）</p>
-<h5 id="语法">语法</h5>
-<p>target ... :
-prerequisites（<em>n.</em>先决条件，前提<em>adj.</em>先决的，必备的）
-... command ... ...</p>
-<p>或是这样：</p>
-<p>targets : prerequisites ; command command ...</p>
-<ul>
-<li>target也就是一个目标文件，可以是Object
-File，也可以是执行文件。还可以是一个标签（Label）</li>
-<li>prerequisites就是，要生成那个target所需要的文件或是目标</li>
-<li>command也就是make需要执行的命令。（任意的Shell命令）如果不与target在同一行则必须以[Tab键]开头</li>
-</ul>
-<p>这是一个文件的依赖关系，也就是说，target这一个或多个的目标文件依赖于prerequisites中的文件，其生成规则定义在command中。
-说白一点就是说，prerequisites中如果有一个以上的文件比target文件要新的话，command所定义的命令就会被执行。这就是
-Makefile的规则。也就是Makefile中最核心的内容。</p>
-<h5 id="通配符">通配符</h5>
-<p>如果我们想定义一系列比较类似的文件，我们很自然地就想起使用通配符。make支持三各通配符：“*”，“?”和“[...]”。这是和Unix的B-Shell是相同的。</p>
-<p>波浪号（“~”）字符在文件名中也有比较特殊的用途。如果是“
-~/test”，这就表示当前用户的$HOME目录下的test目录。而
-“~hchen/test”则表示用户hchen的宿主目录下的test目录。（这些都是Unix下的小知识了，make也支持）而在Windows或是
-MS-DOS下，用户没有宿主目录，那么波浪号所指的目录则根据环境变量“HOME”而定。</p>
-<p>通配符代替了你一系列的文件，如“*.c”表示所以后缀为c的文件。</p>
-<p>$符号表示取变量的值，当变量名多于一个字符时，使用"( )"</p>
-<p>$符的其他用法</p>
-<p>$^ 表示所有的依赖文件</p>
-<p>$@ 表示生成的目标文件</p>
-<p>$&lt; 代表第一个依赖文件</p>
-<p>通配符代替了你一系列的文件，如“*.c”表示所以后缀为c的文件</p>
-<h5 id="伪目标">伪目标</h5>
-<p>因为，我们并不生成“clean”这个文件。“伪目标”并不是一个文件，只是一个标签，由于“伪目标”不是文件，所以make无法生成它的依赖关系和决定
-它是否要执行。我们只有通过显示地指明这个“目标”才能让其生效。当然，“伪目标”的取名不能和文件名重名，不然其就失去了“伪目标”的意义了。</p>
-<p>当然，为了避免和文件重名的这种情况，我们可以使用一个特殊的标记“.PHONY”来显示地指明一个目标是“伪目标”，向make说明，不管是否有这个文件，这个目标就是“伪目标”。</p>
-<p>.PHONY : clean</p>
-<p>只要有这个声明，不管是否有“clean”文件，要运行“clean”这个目标，只有“make
-clean”这样。于是整个过程可以这样写：</p>
-<p>.PHONY: clean clean: rm *.o temp</p>
-<p>伪目标一般没有依赖的文件。但是，我们也可以为伪目标指定所依赖的文件。伪目标同样可以作为“默认目标”，只要将其放在第一个。一个示例就是，如果你的
-Makefile需要一口气生成若干个可执行文件，但你只想简单地敲一个make完事，并且，所有的目标文件都写在一个Makefile中，那么你可以使
-用“伪目标”这个特性：</p>
-<p>all : prog1 prog2 prog3 .PHONY : all</p>
-<p>prog1 : prog1.o utils.o cc -o prog1 prog1.o utils.o</p>
-<p>prog2 : prog2.o cc -o prog2 prog2.o</p>
-<p>prog3 : prog3.o sort.o utils.o cc -o prog3 prog3.o sort.o utils.o</p>
-<p>我们知道，Makefile中的第一个目标会被作为其默认目标。我们声明了一个“all”的伪目标，其依赖于其它三个目标。由于伪目标的特性是，总是被执行的，所以其依赖的那三个目标就总是不如“all”这个目标新。所以，其它三个目标的规则总是会被决议。也就达到了我们一口气生成多个目标的目的。
-“.PHONY : all”声明了“all”这个目标为“伪目标”。</p>
-<p>随便提一句，从上面的例子我们可以看出，目标也可以成为依赖。所以，伪目标同样也可成为依赖。看下面的例子：</p>
-<p>.PHONY: cleanall cleanobj cleandiff</p>
-<p>cleanall : cleanobj cleandiff rm program</p>
-<p>cleanobj : rm *.o</p>
-<p>cleandiff : rm *.diff</p>
-<p>“make
-clean”将清除所有要被清除的文件。“cleanobj”和“cleandiff”这两个伪目标有点像“子程序”的意思。我们可以输入“make
-cleanall”和“make cleanobj”和“make
-cleandiff”命令来达到清除不同种类文件的目的。</p>
-<h5 id="多目标">多目标</h5>
-<p>Makefile的规则中的目标可以不止一个，其支持多目标，有可能我们的多个目标同时依赖于一个文件，并且其生成的命令大体类似。于是我们就能把其合并
-起来。当然，多个目标的生成规则的执行命令是同一个，这可能会可我们带来麻烦，不过好在我们的可以使用一个自动化变量“$@”</p>
-<h4 id="makefile内容">Makefile内容</h4>
-<p>Makefile里主要包含了五个东西：显式规则、隐晦规则、变量定义、文件指示和注释。</p>
-<p>1、显式规则。显式规则说明了，如何生成一个或多的的目标文件。这是由Makefile的书写者明显指出，要生成的文件，文件的依赖文件，生成的命令。</p>
-<p>2、隐晦规则。由于我们的make有自动推导的功能，所以隐晦的规则可以让我们比较粗糙地简略地书写Makefile，这是由make所支持的。</p>
-<p>3、变量的定义。在Makefile中我们要定义一系列的变量，变量一般都是字符串，这个有点你C语言中的宏，当Makefile被执行时，其中的变量都会被扩展到相应的引用位置上。</p>
-<p>4、文件指示。其包括了三个部分，一个是在一个Makefile中引用另一个Makefile，就像C语言中的include一样；另一个是指根据某些情况指定Makefile中的有效部分，就像C语言中的预编译#if一样；还有就是定义一个多行的命令。</p>
-<p>5、注释。Makefile中只有行注释，和UNIX的Shell脚本一样，其注释是用“#”字符，这个就像C/C++中的“//”一样。如果你要在你的Makefile中使用“#”字符，可以用反斜框进行转义，如：“#”。</p>
-<p>规则包含两个部分，一个是依赖关系，一个是生成目标的方法</p>
-<p>在Makefile中，规则的顺序是很重要的，因为，Makefile中只应该有一个最终目标，其它的目标都是被这个目标所连带出来的，所以一定要让
-make知道你的最终目标是什么。一般来说，定义在Makefile中的目标可能会有很多，但是第一条规则中的目标将被确立为最终的目标。如果第一条规则中的目标有很多个，那么，第一个目标会成为最终的目标。make所完成的也就是这个目标。</p>
-<h4 id="清空目标文件的规则">清空目标文件的规则</h4>
-<p>一般的风格都是：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">clean:</span><br><span class="line">rm edit $(objects)</span><br></pre></td></tr></table></figure>
-<p>更为稳健的做法是：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">.PHONY : clean  (phony,&lt;非正式&gt;虚伪的，做作的)</span><br><span class="line">clean :</span><br><span class="line">-rm edit $(objects)</span><br></pre></td></tr></table></figure>
-<h4 id="makefile怎么运作">MakeFile怎么运作</h4>
-<p>MakeFile里面大致是先处理一些环境变量或者参数，然后从某一个位置开始执行命令集。</p>
-<p>1、读入所有的Makefile。</p>
-<p>2、读入被include的其它Makefile。</p>
-<p>3、初始化文件中的变量。</p>
-<p>4、推导隐晦规则，并分析所有规则。</p>
-<p>5、为所有的目标文件创建依赖关系链。</p>
-<p>6、根据依赖关系，决定哪些目标要重新生成。</p>
-<p>7、执行生成命令。</p>
-<p>1-5步为第一个阶段，6-7为第二个阶段。第一个阶段中，如果定义的变量被使用了，那么，make会把其展开在使用的位置。但make并不会完全马上展
-开，make使用的是拖延战术，如果变量出现在依赖关系的规则中，那么仅当这条依赖被决定要使用了，变量才会在其内部展开。</p>
-<h1 id="常用命令行">常用命令行</h1>
-<ul>
-<li>cc、gcc、g++、CC的区别概括：<a
-href="https://blog.csdn.net/liaoshengshi/article/details/40424397#:~:text=cc是Unix系统的C%20Compiler，而gcc则是GNU%20Compiler%20Collection，GNU编译器套装。.,gcc原名为Gun%20C语言编译器，因为它原本只能处理C语言，但gcc很快地扩展，包含很多编译器（C、C%2B%2B、Objective-C、Ada、Fortran、Java）。.%20因此，它们是不一样的，一个是古老的C编译器，一个是GNU编译器集合，gcc里面的C编译器比cc强大多了，因此没必要用cc。.%20下载不到cc的原因在于：cc来自于昂贵的Unix系统，cc是商业软件。.">(17条消息)
-cc、gcc、g++、CC的区别概括_如小丧的博客-CSDN博客</a></li>
-<li>超全整理！Linux shell及常用36类命令汇总：<a
-href="https://zhuanlan.zhihu.com/p/50448669">超全整理！Linux
-shell及常用36类命令汇总 - 知乎 (zhihu.com)</a></li>
-</ul>
-<p>-g 可执行程序包含调试信息，为了调试用的：加个-g 是为了gdb
-用，不然gdb用不到</p>
-<p>-o 指定输出文件名（o：output） -c
-只编译不链接：产生.o文件，就是obj文件，不产生执行文件（c : compile）</p>
-<p>-o
-output_filename，确定输出文件的名称为output_filename，同时这个名称不能和源文件同名。如果不给出这个选项，gcc就给出预设的可执行文件a.out。
-一般语法： gcc filename.c -o filename 上面的意思是如果你不打 -o
-filename（直接gcc filename.c
-）；那么默认就是输出a.out.这个-o就是用来控制输出文件的。
-------用./a.out执行文件</p>
-<p>-c 只编译不链接</p>
-<p>产生.o文件，就是obj文件，不产生执行文件</p>
-<h1 id="references">References</h1>
-<ul>
-<li><p><a
-href="https://tieba.baidu.com/p/591519800?red_tag=2203856275">Makefile详解（超级好）【mingw吧】_百度贴吧
-(baidu.com)</a></p></li>
-<li><p><a
-href="https://blog.csdn.net/weixin_51483516/article/details/120837316">(17条消息)
-静态库与动态库的区别与优缺点_静态库和动态库的优缺点_雨荔@秋垣的博客-CSDN博客</a></p></li>
-<li><p>【GNU
-Makefile编译C/C++教程（Linux系统、VSCODE)】https://www.bilibili.com/video/BV1EM41177s1?p=22&amp;vd_source=93bb338120537438ee9180881deab9c1!!!</p></li>
-</ul>
-]]></content>
-      <categories>
-        <category>CS</category>
-      </categories>
-      <tags>
-        <tag>CS</tag>
+        <tag>嵌入式</tag>
+        <tag>通信</tag>
       </tags>
   </entry>
   <entry>
@@ -7697,6 +7446,316 @@ x 出现概率最大的值，通常就可以得到 x 的近似真值(当作真�
       </tags>
   </entry>
   <entry>
+    <title>探Makefile</title>
+    <url>/2023/09/04/%E6%8E%A2Makefile/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>使用CubeMX遇到使用makefile的时候，且HW要求使用CMake来编译项目，特此记录学习make,makefile
+and CMake——仅基础知识以看懂为主</p>
+<p>此章学习makefile</p>
+<span id="more"></span>
+<h1 id="浅析makemakefilecmake">浅析make,makefile,CMake</h1>
+<p>cmake生成makefile文件给make执行</p>
+<ul>
+<li><p>makefile中设置你想要的编译规则，你想要编译哪些文件，哪些文件不需要编译等等都可以体现在Makefile中，而且支持多线程并发操作，可以减少编译的时间。</p></li>
+<li><p>make就是根据Makefile中写的内容进行编译和链接</p>
+<blockquote>
+<p>Tips:make只会编译我们修改过的文件，没有修改过的就不用重新编译，这样我们debug了一个小bug后重新编译就不用花费大量的编译时间</p>
+</blockquote></li>
+<li><p>CMake跨平台项目管理的工具生成Makefile文件给make去执行，实现跨平台。CMake它仍然是目标、依赖之类的抽象的东西，根据一个叫CMakeLists.txt的文件（还是自己手写）生成Makefile的</p></li>
+</ul>
+<h1 id="makefile">Makefile</h1>
+<h2 id="关于程序的编译和链接">关于程序的编译和链接</h2>
+<p>源文件首先会编译(compile)成中间目标文件（在Windows下也就是 .obj
+文件，UNIX下是 .o 文件，即object file ），然后再把大量的Object
+File合成执行文件，这个动作叫作链接（link）。在编译时，编译器只检测程序语法，和函数、变量是否被声明。如果函数未被声明，
+编译器会给出一个警告，但可以生成Object
+File。而在链接程序时，链接器会在所有的Object
+File中找寻函数的实现，如果找不到，那到就会报链接错误码（Linker
+Error）</p>
+<p>.lib（windows下Library File） .a（linux下Archive
+File）库文件（打包形成，因为文件太多）</p>
+<h2 id="作用">作用</h2>
+<p>makefile关系到了整个工程的编译规则</p>
+<p>makefile定义了一系列的规则来指定，哪些文件需要先编译，哪些文件需要后编译，哪些文件需要重新编译，甚至于进行更复杂的功能操作，因为makefile就像一个Shell
+脚本一样，其中也可以执行操作系统的命令</p>
+<h2 id="好处">好处</h2>
+<p>makefile带来的好处就是——“自动化编译”，一旦写好，只需要一个make命令，整个工程完全自动编译，极大的提高了软件开发的效率</p>
+<p>大部分IDE中都有 </p>
+<p>更省事、准确。对于大的工程（文件多，一个.c对应了一个.o文件，最后还涉及.o文件和.a文件链接）编译汇编工作如果手动操作就会变得繁琐且重复，那么makefile出现能极大的简化这个重复繁琐的过程，而且对于不同的操作系统，也需要让编译自动适应</p>
+<h2 id="makefile介绍">Makefile介绍</h2>
+<p>make命令执行时，需要一个 Makefile
+文件，以告诉make命令需要怎么样的去编译和链接程序。</p>
+<p>说白一点就是说，prerequisites中如果有一个以上的文件比target文件要新的话，command所定义的命令就会被执行。这就是
+Makefile的规则。也就是Makefile中最核心的内容</p>
+<h4 id="makefile规则">Makefile规则</h4>
+<h5 id="举例">举例</h5>
+<p>foo.o : foo.c defs.h # foo模块 cc -c -g foo.c</p>
+<p>1、文件的依赖关系，foo.o依赖于foo.c和defs.h的文件，如果foo.c和defs.h的文件日期要比foo.o文件日期要新，或是foo.o不存在，那么依赖关系发生。
+2、如果生成（或更新）foo.o文件。也就是那个cc命令，其说明了，如何生成foo.o这个文件。（当然foo.c文件include了defs.h文件）</p>
+<h5 id="语法">语法</h5>
+<p>target ... :
+prerequisites（<em>n.</em>先决条件，前提<em>adj.</em>先决的，必备的）
+... command ... ...</p>
+<p>或是这样：</p>
+<p>targets : prerequisites ; command command ...</p>
+<ul>
+<li>target也就是一个目标文件，可以是Object
+File，也可以是执行文件。还可以是一个标签（Label）</li>
+<li>prerequisites就是，要生成那个target所需要的文件或是目标</li>
+<li>command也就是make需要执行的命令。（任意的Shell命令）如果不与target在同一行则必须以[Tab键]开头</li>
+</ul>
+<p>这是一个文件的依赖关系，也就是说，target这一个或多个的目标文件依赖于prerequisites中的文件，其生成规则定义在command中。
+说白一点就是说，prerequisites中如果有一个以上的文件比target文件要新的话，command所定义的命令就会被执行。这就是
+Makefile的规则。也就是Makefile中最核心的内容。</p>
+<h5 id="通配符">通配符</h5>
+<p>如果我们想定义一系列比较类似的文件，我们很自然地就想起使用通配符。make支持三各通配符：“*”，“?”和“[...]”。这是和Unix的B-Shell是相同的。</p>
+<p>波浪号（“~”）字符在文件名中也有比较特殊的用途。如果是“
+~/test”，这就表示当前用户的$HOME目录下的test目录。而
+“~hchen/test”则表示用户hchen的宿主目录下的test目录。（这些都是Unix下的小知识了，make也支持）而在Windows或是
+MS-DOS下，用户没有宿主目录，那么波浪号所指的目录则根据环境变量“HOME”而定。</p>
+<p>通配符代替了你一系列的文件，如“*.c”表示所以后缀为c的文件。</p>
+<p>$符号表示取变量的值，当变量名多于一个字符时，使用"( )"</p>
+<p>$符的其他用法</p>
+<p>$^ 表示所有的依赖文件</p>
+<p>$@ 表示生成的目标文件</p>
+<p>$&lt; 代表第一个依赖文件</p>
+<p>通配符代替了你一系列的文件，如“*.c”表示所以后缀为c的文件</p>
+<h5 id="伪目标">伪目标</h5>
+<p>因为，我们并不生成“clean”这个文件。“伪目标”并不是一个文件，只是一个标签，由于“伪目标”不是文件，所以make无法生成它的依赖关系和决定
+它是否要执行。我们只有通过显示地指明这个“目标”才能让其生效。当然，“伪目标”的取名不能和文件名重名，不然其就失去了“伪目标”的意义了。</p>
+<p>当然，为了避免和文件重名的这种情况，我们可以使用一个特殊的标记“.PHONY”来显示地指明一个目标是“伪目标”，向make说明，不管是否有这个文件，这个目标就是“伪目标”。</p>
+<p>.PHONY : clean</p>
+<p>只要有这个声明，不管是否有“clean”文件，要运行“clean”这个目标，只有“make
+clean”这样。于是整个过程可以这样写：</p>
+<p>.PHONY: clean clean: rm *.o temp</p>
+<p>伪目标一般没有依赖的文件。但是，我们也可以为伪目标指定所依赖的文件。伪目标同样可以作为“默认目标”，只要将其放在第一个。一个示例就是，如果你的
+Makefile需要一口气生成若干个可执行文件，但你只想简单地敲一个make完事，并且，所有的目标文件都写在一个Makefile中，那么你可以使
+用“伪目标”这个特性：</p>
+<p>all : prog1 prog2 prog3 .PHONY : all</p>
+<p>prog1 : prog1.o utils.o cc -o prog1 prog1.o utils.o</p>
+<p>prog2 : prog2.o cc -o prog2 prog2.o</p>
+<p>prog3 : prog3.o sort.o utils.o cc -o prog3 prog3.o sort.o utils.o</p>
+<p>我们知道，Makefile中的第一个目标会被作为其默认目标。我们声明了一个“all”的伪目标，其依赖于其它三个目标。由于伪目标的特性是，总是被执行的，所以其依赖的那三个目标就总是不如“all”这个目标新。所以，其它三个目标的规则总是会被决议。也就达到了我们一口气生成多个目标的目的。
+“.PHONY : all”声明了“all”这个目标为“伪目标”。</p>
+<p>随便提一句，从上面的例子我们可以看出，目标也可以成为依赖。所以，伪目标同样也可成为依赖。看下面的例子：</p>
+<p>.PHONY: cleanall cleanobj cleandiff</p>
+<p>cleanall : cleanobj cleandiff rm program</p>
+<p>cleanobj : rm *.o</p>
+<p>cleandiff : rm *.diff</p>
+<p>“make
+clean”将清除所有要被清除的文件。“cleanobj”和“cleandiff”这两个伪目标有点像“子程序”的意思。我们可以输入“make
+cleanall”和“make cleanobj”和“make
+cleandiff”命令来达到清除不同种类文件的目的。</p>
+<h5 id="多目标">多目标</h5>
+<p>Makefile的规则中的目标可以不止一个，其支持多目标，有可能我们的多个目标同时依赖于一个文件，并且其生成的命令大体类似。于是我们就能把其合并
+起来。当然，多个目标的生成规则的执行命令是同一个，这可能会可我们带来麻烦，不过好在我们的可以使用一个自动化变量“$@”</p>
+<h4 id="makefile内容">Makefile内容</h4>
+<p>Makefile里主要包含了五个东西：显式规则、隐晦规则、变量定义、文件指示和注释。</p>
+<p>1、显式规则。显式规则说明了，如何生成一个或多的的目标文件。这是由Makefile的书写者明显指出，要生成的文件，文件的依赖文件，生成的命令。</p>
+<p>2、隐晦规则。由于我们的make有自动推导的功能，所以隐晦的规则可以让我们比较粗糙地简略地书写Makefile，这是由make所支持的。</p>
+<p>3、变量的定义。在Makefile中我们要定义一系列的变量，变量一般都是字符串，这个有点你C语言中的宏，当Makefile被执行时，其中的变量都会被扩展到相应的引用位置上。</p>
+<p>4、文件指示。其包括了三个部分，一个是在一个Makefile中引用另一个Makefile，就像C语言中的include一样；另一个是指根据某些情况指定Makefile中的有效部分，就像C语言中的预编译#if一样；还有就是定义一个多行的命令。</p>
+<p>5、注释。Makefile中只有行注释，和UNIX的Shell脚本一样，其注释是用“#”字符，这个就像C/C++中的“//”一样。如果你要在你的Makefile中使用“#”字符，可以用反斜框进行转义，如：“#”。</p>
+<p>规则包含两个部分，一个是依赖关系，一个是生成目标的方法</p>
+<p>在Makefile中，规则的顺序是很重要的，因为，Makefile中只应该有一个最终目标，其它的目标都是被这个目标所连带出来的，所以一定要让
+make知道你的最终目标是什么。一般来说，定义在Makefile中的目标可能会有很多，但是第一条规则中的目标将被确立为最终的目标。如果第一条规则中的目标有很多个，那么，第一个目标会成为最终的目标。make所完成的也就是这个目标。</p>
+<h4 id="清空目标文件的规则">清空目标文件的规则</h4>
+<p>一般的风格都是：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">clean:</span><br><span class="line">rm edit $(objects)</span><br></pre></td></tr></table></figure>
+<p>更为稳健的做法是：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">.PHONY : clean  (phony,&lt;非正式&gt;虚伪的，做作的)</span><br><span class="line">clean :</span><br><span class="line">-rm edit $(objects)</span><br></pre></td></tr></table></figure>
+<h4 id="makefile怎么运作">MakeFile怎么运作</h4>
+<p>MakeFile里面大致是先处理一些环境变量或者参数，然后从某一个位置开始执行命令集。</p>
+<p>1、读入所有的Makefile。</p>
+<p>2、读入被include的其它Makefile。</p>
+<p>3、初始化文件中的变量。</p>
+<p>4、推导隐晦规则，并分析所有规则。</p>
+<p>5、为所有的目标文件创建依赖关系链。</p>
+<p>6、根据依赖关系，决定哪些目标要重新生成。</p>
+<p>7、执行生成命令。</p>
+<p>1-5步为第一个阶段，6-7为第二个阶段。第一个阶段中，如果定义的变量被使用了，那么，make会把其展开在使用的位置。但make并不会完全马上展
+开，make使用的是拖延战术，如果变量出现在依赖关系的规则中，那么仅当这条依赖被决定要使用了，变量才会在其内部展开。</p>
+<h1 id="常用命令行">常用命令行</h1>
+<ul>
+<li>cc、gcc、g++、CC的区别概括：<a
+href="https://blog.csdn.net/liaoshengshi/article/details/40424397#:~:text=cc是Unix系统的C%20Compiler，而gcc则是GNU%20Compiler%20Collection，GNU编译器套装。.,gcc原名为Gun%20C语言编译器，因为它原本只能处理C语言，但gcc很快地扩展，包含很多编译器（C、C%2B%2B、Objective-C、Ada、Fortran、Java）。.%20因此，它们是不一样的，一个是古老的C编译器，一个是GNU编译器集合，gcc里面的C编译器比cc强大多了，因此没必要用cc。.%20下载不到cc的原因在于：cc来自于昂贵的Unix系统，cc是商业软件。.">(17条消息)
+cc、gcc、g++、CC的区别概括_如小丧的博客-CSDN博客</a></li>
+<li>超全整理！Linux shell及常用36类命令汇总：<a
+href="https://zhuanlan.zhihu.com/p/50448669">超全整理！Linux
+shell及常用36类命令汇总 - 知乎 (zhihu.com)</a></li>
+</ul>
+<p>-g 可执行程序包含调试信息，为了调试用的：加个-g 是为了gdb
+用，不然gdb用不到</p>
+<p>-o 指定输出文件名（o：output） -c
+只编译不链接：产生.o文件，就是obj文件，不产生执行文件（c : compile）</p>
+<p>-o
+output_filename，确定输出文件的名称为output_filename，同时这个名称不能和源文件同名。如果不给出这个选项，gcc就给出预设的可执行文件a.out。
+一般语法： gcc filename.c -o filename 上面的意思是如果你不打 -o
+filename（直接gcc filename.c
+）；那么默认就是输出a.out.这个-o就是用来控制输出文件的。
+------用./a.out执行文件</p>
+<p>-c 只编译不链接</p>
+<p>产生.o文件，就是obj文件，不产生执行文件</p>
+<h1 id="references">References</h1>
+<ul>
+<li><p><a
+href="https://tieba.baidu.com/p/591519800?red_tag=2203856275">Makefile详解（超级好）【mingw吧】_百度贴吧
+(baidu.com)</a></p></li>
+<li><p><a
+href="https://blog.csdn.net/weixin_51483516/article/details/120837316">(17条消息)
+静态库与动态库的区别与优缺点_静态库和动态库的优缺点_雨荔@秋垣的博客-CSDN博客</a></p></li>
+<li><p>【GNU
+Makefile编译C/C++教程（Linux系统、VSCODE)】https://www.bilibili.com/video/BV1EM41177s1?p=22&amp;vd_source=93bb338120537438ee9180881deab9c1!!!</p></li>
+</ul>
+]]></content>
+      <categories>
+        <category>CS</category>
+      </categories>
+      <tags>
+        <tag>CS</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>探CMake</title>
+    <url>/2023/09/04/%E6%8E%A2CMake/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>使用CubeMX遇到使用makefile的时候，且HW要求使用CMake来编译项目，特此记录学习make,makefile
+and CMake——仅基础知识以看懂为主</p>
+<p>此章学习CMake</p>
+<span id="more"></span>
+<h1 id="简介">简介</h1>
+<p>CMake是服务于将源代码转换成可执行的文件的工具。本身是一个<strong>工具集</strong>由五个可执行的程序组成：cmake、ctest、cpack、cmake-gui和ccmake</p>
+<ul>
+<li>cmake用于在构建项目的第一步，进行项目的配置、生成和构建项目的主要可执行文件的工作。</li>
+<li>ctest用于运行和报告测试结果的测试驱动程序。</li>
+<li>cpack用来生成安装程序和源包的打包程序。</li>
+<li>cmake-gui是 cmake 的图形界面。</li>
+<li>ccmake（注意ccmake比cmake多了一个c）也是用于图形界面，与cmake-gui不同的地方在于ccmake是基于控制台（terminal）的图形界面</li>
+</ul>
+<p>CMake就是“协调器”——它清楚哪些步骤需要完成，理解最终目标是什么，以及忙碌于为构建工作找到合适的“工人”和“材料”。<strong>这个过程有三个阶段：配置、生成、构建阶段</strong></p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/image_host/main/blog/v2-dc969937345ed270b37200353a50f20e_720w.webp"
+alt="CMake在三个阶段：配置、生成、构建阶段的示意图" />
+<figcaption
+aria-hidden="true">CMake在三个阶段：配置、生成、构建阶段的示意图</figcaption>
+</figure>
+<h2 id="设计初衷">设计初衷</h2>
+<p>设计、编码和测试。在更改了代码之后，工具将以智能的、快速的、可扩展的方式，在不同的操作系统和环境中以相同的方式工作。支持多个集成开发环境(IDE)
+和持续集成(CI)
+流水，这些流水在更改提交到代码库后，就能对代码进行测试。</p>
+<blockquote>
+<p>两个概念需要区分：<build tree>
+和<source tree>，分别对应构建树和源码树；构建树是目标/输出目录的路径，源码树是源码所在的路径。</p>
+</blockquote>
+<h1 id="基本语法">基本语法</h1>
+<h2 id="注释">注释</h2>
+<p><code>CMake</code> 使用 <code>#</code>
+进行<code>行注释</code>，可以放在任何位置。</p>
+<p><code>CMake</code> 使用 <code>#[[  ]]</code>
+形式进行<code>块注释</code>。</p>
+<h2 id="变量">变量</h2>
+<p>三大类：普通变量、缓存变量、环境变量。注意作用域</p>
+<blockquote>
+<ul>
+<li>${} 用于引用普通变量或缓存变量。</li>
+<li>$ENV{} 用于引用环境变量。</li>
+<li>$CACHE{} 用于引用缓存变量。</li>
+</ul>
+</blockquote>
+<p>基本的变量操作指令是set()()，建议在变量名中只使用字母数字字符、减号(-)
+和下划线(_)，具体的使用方式为在设置变量时只需使用set()并提供名称和值，要取消变量的设置时可以使用unset()并提供名称。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">set(Mystring &quot;Text1&quot;)   </span><br><span class="line">message($(Mystring))</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>Tips:${}告诉CMake遍历<strong>作用域堆栈</strong>，尝试将${MyString1}替换为具体的值供message命令打印出来</p>
+<p>${} 语法进行变量的求值和展开时，是由内而外执行的</p>
+</blockquote>
+<h3 id="作用域">作用域</h3>
+<p>理解“<strong>副本</strong>“的概念是关键，当创建<strong>嵌套</strong>（子）作用域时，CMake只需用来自当前（父）作用域的<strong>所有变量的副本</strong>填充，后续<strong>嵌套</strong>（子）作用域命令将影响这些副本。但若完成了<strong>嵌套</strong>（子）作用域的执行，所有的副本都会删除，而原始的父作用域将恢复，嵌套作用域中操作的变量将不会更新到父作用域中</p>
+<p>不管是针对CMake函数作用域还是CMake目录作用域，其都有两个特点：向下有效和数值拷贝生成副本，在不使用特殊关键字的情况下，嵌套（子）作用域针对普通变量的修改不会影响到父作用域。</p>
+<p>针对变量，普通变量仅仅有效于当前作用域，而缓存变量和环境变量可以在全局作用域中使用。</p>
+<h3 id="环境变量">环境变量</h3>
+<p>使用set(ENV{<variable>} <value>)
+指令用以声明，使用unset(ENV{<variable>})来清除某一个环境变量</p>
+<blockquote>
+<p>Tips:设定或读取环境变量时，都通过ENV前缀来访问环境变量，读取环境变量值时，要在ENV前加$符号；但if判断是否定义时，不用加$符号</p>
+</blockquote>
+<p>设定环境变量后，其作用域只影响当前CMake进程，也就是说环境变量设定后是整个CMake进程的作用域都可用，但是不会影响CMake进程外的整个系统环境。</p>
+<p>环境变量在启动CMake进程后会基于CMake在配置阶段中收集的信息在<strong>CMake生成阶段</strong>生成环境变量的<strong>副本</strong>，该副本会在<strong>单一的、全局的</strong>作用域中可用。即，若使用ENV
+变量作为指令的参数，这些值将在CMake生成构建系统期间（配置阶段+生成阶段）插入，并且会将其嵌入到构建树中，在构建系统完成后即使再通过脚本或者命令行修改环境变量ENV{<variable>}的value，在构建阶段时该环境变量值也不会更新成新的value（因为在构建系统中保存的是之前环境变量的副本）</p>
+<h3 id="缓存变量">缓存变量</h3>
+<p>缓存变量可以通过$CACHE{<name>}
+语法来引用，而设置一个缓存变量使用<strong>set(<variable> <value> CACHE
+<type> <docstring> [FORCE])</strong>指令</p>
+<ul>
+<li>FORCE：强制选项，强制修改变量值。——建议一直加上</li>
+</ul>
+<p>与环境变量不同的是，缓存变量是CMake进程在配置阶段收集相关信息后存储在在构建树中的CMakeCache.txt
+文件中的变量，缓存变量不可像环境变量中在脚本使用但是可以通过cmake-gui或者ccmake来声明。</p>
+<p>Cache
+Variable缓存变量相当于一个全局变量，在同一个CMake工程中任何地方都可以使用，比如父目录，子目录等</p>
+<h2 id="控制结构">控制结构</h2>
+<h3 id="条件块">条件块</h3>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1、 if(&lt;condition&gt;)</span><br><span class="line">2、  &lt;commands&gt;</span><br><span class="line">3、 elseif(&lt;condition&gt;) # optional block, can be repeated</span><br><span class="line">4、  &lt;commands&gt;</span><br><span class="line">5、 else() # optional block</span><br><span class="line">6、  &lt;commands&gt;</span><br><span class="line">7、 endif()</span><br></pre></td></tr></table></figure>
+<h3 id="循环">循环</h3>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1、 while(&lt;condition&gt;)</span><br><span class="line">2、  &lt;commands&gt;</span><br><span class="line">3、 endwhile()</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1、 foreach(&lt;loop_var&gt; RANGE &lt;min&gt; &lt;max&gt; [&lt;step&gt;])</span><br><span class="line">2、  &lt;commands&gt;</span><br><span class="line">3、 endforeach()</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>Tips:<min>和<step>参数变量可选择配置，默认的话从0开始，min和max都必须是非负整数，在RANGE中max和min都是包括在循环内部的</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1、 foreach(&lt;loop_variable&gt; IN [LISTS &lt;lists&gt;] [ITEMS &lt;items&gt;])</span><br><span class="line"># foreach(VAR 1 2 3 e f)</span><br></pre></td></tr></table></figure>
+<p>eg:</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1、 set(MY_LIST 1 2 3)</span><br><span class="line">2、 foreach(VAR IN LISTS MY_LIST ITEMS e f)</span><br><span class="line">3、  message($&#123;VAR&#125;)</span><br><span class="line">4、 endforeach()</span><br><span class="line"># 1 2 3 e f</span><br></pre></td></tr></table></figure>
+<p>压缩列表(ZIP_LISTS)，</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="number">1</span>、 foreach(&lt;loop_var&gt;... IN ZIP_LISTS &lt;lists&gt;)</span><br></pre></td></tr></table></figure>
+<p>在压缩列表中CMake 将为每个提供的列表创建一个num_<N>
+变量，用每个列表中的项填充该变量。同时，除了使用CMake自动创建的num_<N>
+变量，用户也可以自定义传递多个<loop_var>
+变量名(每个列表一个)，每个列表将使用单独的变量来存储.</p>
+<p>针对多个列表的压缩处理，前提条件是这些待处理的多个列表中的元素个数是相同的，若列表之间的项数不同，CMake
+将不会为较短的列表定义变量。</p>
+<h3 id="定义指令">定义指令</h3>
+<h3 id="macro">macro()</h3>
+<p>查找和替换指令</p>
+<p>与函数相反，<strong>宏不会在调用堆栈上创建单独的条目</strong>。所以宏中调用return()
+将比在函数中返回调用语句的级别高一级(若已经在顶层作用域中，可能会终止执行)。在调用者的变量作用域中工作</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1、 //CMake中的宏</span><br><span class="line">2、 macro(&lt;name&gt; [&lt;argument&gt; ])</span><br><span class="line">3、  &lt;commands&gt;</span><br><span class="line">4、 endmacro()</span><br><span class="line">5、 //调用宏</span><br><span class="line">6、 &lt;name&gt;(&quot;called value&quot;)</span><br></pre></td></tr></table></figure>
+<p>宏中对变量进行修改会影响全局作用域中的变量，但在macro()内部该变量没有修改，因为<strong>传递给宏的参数没有视为真正的变量，而是作为常量查找并替换指令</strong></p>
+<h3 id="function">function()</h3>
+<p>实际子例程调用</p>
+<p>为本地变量创建一个单独的作用域，这与macro()
+命令不同，后者在调用者的变量作用域中工作，所以使用CMake的function需要注意变量的作用域问题。任何更改都将是函数的局部更改(除非指定了PARENT_SCOPE)，不影响PARENT
+SCOPE。</p>
+<h2 id="实用指令">实用指令</h2>
+<ul>
+<li><p>message()：将文本打印到标准输出，并且CMake通过提供MODE
+参数，可以自定义输出的样式</p></li>
+<li><p>include()：引用官方和CMake社区中已经配置好了的CMake模板，所谓的CMake模板就是将CMake代码划分到单独的.cmake文件中，以保持内容的有序和独立性。然后通过include()指令，从父列表文件引用</p></li>
+<li><p>file()：为了可以知道CMake
+脚本可以做什么，CMake提供了一个可以快速浏览文件的操作命令：</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="number">1</span>、 <span class="built_in">file</span>(READ &lt;filename&gt; &lt;out-var&gt; [...])</span><br><span class="line"><span class="number">2</span>、 <span class="built_in">file</span>(&#123;WRITE | APPEND&#125; &lt;filename&gt; &lt;content&gt;...)</span><br><span class="line"><span class="number">3</span>、 <span class="built_in">file</span>(DOWNLOAD &lt;url&gt; [&lt;file&gt;] [...])</span><br></pre></td></tr></table></figure>
+<p>简而言之，file()
+指令会以一种与系统无关的方式读取、写入和传输文件，并使用文件系统、文件锁、路径和存档</p></li>
+<li><p>execute_process()：有时需要使用系统中可用的工具，CMake提供execute_process()指令以用来运行其他进程，并收集它们的输出</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1、 execute_process(COMMAND &lt;cmd1&gt; [&lt;arguments&gt;]  [OPTIONS])</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h1 id="简单的cmake构建">简单的CMake构建</h1>
+<p>建议直接看原文！！！highly recommended</p>
+<h1 id="references">References</h1>
+<ul>
+<li><a
+href="https://zhuanlan.zhihu.com/p/620839692">CMake入门笔记系列（一）：CMake编译过程详解
+| Micro CMake for C++ - 知乎 (zhihu.com)</a></li>
+</ul>
+]]></content>
+      <categories>
+        <category>CS</category>
+      </categories>
+      <tags>
+        <tag>CS</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>推文制作</title>
     <url>/2023/08/23/%E6%8E%A8%E6%96%87%E5%88%B6%E4%BD%9C/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
@@ -7738,6 +7797,86 @@ x 出现概率最大的值，通常就可以得到 x 的近似真值(当作真�
 <h1 id="references">References</h1>
 <ul>
 <li>【【芝芝子】微信公众号推文制作，20分钟包教包会】https://www.bilibili.com/video/BV1KS4y1j7dv?vd_source=93bb338120537438ee9180881deab9c1</li>
+</ul>
+]]></content>
+      <categories>
+        <category>奇技淫巧</category>
+      </categories>
+      <tags>
+        <tag>奇技淫巧</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>桌面美化</title>
+    <url>/2023/08/10/%E6%A1%8C%E9%9D%A2%E7%BE%8E%E5%8C%96/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>美化桌面，愉悦心情</p>
+<span id="more"></span>
+<h1 id="任务栏美化">任务栏美化</h1>
+<p>微软商店安装<strong>TranslucentTB</strong>使任务栏透明</p>
+<p>任务栏设置中隐藏任务栏</p>
+<h1 id="桌面美化">桌面美化</h1>
+<h2 id="rainmeter">Rainmeter</h2>
+<p>桌面时钟、音乐频谱、电脑监控等</p>
+<h3 id="加载主题">加载主题</h3>
+<p>在<a href="https://zhutix.com/">致美化 - 最专业的视觉美化交流平台
+(zhutix.com)</a>的Rainmeter中下载即可</p>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230810220256059.png"
+alt="image-20230810220256059" />
+<figcaption aria-hidden="true">image-20230810220256059</figcaption>
+</figure>
+<h3 id="设置">设置</h3>
+<ul>
+<li>点击穿透</li>
+<li>允许拖动</li>
+<li>总在底层</li>
+</ul>
+<h3 id="参数设置">参数设置</h3>
+<p>右上角可以直接该参数eg:rgb值,links等</p>
+<h3 id="主题保存">主题保存</h3>
+<p>自己自定义了组件，在主题中保存为新主题即可。</p>
+<h2 id="鼠标指针">鼠标指针</h2>
+<p>在致美化下载鼠标指针样式，解压后找到后缀.inf的文件右键安装</p>
+<p>在设置——个性化——主题——鼠标光标中切换方案即可</p>
+<h1 id="开始菜单美化">开始菜单美化</h1>
+<p>主要使用Start11给“开始”添加图片</p>
+<h1 id="wallpaper-engine">Wallpaper Engine</h1>
+<ul>
+<li><p>性能：开机时启动（设为最高优先级）；其他应用最大化时改为停止（释放内存）</p></li>
+<li><p>常规：打开覆盖壁纸图像+覆盖锁屏图像</p></li>
+<li><p>可以创建文件夹</p></li>
+<li><p>壁纸音量调为0；跟随鼠标晃动的壁纸：鼠标视差关闭即可</p></li>
+<li><p>彩蛋：设置-&gt;关于（英文大写输入）上上下下左右左右BA回车，获得星空主题</p></li>
+</ul>
+<h1 id="结果展示">结果展示</h1>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230810235722677.png"
+alt="image-20230810235722677" />
+<figcaption aria-hidden="true">image-20230810235722677</figcaption>
+</figure>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230810235744577.png"
+alt="image-20230810235744577" />
+<figcaption aria-hidden="true">image-20230810235744577</figcaption>
+</figure>
+<figure>
+<img
+src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230815103141441.png"
+alt="image-20230815103141441" />
+<figcaption aria-hidden="true">image-20230815103141441</figcaption>
+</figure>
+<h1 id="references">References</h1>
+<ul>
+<li><p>【【Wallpaper
+Engine】迄今为止最详细的使用教程】https://www.bilibili.com/video/BV1dX4y1E7vF?vd_source=93bb338120537438ee9180881deab9c1</p></li>
+<li><p><a
+href="https://zhuanlan.zhihu.com/p/563088705">程序员教你十分钟做出炫酷桌面
+- 知乎 (zhihu.com)</a></p></li>
+<li><p>【雨滴桌面教程|深度打造你的自定义桌面（Rainmeter教程）】https://www.bilibili.com/video/BV1N5411x7KP?vd_source=93bb338120537438ee9180881deab9c1</p></li>
 </ul>
 ]]></content>
       <categories>
@@ -7824,86 +7963,6 @@ alt="温州猪脏粉" />
       </categories>
       <tags>
         <tag>journey</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>桌面美化</title>
-    <url>/2023/08/10/%E6%A1%8C%E9%9D%A2%E7%BE%8E%E5%8C%96/</url>
-    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
-<p>美化桌面，愉悦心情</p>
-<span id="more"></span>
-<h1 id="任务栏美化">任务栏美化</h1>
-<p>微软商店安装<strong>TranslucentTB</strong>使任务栏透明</p>
-<p>任务栏设置中隐藏任务栏</p>
-<h1 id="桌面美化">桌面美化</h1>
-<h2 id="rainmeter">Rainmeter</h2>
-<p>桌面时钟、音乐频谱、电脑监控等</p>
-<h3 id="加载主题">加载主题</h3>
-<p>在<a href="https://zhutix.com/">致美化 - 最专业的视觉美化交流平台
-(zhutix.com)</a>的Rainmeter中下载即可</p>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230810220256059.png"
-alt="image-20230810220256059" />
-<figcaption aria-hidden="true">image-20230810220256059</figcaption>
-</figure>
-<h3 id="设置">设置</h3>
-<ul>
-<li>点击穿透</li>
-<li>允许拖动</li>
-<li>总在底层</li>
-</ul>
-<h3 id="参数设置">参数设置</h3>
-<p>右上角可以直接该参数eg:rgb值,links等</p>
-<h3 id="主题保存">主题保存</h3>
-<p>自己自定义了组件，在主题中保存为新主题即可。</p>
-<h2 id="鼠标指针">鼠标指针</h2>
-<p>在致美化下载鼠标指针样式，解压后找到后缀.inf的文件右键安装</p>
-<p>在设置——个性化——主题——鼠标光标中切换方案即可</p>
-<h1 id="开始菜单美化">开始菜单美化</h1>
-<p>主要使用Start11给“开始”添加图片</p>
-<h1 id="wallpaper-engine">Wallpaper Engine</h1>
-<ul>
-<li><p>性能：开机时启动（设为最高优先级）；其他应用最大化时改为停止（释放内存）</p></li>
-<li><p>常规：打开覆盖壁纸图像+覆盖锁屏图像</p></li>
-<li><p>可以创建文件夹</p></li>
-<li><p>壁纸音量调为0；跟随鼠标晃动的壁纸：鼠标视差关闭即可</p></li>
-<li><p>彩蛋：设置-&gt;关于（英文大写输入）上上下下左右左右BA回车，获得星空主题</p></li>
-</ul>
-<h1 id="结果展示">结果展示</h1>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230810235722677.png"
-alt="image-20230810235722677" />
-<figcaption aria-hidden="true">image-20230810235722677</figcaption>
-</figure>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230810235744577.png"
-alt="image-20230810235744577" />
-<figcaption aria-hidden="true">image-20230810235744577</figcaption>
-</figure>
-<figure>
-<img
-src="https://raw.githubusercontent.com/Immortal-Fates/figure_Bed/main/blog/image-20230815103141441.png"
-alt="image-20230815103141441" />
-<figcaption aria-hidden="true">image-20230815103141441</figcaption>
-</figure>
-<h1 id="references">References</h1>
-<ul>
-<li><p>【【Wallpaper
-Engine】迄今为止最详细的使用教程】https://www.bilibili.com/video/BV1dX4y1E7vF?vd_source=93bb338120537438ee9180881deab9c1</p></li>
-<li><p><a
-href="https://zhuanlan.zhihu.com/p/563088705">程序员教你十分钟做出炫酷桌面
-- 知乎 (zhihu.com)</a></p></li>
-<li><p>【雨滴桌面教程|深度打造你的自定义桌面（Rainmeter教程）】https://www.bilibili.com/video/BV1N5411x7KP?vd_source=93bb338120537438ee9180881deab9c1</p></li>
-</ul>
-]]></content>
-      <categories>
-        <category>奇技淫巧</category>
-      </categories>
-      <tags>
-        <tag>奇技淫巧</tag>
       </tags>
   </entry>
   <entry>
@@ -8720,6 +8779,7 @@ stack，打开看看函数调用情况，看看从哪里造成段错误的</p>
     <url>/2023/10/18/%E7%94%B5%E6%8E%A7%E5%9F%B9%E8%AE%AD%EF%BC%883%EF%BC%89/</url>
     <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
 <p>记录我第三次培训的见闻</p>
+<span id="more"></span>
 <h1 id="上次培训说明">上次培训说明</h1>
 <p>宏定义常量——养成习惯</p>
 <figure>
@@ -8841,6 +8901,120 @@ element is not constant”错误-CSDN博客</a></p>
 <h1 id="试验">试验</h1>
 <p>C板是<strong>12MHz</strong>的外部晶振</p>
 <p>电池的输出功率如果太低就会自动断电</p>
+]]></content>
+      <categories>
+        <category>嵌入式</category>
+      </categories>
+      <tags>
+        <tag>嵌入式</tag>
+        <tag>robomaster</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>电控培训（4）</title>
+    <url>/2023/11/09/%E7%94%B5%E6%8E%A7%E5%9F%B9%E8%AE%AD%EF%BC%884%EF%BC%89/</url>
+    <content><![CDATA[<h1 id="main-takeaway">Main Takeaway</h1>
+<p>复活汤圆子！</p>
+<p>完整地把这个流程跑了一遍，成功让汤圆子较为平滑地实现了三种运动模式——平动，随动，小陀螺。在这个过程中我也收获了很多，在此记录一下！</p>
+<span id="more"></span>
+<h1 id="效果展示">效果展示</h1>
+<p>此处仅有小陀螺：（大家应该看不到，因为我存在本地的，哈哈）</p>
+<video src="E:\my_competition\robomaster\electronic_control\stm32_notes\小陀螺.mp4">
+</video>
+<h1 id="底盘运动">底盘运动</h1>
+<ul>
+<li><p>汤圆子是舵轮控制，四个舵电机和四个轮电机</p>
+<p>可以参考这篇文章对舵轮的姿态解算进行了解<a href="https://blog.csdn.net/qq_44164303/article/details/111191099">四舵轮运动算法解析_4个轮子中心旋转的算法-CSDN博客</a></p></li>
+<li><p>速度</p></li>
+</ul>
+<p><span class="math inline"><mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: -0.667ex;" xmlns="http://www.w3.org/2000/svg" width="15.595ex" height="2.572ex" role="img" focusable="false" viewBox="0 -841.7 6892.9 1136.7"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mi"><path data-c="1D463" d="M173 380Q173 405 154 405Q130 405 104 376T61 287Q60 286 59 284T58 281T56 279T53 278T49 278T41 278H27Q21 284 21 287Q21 294 29 316T53 368T97 419T160 441Q202 441 225 417T249 361Q249 344 246 335Q246 329 231 291T200 202T182 113Q182 86 187 69Q200 26 250 26Q287 26 319 60T369 139T398 222T409 277Q409 300 401 317T383 343T365 361T357 383Q357 405 376 424T417 443Q436 443 451 425T467 367Q467 340 455 284T418 159T347 40T241 -11Q177 -11 139 22Q102 54 102 117Q102 148 110 181T151 298Q173 362 173 380Z"></path></g><g data-mml-node="mo" transform="translate(762.8,0)"><path data-c="3D" d="M56 347Q56 360 70 367H707Q722 359 722 347Q722 336 708 328L390 327H72Q56 332 56 347ZM56 153Q56 168 72 173H708Q722 163 722 153Q722 140 707 133H70Q56 140 56 153Z"></path></g><g data-mml-node="mo" transform="translate(1818.6,0)"><path data-c="5B" d="M118 -250V750H255V710H158V-210H255V-250H118Z"></path></g><g data-mml-node="msub" transform="translate(2096.6,0)"><g data-mml-node="mi"><path data-c="1D463" d="M173 380Q173 405 154 405Q130 405 104 376T61 287Q60 286 59 284T58 281T56 279T53 278T49 278T41 278H27Q21 284 21 287Q21 294 29 316T53 368T97 419T160 441Q202 441 225 417T249 361Q249 344 246 335Q246 329 231 291T200 202T182 113Q182 86 187 69Q200 26 250 26Q287 26 319 60T369 139T398 222T409 277Q409 300 401 317T383 343T365 361T357 383Q357 405 376 424T417 443Q436 443 451 425T467 367Q467 340 455 284T418 159T347 40T241 -11Q177 -11 139 22Q102 54 102 117Q102 148 110 181T151 298Q173 362 173 380Z"></path></g><g data-mml-node="mi" transform="translate(518,-150) scale(0.707)"><path data-c="1D465" d="M52 289Q59 331 106 386T222 442Q257 442 286 424T329 379Q371 442 430 442Q467 442 494 420T522 361Q522 332 508 314T481 292T458 288Q439 288 427 299T415 328Q415 374 465 391Q454 404 425 404Q412 404 406 402Q368 386 350 336Q290 115 290 78Q290 50 306 38T341 26Q378 26 414 59T463 140Q466 150 469 151T485 153H489Q504 153 504 145Q504 144 502 134Q486 77 440 33T333 -11Q263 -11 227 52Q186 -10 133 -10H127Q78 -10 57 16T35 71Q35 103 54 123T99 143Q142 143 142 101Q142 81 130 66T107 46T94 41L91 40Q91 39 97 36T113 29T132 26Q168 26 194 71Q203 87 217 139T245 247T261 313Q266 340 266 352Q266 380 251 392T217 404Q177 404 142 372T93 290Q91 281 88 280T72 278H58Q52 284 52 289Z"></path></g></g><g data-mml-node="mo" transform="translate(3069,0)"><path data-c="2C" d="M78 35T78 60T94 103T137 121Q165 121 187 96T210 8Q210 -27 201 -60T180 -117T154 -158T130 -185T117 -194Q113 -194 104 -185T95 -172Q95 -168 106 -156T131 -126T157 -76T173 -3V9L172 8Q170 7 167 6T161 3T152 1T140 0Q113 0 96 17Z"></path></g><g data-mml-node="msub" transform="translate(3513.7,0)"><g data-mml-node="mi"><path data-c="1D465" d="M52 289Q59 331 106 386T222 442Q257 442 286 424T329 379Q371 442 430 442Q467 442 494 420T522 361Q522 332 508 314T481 292T458 288Q439 288 427 299T415 328Q415 374 465 391Q454 404 425 404Q412 404 406 402Q368 386 350 336Q290 115 290 78Q290 50 306 38T341 26Q378 26 414 59T463 140Q466 150 469 151T485 153H489Q504 153 504 145Q504 144 502 134Q486 77 440 33T333 -11Q263 -11 227 52Q186 -10 133 -10H127Q78 -10 57 16T35 71Q35 103 54 123T99 143Q142 143 142 101Q142 81 130 66T107 46T94 41L91 40Q91 39 97 36T113 29T132 26Q168 26 194 71Q203 87 217 139T245 247T261 313Q266 340 266 352Q266 380 251 392T217 404Q177 404 142 372T93 290Q91 281 88 280T72 278H58Q52 284 52 289Z"></path></g><g data-mml-node="mi" transform="translate(605,-150) scale(0.707)"><path data-c="1D466" d="M21 287Q21 301 36 335T84 406T158 442Q199 442 224 419T250 355Q248 336 247 334Q247 331 231 288T198 191T182 105Q182 62 196 45T238 27Q261 27 281 38T312 61T339 94Q339 95 344 114T358 173T377 247Q415 397 419 404Q432 431 462 431Q475 431 483 424T494 412T496 403Q496 390 447 193T391 -23Q363 -106 294 -155T156 -205Q111 -205 77 -183T43 -117Q43 -95 50 -80T69 -58T89 -48T106 -45Q150 -45 150 -87Q150 -107 138 -122T115 -142T102 -147L99 -148Q101 -153 118 -160T152 -167H160Q177 -167 186 -165Q219 -156 247 -127T290 -65T313 -9T321 21L315 17Q309 13 296 6T270 -6Q250 -11 231 -11Q185 -11 150 11T104 82Q103 89 103 113Q103 170 138 262T173 379Q173 380 173 381Q173 390 173 393T169 400T158 404H154Q131 404 112 385T82 344T65 302T57 280Q55 278 41 278H27Q21 284 21 287Z"></path></g></g><g data-mml-node="mo" transform="translate(4515.2,0)"><path data-c="2C" d="M78 35T78 60T94 103T137 121Q165 121 187 96T210 8Q210 -27 201 -60T180 -117T154 -158T130 -185T117 -194Q113 -194 104 -185T95 -172Q95 -168 106 -156T131 -126T157 -76T173 -3V9L172 8Q170 7 167 6T161 3T152 1T140 0Q113 0 96 17Z"></path></g><g data-mml-node="msub" transform="translate(4959.8,0)"><g data-mml-node="mi"><path data-c="1D463" d="M173 380Q173 405 154 405Q130 405 104 376T61 287Q60 286 59 284T58 281T56 279T53 278T49 278T41 278H27Q21 284 21 287Q21 294 29 316T53 368T97 419T160 441Q202 441 225 417T249 361Q249 344 246 335Q246 329 231 291T200 202T182 113Q182 86 187 69Q200 26 250 26Q287 26 319 60T369 139T398 222T409 277Q409 300 401 317T383 343T365 361T357 383Q357 405 376 424T417 443Q436 443 451 425T467 367Q467 340 455 284T418 159T347 40T241 -11Q177 -11 139 22Q102 54 102 117Q102 148 110 181T151 298Q173 362 173 380Z"></path></g><g data-mml-node="mi" transform="translate(518,-150) scale(0.707)"><path data-c="1D464" d="M580 385Q580 406 599 424T641 443Q659 443 674 425T690 368Q690 339 671 253Q656 197 644 161T609 80T554 12T482 -11Q438 -11 404 5T355 48Q354 47 352 44Q311 -11 252 -11Q226 -11 202 -5T155 14T118 53T104 116Q104 170 138 262T173 379Q173 380 173 381Q173 390 173 393T169 400T158 404H154Q131 404 112 385T82 344T65 302T57 280Q55 278 41 278H27Q21 284 21 287Q21 293 29 315T52 366T96 418T161 441Q204 441 227 416T250 358Q250 340 217 250T184 111Q184 65 205 46T258 26Q301 26 334 87L339 96V119Q339 122 339 128T340 136T341 143T342 152T345 165T348 182T354 206T362 238T373 281Q402 395 406 404Q419 431 449 431Q468 431 475 421T483 402Q483 389 454 274T422 142Q420 131 420 107V100Q420 85 423 71T442 42T487 26Q558 26 600 148Q609 171 620 213T632 273Q632 306 619 325T593 357T580 385Z"></path></g></g><g data-mml-node="msup" transform="translate(6034.1,0)"><g data-mml-node="mo"><path data-c="5D" d="M22 710V750H159V-250H22V-210H119V710H22Z"></path></g><g data-mml-node="mi" transform="translate(311,363) scale(0.707)"><path data-c="1D447" d="M40 437Q21 437 21 445Q21 450 37 501T71 602L88 651Q93 669 101 677H569H659Q691 677 697 676T704 667Q704 661 687 553T668 444Q668 437 649 437Q640 437 637 437T631 442L629 445Q629 451 635 490T641 551Q641 586 628 604T573 629Q568 630 515 631Q469 631 457 630T439 622Q438 621 368 343T298 60Q298 48 386 46Q418 46 427 45T436 36Q436 31 433 22Q429 4 424 1L422 0Q419 0 415 0Q410 0 363 1T228 2Q99 2 64 0H49Q43 6 43 9T45 27Q49 40 55 46H83H94Q174 46 189 55Q190 56 191 56Q196 59 201 76T241 233Q258 301 269 344Q339 619 339 625Q339 630 310 630H279Q212 630 191 624Q146 614 121 583T67 467Q60 445 57 441T43 437H40Z"></path></g></g></g></g></svg></mjx-container></span>,姿态解算时输入这三个参数，就能实现底盘控制</p>
+<ul>
+<li><p>坐标系</p>
+<p>坐标系有底盘坐标系，云台坐标系和世界坐标系</p>
+<blockquote>
+<p>本来我应该在云台坐标系中来控制云台的，但我先把云台坐标系映射到底盘坐标系中来（错了，因为我不知道云台还有个imu）</p>
+</blockquote></li>
+</ul>
+<h1 id="流程">流程</h1>
+<p>我的写代码的过程：</p>
+<ul>
+<li><p>硬件通信配置</p>
+<ul>
+<li><p>CAN通信——can的FIFO0/1的区别我需要都打开吗？ done</p>
+<p>// CAN1驱动前后航向电机GM6020 done(传参时还需要查看手册) //
+CAN2驱动前后驱动电机M3508（自带位置反馈？？我怎么用）+C620电调+GM6020舵轮yaw
+轴电机ID为1 done(传参时还需要查看手册)</p>
+<p>现在我能读到所有的速度和位置了，然后进行姿态解算</p></li>
+<li><p>TIM ——1k done</p></li>
+<li><p>imu done(零漂计算OK)</p></li>
+<li><p>IWDG 已放置，搞懂参数done</p></li>
+<li><p>遥控器配置 数据读取done</p></li>
+<li><p>底盘初始化 done</p></li>
+<li><p>yaw轴电机初始化 done</p></li>
+</ul></li>
+<li><p>底盘运动控制——3modes done</p>
+<p>姿态解算：只改变target</p>
+<blockquote>
+<p>现在得到的都是弧度</p>
+</blockquote>
+<p>在tim中发送控制命令 done</p>
+<p>利用遥控器数据写mode+control done</p>
+<p>PID done(参数还没调)</p></li>
+<li><p>云台控制 done</p></li>
+<li><p>遥控器配置——与控制 done</p></li>
+<li><p>初始化每个电机的角度、朝向以及imu的方向——进行补偿</p>
+<ul>
+<li><p>对imu的yaw轴以电机的0°为0° done</p></li>
+<li><p>舵电机的角度补偿——直接看</p></li>
+</ul></li>
+<li><p>架构，对代码进行封装</p></li>
+</ul>
+<h1 id="调试">调试</h1>
+<ul>
+<li><p>调试第一步：配置看门狗！！！并将看⻔狗的刷新函数放置在遥控器数据接收或解包的地⽅，确保关闭遥控器后程序能及时被杀死！！！！（疯车时用）</p>
+<blockquote>
+<p>在调试过程中，我的车疯过，只有这样才能体会到看门狗的重要性！，且最好在没收到遥控器数据的时候用CAN发送0的命令，这样更加安全</p>
+</blockquote></li>
+</ul>
+<p>IWDG：在cube的配置中，prescaler和reloadvalue越⼤，看门狗杀死程序的速度越慢（也不能太快）在遥控器指令解包的代码处调⽤看⻔狗刷新函数，可以实现通过看⻔狗可以使得关闭遥控器的时候可以将程序杀死</p>
+<p>我的调试流程：</p>
+<ul>
+<li><p>对舵轮云台和imu进行位姿补偿</p></li>
+<li><p>实现底盘坐标系下的运动指令响应——即正确控制舵轮和云台</p>
+<p>并在此时把车架在矿石上调PID</p>
+<blockquote>
+<p>因为架起来和放下来PID肯定是不一样的，此时调可以让你对电机的性能有个大致的了解，云台在这个时候可以调好！</p>
+</blockquote></li>
+<li><p>放下车重新调PID</p>
+<blockquote>
+<p>速度给小一点，防止疯车</p>
+</blockquote></li>
+<li><p>实现所有底盘运动模式</p></li>
+</ul>
+<h1 id="调试心得">调试心得</h1>
+<ul>
+<li><p>！！！云台和舵电机要用双环PID——外环角度环，内环速度环</p>
+<blockquote>
+<p>PID无量纲！</p>
+<p>开始只用了单环——有点小丑了。</p>
+</blockquote></li>
+</ul>
+<p>​ 先调内环，再调外环，调内环时外环给的值可以大一点。</p>
+<p>​ 检查效果：用手拨一下，看看硬不硬！（单环太软了）</p>
+<ul>
+<li><p>在小陀螺模式中，有个舵轮出问题了（缓震结构不能对称下降，导致我有个舵轮在某个角度被拖着走，还造成了——大家在一些其他同样的部位都没出问题的情况下，可以检查一下机械结构是否有什么异常）</p></li>
+<li><p>舵轮的移动感觉比麦轮更加平滑，麦轮他们的好抖看着</p></li>
+<li><p>防侧摔，在速度为0停下来的时候先停一下，再变成小陀螺站立的姿势</p></li>
+</ul>
+<h1 id="写在最后">写在最后</h1>
+<p>终期考核完结撒花！坤哥现场检验通过，要成为RMer啦！</p>
+<p>希望能为战队作出自己的一份贡献。</p>
+<h1 id="references">References</h1>
+<ul>
+<li><p><a href="https://lonewolferic.github.io/2018/08/27/Analysis-of-gimbal-servo-control-system/">浅析RM步兵机器人云台-底盘随动系统
+| 孤狼博客 (lonewolferic.github.io)</a></p></li>
+<li><p><a href="https://blog.csdn.net/qq_44164303/article/details/111191099">四舵轮运动算法解析_4个轮子中心旋转的算法-CSDN博客</a></p></li>
+</ul>
 ]]></content>
       <categories>
         <category>嵌入式</category>
